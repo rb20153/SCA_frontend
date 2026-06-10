@@ -5,6 +5,61 @@
 
 ---
 
+## [2026-06-10] 知识库 · 版本管理页（M03-S02-P01）
+
+### 改了什么
+
+- **`KbVersionManage.vue`**：顶部「更新版本」+ 5 项统计卡片 + 版本分页列表
+- **`api/knowledge.ts`**：新增 `getKbProjectDetail`、`getKbVersionOverview`、`getKbVersionList`
+- **`mock/modules/knowledge/versionList.ts`**：按项目生成版本 mock（OpenFOAM 12 条对齐原型）
+- **组件**：`KbVersionUpdateBar`（获取更新/上传更新包二选一弹窗）、`KbVersionStatCard`、`KbVersionTable`、`KbVersionActionCell`
+- **`KbProjectActionCell`**：跳转版本管理/项目目录时经 `history.state` 携带 `kbProject`
+
+### 怎么实现的
+
+- 统计卡片样式对齐首页 `StatCard`（无增长率行），5 列栅格自适应
+- 版本列表 10 条/页；操作列按状态展示「更新说明 / 构建日志 / 恢复」（暂无可点交互）
+- 更新方式弹窗样式对齐 `DetectTaskCreateBar`，选中后仅关闭弹窗
+
+### 注意事项
+
+- 获取更新、上传更新包、更新说明、构建日志、恢复等待后续迭代
+- 直接刷新版本管理 URL 时无 navigation state，卡片数据由 API 拉取
+
+---
+
+## [2026-06-10] 知识库 · 面包屑与侧栏高亮
+
+### 改了什么
+
+- **`router/index.ts`**：项目目录、版本管理及覆盖统计/漏洞库等子页，面包屑统一为「知识库管理（可点回 `/knowledge`）/ 当前页」；列表页去掉重复的「知识库管理 / 知识库管理」
+- **`AdminLayout.vue`**：访问 `/knowledge/:id/versions` 或 `directory` 时，侧栏仍高亮「知识库管理」菜单项
+
+---
+
+## [2026-06-10] 知识库管理 · 开源项目列表（筛选/分页/编辑/删除）
+
+### 改了什么
+
+- **`views/knowledge/KnowledgeBaseList.vue`**：重写占位页，串联筛选区 + 表格 + 编辑/删除弹窗
+- **`api/knowledge.ts`** + **`types/knowledge.ts`** + **`mock/modules/knowledge/knowledgeList.ts`**（26 条）
+- **组件**：`KbProjectQueryBar`、`KbProjectTable`、`KbProjectActionCell`、`KbProjectEditModal`、`KbProjectDeleteModal`
+- **工具**：`knowledgeQuery.ts`（筛选项与查询参数转换）、`knowledgeDisplay.ts`（分类/采集方式文案与 Tag 颜色）
+
+### 怎么实现的
+
+- 筛选复用 `ListQueryBar`：项目名称、分类（仿真框架/数值计算/工具链）、采集方式（云端仓库拉取/上传源码包）、最近更新（单日）
+- 列表复用 `ListTable` + `useFilteredPaginatedList`，10 条/页，无列头排序
+- 操作：项目目录 → `/knowledge/:id/directory`；版本管理 → `/knowledge/:id/versions`；编辑弹窗（除标签外必填）；删除需输入项目名称匹配后才可确认
+- 编辑/删除成功后前端同步更新当前页列表项（删空当前页时自动回退一页）
+
+### 注意事项
+
+- 顶部「添加开源项目」按钮与底部概览卡片尚未实现
+- 编辑弹窗暂不包含登录方式/凭据（仅基本信息字段，与原型 kb-edit 简化版一致）
+
+---
+
 ## [2026-06-10] 项目管理 · 项目名称与负责人必填
 
 - 新增项目弹窗：项目名称、负责人均必填（表单 `required` + 提交校验）

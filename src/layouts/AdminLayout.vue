@@ -168,6 +168,11 @@ watch(
       selectedKeys.value = ['/reports/templates']
     } else if (path.startsWith('/reports')) {
       selectedKeys.value = ['/reports']
+    } else if (
+      /^\/knowledge\/[^/]+\/(versions|directory)$/.test(path)
+    ) {
+      // 项目目录、版本管理为知识库列表的子页，侧栏仍高亮「知识库管理」
+      selectedKeys.value = ['/knowledge']
     } else {
       selectedKeys.value = [path]
     }

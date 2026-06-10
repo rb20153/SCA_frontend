@@ -162,7 +162,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/knowledge/KnowledgeBaseList.vue'),
         meta: {
           title: '知识库管理',
-          breadcrumbs: crumbs('知识库管理', '知识库管理'),
+          breadcrumbs: crumbs('知识库管理'),
         },
       },
       {
@@ -171,7 +171,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/knowledge/KnowledgeCoverage.vue'),
         meta: {
           title: '覆盖统计',
-          breadcrumbs: crumbs('知识库管理', '覆盖统计'),
+          breadcrumbs: crumbs({ title: '知识库管理', path: '/knowledge' }, '覆盖统计'),
         },
       },
       {
@@ -180,7 +180,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/knowledge/VulnKnowledgeBase.vue'),
         meta: {
           title: '漏洞知识库',
-          breadcrumbs: crumbs('知识库管理', '漏洞知识库'),
+          breadcrumbs: crumbs({ title: '知识库管理', path: '/knowledge' }, '漏洞知识库'),
         },
       },
       {
@@ -190,7 +190,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: '漏洞条目',
           breadcrumbs: crumbs(
-            '知识库管理',
+            { title: '知识库管理', path: '/knowledge' },
             { title: '漏洞知识库', path: '/knowledge/vulnerabilities' },
             '漏洞条目',
           ),
@@ -202,7 +202,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/knowledge/KbVersionManage.vue'),
         meta: {
           title: '版本管理',
-          breadcrumbs: crumbs('知识库管理', '版本管理'),
+          breadcrumbs: crumbs({ title: '知识库管理', path: '/knowledge' }, '版本管理'),
         },
       },
       {
@@ -211,7 +211,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/knowledge/KbProjectDirectory.vue'),
         meta: {
           title: '项目目录',
-          breadcrumbs: crumbs('知识库管理', '项目目录'),
+          breadcrumbs: crumbs({ title: '知识库管理', path: '/knowledge' }, '项目目录'),
         },
       },
 
