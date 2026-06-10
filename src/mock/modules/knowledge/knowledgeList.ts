@@ -118,3 +118,4 @@ function buildMockKbProjects(count: number): KbProject[] {
 
 /** 知识库开源项目列表 mock 数据源 */
 export const MOCK_ALL_KB_PROJECTS: KbProject[] = buildMockKbProjects(MOCK_KB_PROJECT_TOTAL)
+// export const MOCK_ALL_KB_PROJECTS: KbProject[] = []

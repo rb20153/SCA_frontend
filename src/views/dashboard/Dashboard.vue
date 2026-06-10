@@ -1,19 +1,8 @@
-﻿<template>
+<template>
   <div class="dashboard-page">
     <PageLoading :loading="loading">
       <!-- 顶部统计卡片 -->
-      <a-row :gutter="[16, 16]" class="dashboard-section">
-        <a-col v-for="item in stats" :key="item.key" :xs="24" :sm="12" :lg="6">
-          <StatCard
-            :label="item.label"
-            :value="item.value"
-            :suffix="item.suffix"
-            :growth="item.growth"
-            :growth-suffix="item.growthSuffix"
-            :warn-value="item.warnValue"
-          />
-        </a-col>
-      </a-row>
+      <StatCardRow :items="statCards" class="dashboard-section" />
 
       <!-- 图表占位区 -->
       <a-row :gutter="[16, 16]" class="dashboard-section">
@@ -49,23 +38,24 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { getDashboardOverview, getRecentTasks } from '@/api/dashboard'
-import type { DashboardStatItem } from '@/types/dashboard'
+import type { StatCardItem } from '@/types/common'
 import type { DetectTask } from '@/types/detect'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
-import StatCard from '@/components/dashboard/StatCard.vue'
+import StatCardRow from '@/components/common/StatCardRow.vue'
 import ChartPlaceholder from '@/components/dashboard/ChartPlaceholder.vue'
 import DetectTaskTable from '@/components/detect/DetectTaskTable.vue'
+import { mapDashboardStatsToStatCards } from '@/utils/statCard'
 
 const loading = ref(false)
 const tasksLoading = ref(false)
-const stats = ref<DashboardStatItem[]>([])
+const statCards = ref<StatCardItem[]>([])
 const recentTasks = ref<DetectTask[]>([])
 
 /** 拉取首页统计数据 */
 async function fetchOverview() {
   const overviewRes = await getDashboardOverview()
-  stats.value = overviewRes.data.stats
+  statCards.value = mapDashboardStatsToStatCards(overviewRes.data.stats)
 }
 
 /** 拉取最近任务（最多 10 条，api 层已排序截断） */

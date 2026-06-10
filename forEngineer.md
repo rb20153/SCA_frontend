@@ -5,6 +5,85 @@
 
 ---
 
+## [2026-06-10] 文字溢出防护 · 公共组件 + 全列表接入
+
+### 改了什么
+
+- **公共组件**：`EllipsisText`（列表单行省略 + tooltip）、`DetailText`（详情/抽屉/弹窗长文换行）、`ListTableCell`（按列配置自动选用省略或纯文本）
+- **工具**：`utils/listTable.ts` 中 `shouldColumnEllipsis` / `withListColumnDefaults` — 有 `dataIndex` 的文本列默认 `ellipsis: true`，`action`/`status`/`level`/Tag 等列排除
+- **`ListTable`**：默认 `bodyCell` 回退 `ListTableCell`；单元格 `overflow: hidden`
+- **8 张业务表**全部在自定义 `bodyCell` 末尾增加 `v-else` + `ListTableCell`：`DetectTaskTable`、`ProjectTable`、`KbProjectTable`、`KbVersionTable`、`PolicyTable`、`ReportTable`、`ReportTemplateTable`、`AlertTable`
+- **`StatCard`** 主数值改用 `EllipsisText`
+- **详情/弹窗**：`AlertDetailDrawer` 标题/内容/建议等用 `DetailText`；报告失败原因弹窗用 `DetailText` + `preserve-breaks`
+
+### 使用约定
+
+| 场景 | 组件 | 说明 |
+|------|------|------|
+| 列表单元格（名称、标题等） | `ListTableCell` 或列上 `ellipsis: true` | 超出显示 `…`，悬停 tooltip 全文 |
+| 统计卡片数值 | `EllipsisText` | 防止超大数字或长文案撑破卡片 |
+| 抽屉/描述列表/弹窗正文 | `DetailText` | 自动换行；日志类传 `preserve-breaks` |
+| 自定义 bodyCell 的表 | 分支末尾必须 `v-else` + `ListTableCell` | 否则会覆盖 `ListTable` 默认回退 |
+
+### 注意事项
+
+- 列需同时设 `width` + `dataIndex` 省略才生效；纯 `key` 无 `dataIndex` 的列（如格式化日期）走普通文本
+- 占位页（项目目录、结果详情等）尚无列表/抽屉，后续按上表接入即可
+
+---
+
+## [2026-06-10] 告警中心 · Tab / 筛选 / 列表 / 详情抽屉
+
+### 改了什么
+
+- **`AlertCenter.vue`**：未处理/已处理 Tab → 统计卡片 → 筛选 → 分页列表
+- **组件**：`AlertQueryBar`、`AlertTable`、`AlertActionCell`、`AlertDetailDrawer`（`a-drawer` 官方组件）
+- **`api/system.ts`**：`getAlertList`、`getAlertDetail`；概览 API 增加 `status` 参数
+- **mock**：`alertList.ts`（未处理 18 条 / 已处理 12 条 + 详情）
+
+### 怎么实现的
+
+- 切换 Tab 时并行请求概览与列表（默认未处理；点已处理才拉已处理数据）
+- 筛选：级别 + 日期时间（默认今日 00:00）；已处理 Tab 按处理日期过滤
+- 详情抽屉打开时 `getAlertDetail`；关联任务/项目可跳转结果页与项目详情
+
+### 注意事项
+
+- 「处理」按钮暂无交互；详情长文已用公共 `DetailText` 换行展示
+
+---
+
+## [2026-06-10] 覆盖统计 / 漏洞知识库 / 告警中心 · 统计卡片
+
+### 改了什么
+
+- **`KnowledgeCoverage.vue`**、**`VulnKnowledgeBase.vue`**、**`AlertCenter.vue`**：顶部 `StatCardRow` + `onMounted` 请求概览 API
+- **`api/knowledge.ts`**：`getKnowledgeCoverageOverview`、`getVulnKnowledgeOverview`
+- **`api/system.ts`**（新建）：`getAlertCenterOverview`
+- **mock**：`coverageOverview.ts`、`vulnKnowledgeOverview.ts`、`system/alertOverview.ts`
+- **`utils/statCard.ts`**：三个页面的 overview → `StatCardItem` 映射函数
+
+### 注意事项
+
+- 三页其余区块仍为占位；高危/待补全/紧急等计数 > 0 时使用 `warnValue` 警告色
+
+---
+
+## [2026-06-10] 公共统计卡片 StatCard / StatCardRow
+
+### 改了什么
+
+- 新增 **`components/common/StatCard.vue`**、**`StatCardRow.vue`**，统一标签 + 主数值 + 可选增长率行
+- **`types/common.ts`** 已有 `StatCardItem`；新增 **`utils/statCard.ts`** 映射首页数据
+- 首页、版本管理改用公共组件；删除 `dashboard/StatCard.vue`、`knowledge/KbVersionStatCard.vue`
+
+### 注意事项
+
+- `StatCardRow` 支持 `columns`：`4`（首页）或 `5`（版本管理），含响应式栅格
+- 无 `growth` 字段时不展示第三行增长率
+
+---
+
 ## [2026-06-10] 知识库 · 版本管理页（M03-S02-P01）
 
 ### 改了什么

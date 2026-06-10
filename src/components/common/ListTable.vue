@@ -9,8 +9,10 @@
       :row-key="rowKey"
       size="middle"
     >
-      <template v-if="$slots.bodyCell" #bodyCell="scope">
-        <slot name="bodyCell" v-bind="scope" />
+      <template #bodyCell="scope">
+        <slot name="bodyCell" v-bind="scope">
+          <ListTableCell :column="scope.column" :text="scope.text" />
+        </slot>
       </template>
     </a-table>
   </div>
@@ -19,6 +21,7 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>">
 import { computed } from 'vue'
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
+import ListTableCell from '@/components/common/ListTableCell.vue'
 import { withListColumnDefaults } from '@/utils/listTable'
 
 const props = withDefaults(
@@ -48,6 +51,10 @@ const normalizedColumns = computed(() => withListColumnDefaults(props.columns))
 <style scoped>
 .list-table-wrap {
   width: 100%;
+  overflow: hidden;
+}
+
+.list-table-wrap :deep(.ant-table-cell) {
   overflow: hidden;
 }
 </style>

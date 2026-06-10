@@ -7,7 +7,7 @@
     :scroll-x="KB_PROJECT_TABLE_SCROLL_X"
     row-key="kbProjectId"
   >
-    <template #bodyCell="{ column, record: row }">
+    <template #bodyCell="{ column, record: row, text }">
       <template v-if="column.key === 'category'">
         <a-tag
           :color="KB_PROJECT_CATEGORY_COLOR[getProject(row).category]"
@@ -32,6 +32,8 @@
           @delete="(project) => emit('delete', project)"
         />
       </template>
+
+      <ListTableCell v-else :column="column" :text="text" />
     </template>
   </ListTable>
 </template>
@@ -40,6 +42,7 @@
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import type { KbProject } from '@/types/knowledge'
 import ListTable from '@/components/common/ListTable.vue'
+import ListTableCell from '@/components/common/ListTableCell.vue'
 import KbProjectActionCell from '@/components/knowledge/KbProjectActionCell.vue'
 import {
   KB_COLLECT_MODE_LABEL,
@@ -69,7 +72,7 @@ const columns: TableColumnsType<KbProject> = [
   { title: '项目名称', key: 'projectName', dataIndex: 'projectName', width: 160, ellipsis: true },
   { title: '分类', key: 'category', width: 120 },
   { title: '采集方式', key: 'collectMode', width: 140 },
-  { title: '最新版本', key: 'latestVersion', dataIndex: 'latestVersion', width: 110 },
+  { title: '最新版本', key: 'latestVersion', dataIndex: 'latestVersion', width: 110, ellipsis: true },
   { title: '版本数', key: 'versionCount', dataIndex: 'versionCount', width: 90 },
   { title: '项目数', key: 'referencedProjectCount', dataIndex: 'referencedProjectCount', width: 90 },
   { title: '最近更新', key: 'updatedAt', width: 160 },

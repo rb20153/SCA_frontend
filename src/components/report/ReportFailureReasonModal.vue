@@ -9,7 +9,7 @@
     @ok="handleOk"
   >
     <a-spin :spinning="loading">
-      <p class="failure-reason">{{ reason || '暂无失败原因' }}</p>
+      <DetailText :text="reason || '暂无失败原因'" preserve-breaks />
     </a-spin>
   </a-modal>
 </template>
@@ -17,6 +17,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { getReportFailureReason } from '@/api/report'
+import DetailText from '@/components/common/DetailText.vue'
 
 const props = defineProps<{
   reportId: string
@@ -54,11 +55,3 @@ function handleOk() {
 }
 </script>
 
-<style scoped>
-.failure-reason {
-  margin: 0;
-  color: rgba(0, 0, 0, 0.88);
-  line-height: 1.6;
-  white-space: pre-wrap;
-}
-</style>

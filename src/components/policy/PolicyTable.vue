@@ -7,7 +7,7 @@
     :scroll-x="POLICY_TABLE_SCROLL_X"
     row-key="policyId"
   >
-    <template #bodyCell="{ column, record: row }">
+    <template #bodyCell="{ column, record: row, text }">
       <template v-if="column.key === 'isDefault'">
         <a-tag :color="getPolicy(row).isDefault ? 'blue' : 'default'" class="list-table-status-tag">
           {{ getPolicy(row).isDefault ? '是' : '否' }}
@@ -24,6 +24,8 @@
           @delete="(policy) => emit('delete', policy)"
         />
       </template>
+
+      <ListTableCell v-else :column="column" :text="text" />
     </template>
   </ListTable>
 </template>
@@ -32,6 +34,7 @@
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import type { Policy } from '@/types/policy'
 import ListTable from '@/components/common/ListTable.vue'
+import ListTableCell from '@/components/common/ListTableCell.vue'
 import PolicyActionCell from '@/components/policy/PolicyActionCell.vue'
 import { POLICY_TABLE_SCROLL_X, formatPolicyDateTime } from '@/utils/policyDisplay'
 

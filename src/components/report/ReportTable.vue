@@ -7,7 +7,7 @@
     :scroll-x="REPORT_TABLE_SCROLL_X"
     row-key="reportId"
   >
-    <template #bodyCell="{ column, record: row }">
+    <template #bodyCell="{ column, record: row, text }">
       <template v-if="column.key === 'generatedAt'">
         {{ formatReportDate(getReport(row).generatedAt) }}
       </template>
@@ -25,6 +25,8 @@
           @failure-reason="(report) => emit('failure-reason', report)"
         />
       </template>
+
+      <ListTableCell v-else :column="column" :text="text" />
     </template>
   </ListTable>
 </template>
@@ -33,6 +35,7 @@
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import type { Report } from '@/types/report'
 import ListTable from '@/components/common/ListTable.vue'
+import ListTableCell from '@/components/common/ListTableCell.vue'
 import ReportActionCell from '@/components/report/ReportActionCell.vue'
 import {
   REPORT_STATUS_COLOR,

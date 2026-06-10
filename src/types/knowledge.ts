@@ -73,3 +73,24 @@ export interface KbVersionOverview {
 export interface KbVersionQueryParams extends PageParams {
   kbProjectId: string
 }
+
+/** 覆盖统计页顶部概览 */
+export interface KnowledgeCoverageOverview {
+  /** 项目覆盖率，0–100 */
+  projectCoverageRate: number
+  /** 目录索引完整率，0–100 */
+  directoryIndexRate: number
+  /** 漏洞源覆盖率，0–100 */
+  vulnSourceCoverageRate: number
+  /** 待补全项目数 */
+  pendingProjectCount: number
+}
+
+/** 漏洞知识库页顶部概览 */
+export interface VulnKnowledgeOverview {
+  sourceCount: number
+  totalVulnCount: number
+  highRiskCount: number
+  /** 最近同步时间，ISO 8601 */
+  lastSyncedAt: string
+}

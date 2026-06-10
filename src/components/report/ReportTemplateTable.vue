@@ -7,7 +7,7 @@
     :scroll-x="REPORT_TEMPLATE_TABLE_SCROLL_X"
     row-key="templateId"
   >
-    <template #bodyCell="{ column, record: row }">
+    <template #bodyCell="{ column, record: row, text }">
       <template v-if="column.key === 'outputFormat'">
         {{ REPORT_TEMPLATE_OUTPUT_FORMAT_LABEL[getTemplate(row).outputFormat] }}
       </template>
@@ -44,6 +44,8 @@
           @failure-reason="(template) => emit('failure-reason', template)"
         />
       </template>
+
+      <ListTableCell v-else :column="column" :text="text" />
     </template>
   </ListTable>
 </template>
@@ -52,6 +54,7 @@
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import type { ReportTemplate } from '@/types/reportTemplate'
 import ListTable from '@/components/common/ListTable.vue'
+import ListTableCell from '@/components/common/ListTableCell.vue'
 import ReportTemplateActionCell from '@/components/report/ReportTemplateActionCell.vue'
 import {
   REPORT_TEMPLATE_OUTPUT_FORMAT_LABEL,

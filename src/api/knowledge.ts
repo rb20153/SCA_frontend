@@ -2,12 +2,16 @@ import type { ApiResponse, PageResult } from '@/types/common'
 import type {
   KbProject,
   KbProjectQueryParams,
+  KnowledgeCoverageOverview,
   KbVersion,
   KbVersionOverview,
   KbVersionQueryParams,
   UpdateKbProjectParams,
+  VulnKnowledgeOverview,
 } from '@/types/knowledge'
 import { MOCK_ALL_KB_PROJECTS } from '@/mock/modules/knowledge/knowledgeList'
+import { mockKnowledgeCoverageOverviewRes } from '@/mock/modules/knowledge/coverageOverview'
+import { mockVulnKnowledgeOverviewRes } from '@/mock/modules/knowledge/vulnKnowledgeOverview'
 import {
   getMockKbVersionOverview,
   getMockKbVersions,
@@ -175,6 +179,24 @@ export function getKbVersionList(
       pageSize,
     },
   })
+}
+
+/**
+ * 获取知识库覆盖统计页概览
+ */
+export function getKnowledgeCoverageOverview(): Promise<
+  ApiResponse<KnowledgeCoverageOverview>
+> {
+  // TODO: replace with → return request.get('/api/knowledge/coverage/overview')
+  return Promise.resolve(mockKnowledgeCoverageOverviewRes)
+}
+
+/**
+ * 获取漏洞知识库页概览
+ */
+export function getVulnKnowledgeOverview(): Promise<ApiResponse<VulnKnowledgeOverview>> {
+  // TODO: replace with → return request.get('/api/knowledge/vulnerabilities/overview')
+  return Promise.resolve(mockVulnKnowledgeOverviewRes)
 }
 
 /**

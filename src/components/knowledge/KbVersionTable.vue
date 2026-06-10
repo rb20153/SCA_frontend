@@ -7,7 +7,7 @@
     :scroll-x="KB_VERSION_TABLE_SCROLL_X"
     row-key="versionId"
   >
-    <template #bodyCell="{ column, record: row }">
+    <template #bodyCell="{ column, record: row, text }">
       <template v-if="column.key === 'status'">
         <a-tag
           :color="KB_VERSION_STATUS_COLOR[getVersion(row).status]"
@@ -24,6 +24,8 @@
       <template v-else-if="column.key === 'action'">
         <KbVersionActionCell :version="getVersion(row)" />
       </template>
+
+      <ListTableCell v-else :column="column" :text="text" />
     </template>
   </ListTable>
 </template>
@@ -32,6 +34,7 @@
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import type { KbVersion } from '@/types/knowledge'
 import ListTable from '@/components/common/ListTable.vue'
+import ListTableCell from '@/components/common/ListTableCell.vue'
 import KbVersionActionCell from '@/components/knowledge/KbVersionActionCell.vue'
 import {
   KB_VERSION_STATUS_COLOR,
@@ -52,7 +55,7 @@ function getVersion(row: unknown): KbVersion {
 }
 
 const columns: TableColumnsType<KbVersion> = [
-  { title: '版本号', key: 'versionNo', dataIndex: 'versionNo', width: 120 },
+  { title: '版本号', key: 'versionNo', dataIndex: 'versionNo', width: 120, ellipsis: true },
   { title: '说明', key: 'description', dataIndex: 'description', width: 260, ellipsis: true },
   { title: '项目数', key: 'referencedProjectCount', dataIndex: 'referencedProjectCount', width: 90 },
   { title: '更新状态', key: 'status', width: 120 },

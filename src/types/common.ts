@@ -17,6 +17,19 @@ export interface PageParams {
   pageSize: number
 }
 
+/** 统计卡片单项（StatCard / StatCardRow 通用） */
+export interface StatCardItem {
+  key: string
+  label: string
+  /** 展示用主数值，由页面侧格式化后传入 */
+  value: string
+  /** 环比增量；有值时展示增长率行 */
+  growth?: number
+  growthSuffix?: string
+  /** 主数值是否使用警告色 */
+  warnValue?: boolean
+}
+
 // ─── SCA Domain canonical types ───────────────────────────────────────────────
 
 /** 任务运行状态（列表展示仅 6 种） */

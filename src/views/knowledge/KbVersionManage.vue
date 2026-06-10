@@ -1,16 +1,9 @@
-﻿<template>
+<template>
   <div class="page-container">
     <KbVersionUpdateBar />
 
     <PageLoading :loading="overviewLoading && !overview">
-      <div v-if="overview" class="stat-row">
-        <KbVersionStatCard
-          v-for="item in statItems"
-          :key="item.key"
-          :label="item.label"
-          :value="item.value"
-        />
-      </div>
+      <StatCardRow v-if="statItems.length > 0" :items="statItems" :columns="5" />
     </PageLoading>
 
     <a-card :bordered="false" class="table-card">
@@ -37,10 +30,11 @@ import { useRoute } from 'vue-router'
 import { getKbVersionList, getKbVersionOverview } from '@/api/knowledge'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
-import KbVersionStatCard from '@/components/knowledge/KbVersionStatCard.vue'
+import StatCardRow from '@/components/common/StatCardRow.vue'
 import KbVersionTable from '@/components/knowledge/KbVersionTable.vue'
 import KbVersionUpdateBar from '@/components/knowledge/KbVersionUpdateBar.vue'
 import { usePaginatedList } from '@/composables/usePaginatedList'
+import type { StatCardItem } from '@/types/common'
 import type { KbProject, KbVersionOverview } from '@/types/knowledge'
 import { formatKbVersionDate } from '@/utils/knowledgeVersionDisplay'
 
@@ -72,7 +66,7 @@ const {
 )
 
 /** 顶部 5 项统计卡片数据 */
-const statItems = computed(() => {
+const statItems = computed<StatCardItem[]>(() => {
   if (!overview.value) return []
 
   return [
@@ -138,31 +132,6 @@ watch(
 <style scoped>
 .page-container {
   min-height: 100%;
-}
-
-.stat-row {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-@media (max-width: 1200px) {
-  .stat-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .stat-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 576px) {
-  .stat-row {
-    grid-template-columns: 1fr;
-  }
 }
 
 .table-card {

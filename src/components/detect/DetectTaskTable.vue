@@ -7,13 +7,13 @@
     :scroll-x="tableScrollX"
     row-key="taskId"
   >
-    <template #bodyCell="{ column, record: row }">
+    <template #bodyCell="{ column, record: row, text }">
       <template v-if="column.key === 'taskType'">
         <TaskTypeText :task-type="getTask(row).taskType" />
       </template>
 
       <template v-else-if="column.key === 'sourceMode'">
-        {{ TASK_SOURCE_MODE_LABEL[getTask(row).sourceMode] }}
+        <EllipsisText :text="TASK_SOURCE_MODE_LABEL[getTask(row).sourceMode]" />
       </template>
 
       <template v-else-if="column.key === 'status'">
@@ -61,6 +61,8 @@
           <span v-else class="list-table-action-dash">—</span>
         </template>
       </template>
+
+      <ListTableCell v-else :column="column" :text="text" />
     </template>
   </ListTable>
 </template>
@@ -70,7 +72,9 @@ import { computed } from 'vue'
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import { TASK_STATUS_COLOR, TASK_STATUS_LABEL } from '@/types/common'
 import type { DetectTask } from '@/types/detect'
+import EllipsisText from '@/components/common/EllipsisText.vue'
 import ListTable from '@/components/common/ListTable.vue'
+import ListTableCell from '@/components/common/ListTableCell.vue'
 import DetectTaskActionCell from '@/components/detect/DetectTaskActionCell.vue'
 import TaskTypeText from '@/components/detect/TaskTypeText.vue'
 import {
