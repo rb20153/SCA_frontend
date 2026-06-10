@@ -1,0 +1,443 @@
+# SCA 前端 · 工程师日志
+
+> 记录每次改动的内容摘要、实现思路和注意事项，供开发者快速了解当前代码状态。
+> 按时间倒序，最新的在最上方。
+
+---
+
+## [2026-06-09] 抽离通用列表查询筛选（ListQueryBar + useFilteredPaginatedList）
+
+### 改了什么
+
+- **`components/common/ListQueryBar.vue`**：通用查询区外壳（卡片 + inline 表单 + 查询/重置按钮）
+  - 默认插槽放业务筛选项；`extra-actions` 插槽可追加按钮（如目录树「展开全部」）
+  - 全局工具类：`list-query-input` / `list-query-select` / `list-query-date`
+- **`composables/useFilteredPaginatedList.ts`**：筛选 + 分页数据流
+  - `filterForm`：表单状态
+  - `appliedQuery`：点击查询后生效；翻页携带
+  - `handleSearch` / `handleReset`：回第 1 页并请求
+- `DetectTaskQueryBar` 改为基于 `ListQueryBar` 的业务字段封装
+- `DetectTaskList` 改用 `useFilteredPaginatedList`
+
+### 其他列表页如何复用
+
+1. 定义 `XxxListFilters` + `createEmptyXxxFilters` + `xxxFiltersToQuery`（放 `types/` 或 `utils/`）
+2. 可选：封装 `XxxQueryBar.vue`，内部用 `ListQueryBar` + 业务表单项
+3. 页面：`useFilteredPaginatedList(getXxxList 包装, { createEmptyFilters, filtersToQuery })`
+
+各页差异仅在**筛选项字段**和 **filtersToQuery**，样式与查询/重置逻辑共用。
+
+---
+
+## [2026-06-09] 检测任务创建入口改为单按钮 + 类型选择弹窗
+
+### 改了什么
+
+- `DetectTaskCreateBar`：顶部改为大号「创建检测任务」按钮
+- 点击后弹出「选择检测类型」Modal，两张可点击卡片（自主率 / 开源风险）
+- 选定类型后关闭弹窗并触发 `create-autonomy` / `create-risk`（创建向导仍待接入）
+
+---
+
+## [2026-06-09] 检测任务页「创建任务」操作条
+
+### 改了什么
+
+- ~~新增 `DetectTaskCreateBar.vue`：左侧文案「创建任务」+ 两个同级主按钮~~（已改为单按钮 + 类型弹窗，见上一条）
+
+---
+
+## [2026-06-09] 检测任务列表查询筛选
+
+### 改了什么
+
+- 新增 `DetectTaskQueryBar.vue`：任务名称、检测类型、关联项目、状态 + 查询/重置
+- 状态筛选项含：全部、排队中、运行中、已完成、已暂停、已终止、失败
+- `getTaskList()` mock 支持按筛选条件过滤后再分页；默认仍按 `createdAt` 倒序
+- 查询：写入 `appliedQuery` → 回到第 1 页 → 请求 10 条
+- 重置：清空表单与 `appliedQuery` → 回到第 1 页 → 无筛选请求
+- 翻页：携带当前 `appliedQuery` 与页码一并请求
+
+---
+
+## [2026-06-09] 检测任务列表操作列与任务操作 API
+
+### 改了什么
+
+- 新增 `utils/taskActions.ts`：按状态返回操作项（空格分隔展示）
+- 新增 `DetectTaskActionCell.vue`：操作链接 + 编辑/暂停/终止/继续/删除弹窗（编辑弹窗对齐原型：任务名称、扫描模式、重试次数）
+- `DetectTaskTable` 增加 `showFullActions`（仅检测任务列表页启用）；首页仍为简化操作
+- `api/detect.ts` 补充 mock：`updateDetectTask`、`terminateTask`；`delete/pause/resume` 会 mutate `MOCK_ALL_DETECT_TASKS`
+- 操作成功后列表行就地更新；删除后移除行并修正 total
+
+### 各状态操作
+
+| 状态 | 操作 |
+|---|---|
+| 排队中 | 终止、编辑（仅自主率） |
+| 运行中 | 暂停、终止、编辑（仅自主率） |
+| 已完成 | 查看结果、删除 |
+| 已暂停 | 继续任务、删除 |
+| 已终止 | 删除 |
+| 失败 | 查看日志、删除 |
+
+---
+
+## [2026-06-09] 检测类型配色与分页懒加载 composable
+
+### 改了什么
+
+- 检测类型 Tag 改为 **purple / magenta**，避开蓝/绿/红，减少与运行状态 Tag 撞色
+- 新增 `composables/usePaginatedList.ts`：分页懒加载，每次只请求当前页，切换页码时重新调 API
+- `DetectTaskList.vue` 改用 `usePaginatedList`，每页 10 条
+
+### 怎么用
+
+```ts
+const { loading, list, pagination, loadPage, refresh } = usePaginatedList(
+  async (params) => (await getTaskList(params)).data,
+  { pageSize: 10 },
+)
+```
+
+---
+
+## [2026-06-09] 检测任务表格列与状态规范调整
+
+### 改了什么
+
+- **运行状态**收窄为 6 种：排队中、运行中、已完成、已暂停、已终止、失败（`TaskStatus` 类型同步更新）
+- **进度**独立成列：进度条 + 百分比；排队固定 10%，运行中 30/60/90%，已完成 100%；失败/暂停/终止保留停止时进度
+- **检测类型**恢复 Tag 配色：自主率=绿色、开源风险=橙色（不用蓝紫）
+- **来源/模式**列：仅检测任务列表页展示（`showSourceMode`）；自主率对应全量/增量/快速扫描，风险对应项目扫描/导入SBOM
+- `DetectTask` 新增 `sourceMode` 字段，mock 种子已更新
+- 检测任务页分页改为 **10 条/页**；操作列「结果」改为「查看结果」
+
+### 注意事项
+
+- 首页 `DetectTaskTable` 不传 `showSourceMode`，不含来源/模式列
+- 后端联调时 `TaskStatus` 与 `sourceMode` 枚举需与前端对齐
+
+---
+
+## [2026-06-09] 检测任务 mock 扩展与分页调整
+
+### 改了什么
+
+- `mock/modules/detect/taskList.ts`：生成 **52 条** mock（12 种种子轮转，覆盖 running/queued/success/failed 等）
+- `getTaskList()` mock 分页：每页 20 条，total=52
+- `getRecentTasks()` 改为从同一 `MOCK_ALL_DETECT_TASKS` 取最新 **10 条**
+- 删除 `mock/modules/dashboard/recentTasks.ts`（避免双数据源）
+- 检测任务页分页器：`showSizeChanger: false`，固定 20 条/页
+
+---
+
+### 改了什么
+
+- 新增 `src/components/detect/DetectTaskTable.vue`：可复用任务列表（列、状态进度、操作跳转）
+- 新增 `src/components/detect/TaskTypeText.vue`（从 dashboard 目录迁入 detect）
+- 删除 `RecentTaskTable.vue`、`dashboard/TaskTypeText.vue`
+- `Dashboard.vue` 改用 `DetectTaskTable`（无分页）
+- `DetectTaskList.vue` 接入 `DetectTaskTable` + `getTaskList` 分页
+- `taskDisplay.ts` 新增 `getTaskResultRoute`、`DETECT_TASK_TABLE_SCROLL_X`
+
+### 为什么这么做
+
+首页最近任务与检测任务列表列结构一致，抽成公共组件避免重复维护。
+
+### 注意事项
+
+- 检测任务页后续若增加「模式/来源、编辑/暂停」等列，可通过 props 扩展 `DetectTaskTable`，或新增 `variant="full"`
+
+---
+
+### 改了什么
+
+- 进度条宽度减半（120px）；已完成/失败用同宽占位，与运行中/排队中 tag 左对齐
+- 检测类型改为普通灰黑色文字，不再区分蓝/紫
+- `getRecentTasks()` 统一排序截断：最多 10 条、按 `createdAt` 从新到旧
+- 无数据时 `a-empty` + 引导链接至检测任务页
+
+---
+
+### 改了什么
+
+- `RecentTaskTable.vue`：全列（含表头）居中对齐；运行状态列宽 220→440，状态 tag 与进度条横向并排；`scroll.x` 窄屏横向滚动
+
+### 注意事项
+
+- 列宽总和约 1110px，小于该宽度时表格底部出现横向滚动条
+
+---
+
+## [2026-06-09] 首页 Dashboard 实现（M01-S01-P01）
+
+### 改了什么
+
+- `src/views/dashboard/Dashboard.vue`：首页主体，a-row 栅格布局
+- `src/components/dashboard/StatCard.vue`：顶部统计卡
+- `src/components/dashboard/ChartPlaceholder.vue`：自主率趋势 / 漏洞分布占位
+- `src/components/dashboard/TaskTypeText.vue`：检测类型纯文字色（无 tag 背景）
+- `src/components/dashboard/RecentTaskTable.vue`：最近任务表格
+- `src/api/dashboard.ts` + mock：`getDashboardOverview`、`getRecentTasks`
+- `src/types/dashboard.ts`、`src/utils/taskDisplay.ts`
+
+### 为什么这么做
+
+按原型字段实现首页，布局用 Ant Design 栅格 + 卡片，不复刻 prototype CSS。图表接口尚未定，先用占位组件。
+
+### 怎么实现的
+
+- 顶部 4 卡：`getDashboardOverview()` 返回 stats 数组（数值 + 增长）
+- 图表区：两个 `ChartPlaceholder`，后续接 ECharts + 独立 API
+- 最近任务：`getRecentTasks()` 返回 `DetectTask[]`
+  - 检测类型：`TaskTypeText` 蓝色/紫色文字
+  - 运行中/排队中：`a-tag` + `a-progress` + 百分比（mock 含 10/30/60/90）
+  - 已完成：操作「结果」→ 自主率 `/detect/tasks/:id/result` 或开源风险 `/detect/tasks/:id/risk`
+  - 失败：「查看日志」→ `/system/logs?taskId=`
+  - 运行中/排队中操作列显示「—」
+- 耗时：`formatDurationMs` 格式化为 `2h15m`
+
+### 注意事项
+
+- 图表 API 尚未实现，见 `API.md` 待建行
+- 最近任务与检测任务列表 mock 分离，联调时可改为同一后端接口
+
+---
+
+## [2026-06-09] 新增 API.md 联调清单与 update-api-doc skill
+
+### 改了什么
+
+- 新增 `.cursor/skills/update-api-doc/SKILL.md`：规定页面/API/mock 变更后必须更新根目录 `API.md`
+- 新增 `API.md`（与 `background.md` 同级）：汇总当前 auth/detect mock 接口、计划真实 API、联调状态
+- 更新 `sca-frontend-dev`、`new-page`、`update-engineer-doc` skill，开发后 checklist 增加 API.md
+
+### 为什么这么做
+
+forEngineer.md 偏「实现说明」，后端联调时需要单独一份「哪些还是 mock、将来接什么接口」的索引表。
+
+### 怎么实现的
+
+- `API.md` 分「按页面索引」和「按 api 模块索引」两张表
+- 每行记录：api 函数、mock 文件、计划 `METHOD /path`、状态（mock/联调中/已对接）
+- 开发新页面时在对应模块下追加行；联调完成后改状态为「已对接」
+
+### 注意事项
+
+- `API.md` 在仓库根目录 `SCA前端/API.md`，不是 `frontend/` 下
+- 路由守卫里的 `getCurrentUser()` 也要登记（非页面直接调用）
+
+---
+
+## [2026-06-09] 面包屑自动生成
+
+### 改了什么
+
+- `src/types/breadcrumb.ts`：面包屑项类型 `BreadcrumbItem`
+- `src/types/router.d.ts`：扩展 Vue Router `RouteMeta`（title / breadcrumbs / requiresAuth）
+- `src/utils/breadcrumb.ts`：`crumbs()` 构造器 + `resolveBreadcrumbs()` 解析函数
+- `src/router/index.ts`：25 条业务路由全部配置 `meta.breadcrumbs`（对齐 prototype crumbs）；`afterEach` 自动写入 layout store
+- `src/stores/layout.ts`：新增 `mergeLastBreadcrumb()`，供详情页加载后替换最后一级为动态名称
+- `src/layouts/AdminLayout.vue`：面包屑 `:key` 改为 index，避免同名项冲突
+
+### 为什么这么做
+
+之前 `setBreadcrumbs` 存在但没有任何地方调用，顶栏面包屑一直为空。现在在路由 meta 里声明一次，切换页面自动更新，页面无需重复写。
+
+### 怎么实现的
+
+1. 每条路由用 `crumbs('模块', { title: '列表', path: '/xxx' }, '当前页')` 声明层级
+2. `crumbs()` 自动让最后一项不带 path（当前页不可点）
+3. `router.afterEach` 调 `resolveBreadcrumbs(to)` → `layoutStore.setBreadcrumbs()`
+4. 登录页 `requiresAuth: false`，afterEach 跳过，不污染面包屑
+
+详情页如需显示动态名称（如项目名），数据加载完成后调用：
+
+```ts
+layoutStore.mergeLastBreadcrumb(project.name)
+```
+
+### 注意事项
+
+- 新增页面时记得在路由 meta 里加 `breadcrumbs`，否则只会显示单级 title 兜底
+- 中间层级需要可点击回退时，必须显式传 `path`（如项目详情 → 项目列表）
+
+---
+
+## [2026-06-09] 刷新页面后自动恢复用户信息（getCurrentUser）
+
+### 改了什么
+
+- `src/api/auth.ts`：新增 `getCurrentUser()` 函数（mock 阶段返回当前用户）
+- `src/mock/modules/auth/users.ts`：新增 `mockCurrentUserRes`，复用登录 mock 里的 admin 用户信息
+- `src/stores/auth.ts`：新增 `fetchUserInfo()` action，内部调 `getCurrentUser()` 写入 Pinia
+- `src/router/index.ts`：路由守卫改为 `async`，有 token 但无 userInfo 时自动 `fetchUserInfo()`
+
+### 为什么这么做
+
+之前只有 `token` 存在 localStorage，`userInfo` 只在 Pinia 内存里。刷新后 Pinia 重置，顶栏姓名会变成「用户」。现在用 token 补拉一次用户信息，刷新后也能正常显示姓名。
+
+### 怎么实现的
+
+```
+登录成功 → setToken + setUserInfo（Pinia 内存，顶栏立刻显示）
+刷新 F5  → Pinia 清空，token 还在 localStorage
+路由守卫 → 检测 isLoggedIn && !userInfo → await fetchUserInfo()
+         → getCurrentUser() 返回 userInfo → 顶栏恢复显示
+```
+
+如果 `getCurrentUser` 失败（如 token 过期 401），守卫里会 `logout()` 并跳登录页。
+
+### 注意事项
+
+- mock 阶段 `getCurrentUser` 固定返回 admin 用户，联调时只需把函数体改成 `request.get('/api/auth/me')`
+- `userInfo` 仍然不写入 localStorage，始终以接口为准，避免本地缓存过期
+
+---
+
+## [2026-06-09] 注册表单邮箱字段改为手机号
+
+### 改了什么
+
+- `src/stores/auth.ts`：`UserInfo` 接口的 `email` 字段改为 `phone: string`
+- `src/api/auth.ts`：`RegisterParams` 接口的 `email` 改为 `phone`，`register` 函数传参同步更新
+- `src/mock/modules/auth/users.ts`：所有用户 mock 数据的 `email` 字段替换为 `phone`（`138000000xx`）
+- `src/views/login/LoginPage.vue`：注册表单字段 label 改为"手机号"，校验规则改为手机号正则
+
+### 为什么这么做
+
+产品需求：注册时用手机号而非邮箱，更符合国内用户习惯。
+
+### 怎么实现的
+
+手机号校验用正则 `/^1[3-9]\d{9}$/`，覆盖国内主流号段（13x~19x，11位）。其余逻辑不变。
+
+### 注意事项
+
+- 真实接口接入时，后端注册接口的字段名也应为 `phone`，需提前和后端对齐
+- `UserInfo` 接口变了，如果后续有其他页面展示用户信息（如个人设置页），注意同步改字段
+
+---
+
+## [2026-06-09] 建立 mock 数据规范，挪走页面内的违规 mock
+
+### 改了什么
+
+- 新增 `.cursor/skills/mock-data/SKILL.md`：规定 mock 数据只能放在 `src/mock/modules/<模块>/<文件>.ts`
+- 更新 `.cursor/rules/mock-strategy.mdc`：目录结构从扁平文件改为"模块子目录"
+- 新增 `src/mock/modules/auth/users.ts`：存放用户相关 mock（已注册用户名列表、登录 mock、用户列表 mock）
+- 新增 `src/api/auth.ts`：`login` / `checkUsernameAvailable` / `register` 三个 API 函数
+- `src/mock/modules/detect.ts` → 移动到 `src/mock/modules/detect/taskList.ts`（对齐子目录规范）
+- `src/views/login/LoginPage.vue`：删除页面内的 `MOCK_EXISTING_USERS` 常量，改为调用 `checkUsernameAvailable` API
+
+### 为什么这么做
+
+之前 `LoginPage.vue` 里直接定义了 mock 数组，导致 mock 数据散落在页面里，后续接真实接口时不好找、容易漏改。
+统一放到 `src/mock/modules/` 后，接口切换只需改 `src/api/` 里的函数体，页面完全不用动。
+
+### 怎么实现的
+
+- **用户名重复检测**：注册时调 `checkUsernameAvailable(username)`，这个函数 mock 阶段对比 `MOCK_REGISTERED_USERNAMES` 数组，真实接口阶段换成 GET 请求
+- **分层原则**：页面 → 调 api 函数 → api 函数引用 mock 文件。页面和 mock 之间没有直接依赖
+
+### 注意事项
+
+- `src/mock/` 下的文件**不要在生产环境中引用**，后续接真实接口时 api 文件里的 mock import 要全部删掉
+- 接口对齐后，`MOCK_REGISTERED_USERNAMES` 数组也可以删了
+
+---
+
+## [2026-06-09] 登录页新增注册功能，顶部 Header 改为全屏宽度
+
+### 改了什么
+
+- `src/views/login/LoginPage.vue`：新增注册表单，支持登录/注册双模式切换
+- `src/layouts/AdminLayout.vue`：Header 改为 `position: fixed; width: 100vw`，侧栏 z-index 更高（100 vs 99）覆盖重叠部分；侧栏宽度改为响应式（折叠时 64px，展开时 220px）
+
+### 为什么这么做
+
+- **Header 全屏**：视觉上顶栏应横贯全屏，之前因为受 `margin-left` 约束只有右侧宽度
+- **注册功能**：登录页需要支持新用户注册
+
+### 怎么实现的
+
+**Header 全屏方案：**
+
+现在的层级关系是：
+```
+侧栏  z-index: 100  ← 更高，挡住 header 左侧重叠区域
+Header z-index: 99  ← left:0, width:100vw，横贯全屏
+```
+Header 设置 `position: fixed; left: 0; width: 100vw`，让它脱离右侧容器的约束铺满全屏。
+侧栏的 z-index 比 Header 高 1，所以侧栏会自然压在 Header 上面，视觉上看不出重叠。
+同时给 `admin-main` 加了 `padding-top: 56px`，因为 Header 固定定位后不再占文档流空间，内容区需要手动补偿这个高度。
+
+面包屑加了 `padding-left` 和侧栏宽度同步，防止文字被侧栏遮住。
+
+**侧栏响应式宽度：**
+
+用 `computed` 算出当前宽度（展开 220 / 折叠 64），通过 Vue 3 的 CSS `v-bind` 直接绑定到 `margin-left` 和面包屑的 `padding-left`，折叠动画自带 `transition: 0.2s`。
+
+**登录/注册切换：**
+
+用一个 `mode: 'login' | 'register'` 的 ref 控制显示哪个表单（`v-if`）。
+切换时调 `formRef.resetFields()` 清掉旧的校验提示，避免切过去就看到一堆红色报错。
+
+注册表单校验：
+- 用户名格式：正则 `/^[a-zA-Z0-9]{4,20}$/`
+- 用户名唯一性：异步 validator，调 API 查重（mock 阶段本地对比列表）
+- 密码强度：≥8位 + 含字母 + 含数字
+- 确认密码：和 `password` 字段实时比对
+
+### 注意事项
+
+- 侧栏折叠按钮由 `a-layout-sider` 的 `collapsible` 属性自带，状态存在 `useLayoutStore().sidebarCollapsed`
+- Header 的面包屑目前是手动维护的（需要在页面里调 `layoutStore.setBreadcrumbs`），后续可以考虑根据路由 meta 自动生成
+
+---
+
+## [2026-06-09] 工程脚手架搭建完成
+
+### 改了什么
+
+- 用 `npm create vite@latest frontend -- --template vue-ts` 初始化项目
+- 安装：`ant-design-vue`、`vue-router`、`pinia`、`axios`、`echarts`、`@antv/g6`、`dayjs`
+- 安装开发依赖：`unplugin-vue-components`（ADV 按需注册）、`unplugin-auto-import`
+- 新增/修改的核心文件：
+
+| 文件 | 作用 |
+|---|---|
+| `vite.config.ts` | `@` 路径别名、ADV 按需加载插件、API 代理 `/api → :8080` |
+| `tsconfig.json` | 严格模式 + `@/*` 路径映射 |
+| `.env.development/production` | 环境变量：API 地址、WebSocket 地址 |
+| `src/main.ts` | 注册 Pinia、Router、Ant Design Vue |
+| `src/layouts/AdminLayout.vue` | 全局管理后台布局：深色侧栏 + 顶栏 + 内容区 |
+| `src/router/index.ts` | 25 条路由 + 登录鉴权守卫 + 动态页面 title |
+| `src/utils/request.ts` | Axios 实例：自动带 token、统一错误提示、401 自动跳登录 |
+| `src/stores/auth.ts` | 登录状态：token（localStorage 持久化）+ 用户信息 |
+| `src/stores/layout.ts` | 布局状态：侧栏折叠、面包屑 |
+| `src/types/common.ts` | 公共类型：`ApiResponse`、`PageResult`、`TaskStatus`、`RiskLevel` 等 |
+| `src/types/detect.ts` | 检测任务相关接口类型 |
+| `src/composables/useECharts.ts` | ECharts 生命周期封装（防内存泄漏）|
+| `src/composables/usePolling.ts` | 安全轮询封装（自动清 interval）|
+| `src/composables/useG6Graph.ts` | AntV G6 生命周期封装 |
+| `src/views/login/LoginPage.vue` | 登录页 |
+| `src/views/**`（24个） | 各模块占位页，路由可正常跳转 |
+
+### 怎么实现的
+
+**按需加载 Ant Design Vue：**
+用 `unplugin-vue-components` + `AntDesignVueResolver` 自动识别模板里的 `a-xxx` 组件并按需 import，不需要在 `main.ts` 里手动 `app.use(Antd)` 全量引入（但这里为了简单保留了全量注册，后续可切按需）。
+
+**路由鉴权：**
+`router.beforeEach` 检查 token，没有 token 且访问需要鉴权的页面就跳登录。已登录时访问 `/login` 自动跳首页。
+
+**Axios 拦截器：**
+请求拦截：从 `localStorage` 取 token 塞进 `Authorization: Bearer xxx` header。
+响应拦截：如果 `code !== 200` 就弹错误提示；HTTP 状态码 401 清 token 并跳登录页。
+
+### 注意事项
+
+- 24 个页面全是占位（显示"页面开发中"），后续按模块逐个实现
+- mock 数据阶段所有接口都从 `src/mock/` 里取数据，真实接口接入时只需改 `src/api/` 里的函数体
