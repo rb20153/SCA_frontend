@@ -79,11 +79,21 @@ export function getProjectList(
  * @param data - 项目名称、说明、负责人、所属部门
  */
 export function createProject(data: CreateProjectParams): Promise<ApiResponse<Project>> {
+  const projectName = data.projectName.trim()
+  const owner = data.owner.trim()
+
+  if (!projectName) {
+    return Promise.reject(new Error('项目名称不能为空'))
+  }
+  if (!owner) {
+    return Promise.reject(new Error('负责人不能为空'))
+  }
+
   const project: Project = {
     projectId: `proj-${String(MOCK_ALL_PROJECTS.length + 1).padStart(3, '0')}`,
-    projectName: data.projectName.trim(),
+    projectName,
     description: data.description.trim(),
-    owner: data.owner.trim(),
+    owner,
     department: data.department.trim(),
     status: 'in_progress',
     taskCount: 0,
@@ -111,11 +121,21 @@ export function updateProject(
     return Promise.reject(new Error('项目不存在'))
   }
 
+  const projectName = data.projectName.trim()
+  const owner = data.owner.trim()
+
+  if (!projectName) {
+    return Promise.reject(new Error('项目名称不能为空'))
+  }
+  if (!owner) {
+    return Promise.reject(new Error('负责人不能为空'))
+  }
+
   const updated: Project = {
     ...MOCK_ALL_PROJECTS[index],
-    projectName: data.projectName.trim(),
+    projectName,
     description: data.description.trim(),
-    owner: data.owner.trim(),
+    owner,
     department: data.department.trim(),
   }
 

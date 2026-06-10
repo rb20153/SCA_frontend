@@ -23,7 +23,7 @@
           allow-clear
         />
       </a-form-item>
-      <a-form-item label="负责人">
+      <a-form-item label="负责人" required>
         <a-input
           v-model:value="form.owner"
           placeholder="请输入负责人"
@@ -103,6 +103,11 @@ watch(
 async function handleOk() {
   if (!form.projectName.trim()) {
     message.warning('请输入项目名称')
+    return Promise.reject()
+  }
+
+  if (!form.owner.trim()) {
+    message.warning('请输入负责人')
     return Promise.reject()
   }
 
