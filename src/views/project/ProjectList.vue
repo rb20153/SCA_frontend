@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="page-container">
-    <ProjectCreateBar @create="openCreateModal" />
+    <ProjectCreateBar @create="formVisible = true" />
 
     <ProjectQueryBar
       v-model="filterForm"
@@ -20,7 +20,6 @@
           :projects="projectList"
           :loading="loading"
           :pagination="pagination"
-          @edit="openEditModal"
           @delete="openDeleteModal"
         />
       </PageLoading>
@@ -28,10 +27,8 @@
 
     <ProjectFormModal
       v-model:open="formVisible"
-      :mode="formMode"
-      :project-id="editingProject?.projectId"
-      :initial-values="editingFormValues"
-      @success="onFormSuccess"
+      mode="create"
+      @success="onCreateSuccess"
     />
 
     <ProjectDeleteModal
@@ -45,7 +42,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { getProjectList } from '@/api/project'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
@@ -55,15 +53,15 @@ import ProjectFormModal from '@/components/project/ProjectFormModal.vue'
 import ProjectQueryBar from '@/components/project/ProjectQueryBar.vue'
 import ProjectTable from '@/components/project/ProjectTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
-import type { Project, ProjectFormValues } from '@/types/project'
+import type { Project } from '@/types/project'
 import {
   createEmptyProjectListFilters,
   projectListFiltersToQuery,
 } from '@/utils/projectQuery'
 
+const router = useRouter()
+
 const formVisible = ref(false)
-const formMode = ref<'create' | 'edit'>('create')
-const editingProject = ref<Project | null>(null)
 const deleteVisible = ref(false)
 const deletingProject = ref<Project | null>(null)
 
@@ -84,40 +82,19 @@ const {
   },
 )
 
-/** 编辑弹窗表单初始值 */
-const editingFormValues = computed<ProjectFormValues | undefined>(() => {
-  if (!editingProject.value) return undefined
-  return {
-    projectName: editingProject.value.projectName,
-    description: editingProject.value.description,
-    owner: editingProject.value.owner,
-    department: editingProject.value.department,
+/** 创建成功后跳转项目详情页，便于继续上传交付物与配置策略 */
+function onCreateSuccess(projectId?: string) {
+  if (projectId) {
+    router.push(`/projects/${projectId}`)
+    return
   }
-})
-
-/** 打开新增项目弹窗 */
-function openCreateModal() {
-  formMode.value = 'create'
-  editingProject.value = null
-  formVisible.value = true
-}
-
-/** 打开编辑项目弹窗并回填当前行数据 */
-function openEditModal(project: Project) {
-  formMode.value = 'edit'
-  editingProject.value = project
-  formVisible.value = true
+  loadPage()
 }
 
 /** 打开删除确认弹窗 */
 function openDeleteModal(project: Project) {
   deletingProject.value = project
   deleteVisible.value = true
-}
-
-/** 新增/编辑成功后刷新当前页列表 */
-async function onFormSuccess() {
-  await loadPage()
 }
 
 /** 删除成功后从列表移除；若当前页删空且非第一页则回退一页 */

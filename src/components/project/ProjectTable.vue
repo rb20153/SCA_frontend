@@ -9,9 +9,7 @@
   >
     <template #bodyCell="{ column, record: row }">
       <template v-if="column.key === 'projectName'">
-        <router-link :to="`/projects/${getProject(row).projectId}`" class="list-table-link">
-          {{ getProject(row).projectName }}
-        </router-link>
+        {{ getProject(row).projectName }}
       </template>
 
       <template v-else-if="column.key === 'status'">
@@ -31,7 +29,6 @@
       <template v-else-if="column.key === 'action'">
         <ProjectActionCell
           :project="getProject(row)"
-          @edit="(project) => emit('edit', project)"
           @delete="(project) => emit('delete', project)"
         />
       </template>
@@ -58,7 +55,6 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  edit: [project: Project]
   delete: [project: Project]
 }>()
 

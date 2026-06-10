@@ -5,6 +5,102 @@
 
 ---
 
+## [2026-06-10] 项目管理 · 创建后跳转详情 + 列表交互调整
+
+### 改了什么
+
+- 新增项目成功后跳转 `/projects/:projectId` 详情页
+- 列表项目名称改为普通文本（不可点击）
+- 操作「编辑」跳转详情页，不再弹窗编辑
+
+---
+
+## [2026-06-10] 报告列表 · 生成检测报告弹窗
+
+### 改了什么
+
+- **`ReportCreateBar`** + **`ReportGenerateModal`**：顶部「生成检测报告」按钮
+- **`api/report.ts`**：新增 `generateReport()`，mock 插入「生成中」报告
+
+### 怎么实现的
+
+- 弹窗三项：项目（最新默认）、任务（按项目过滤、最新默认）、模板（`isDefault` 优先）
+- 下拉 `listHeight=256`，超出滚动
+- 底部提示链到 `/reports/templates`
+- 确定后调 `generateReport`，列表回到第 1 页刷新
+
+---
+
+## [2026-06-10] 报告模板列表 · 筛选/发布/系统模板置顶
+
+### 改了什么
+
+- **`ReportTemplateQueryBar`**：模板名称、输出格式、可见范围、状态筛选
+- **`ReportTemplatePublishModal`** + `publishReportTemplate()` API
+- 系统模板（标准验收/管理摘要）列表置顶，操作列灰字「系统默认模版不可操作」
+- 更新时间列改为仅 `YYYY-MM-DD`；草稿状态新增「发布模板」
+
+### 注意事项
+
+- 发布成功 toast 在 `ReportTemplatePublishModal` 内弹出
+- 筛选后系统模板若不符合条件不会强制出现在结果中
+
+---
+
+## [2026-06-10] 报告管理 · 报告模板列表 + 侧栏调整
+
+### 改了什么
+
+- **`layouts/AdminLayout.vue`**：报告管理改为子菜单（报告列表 / 报告模板）
+- **`views/report/ReportTemplate.vue`**：模板列表页
+- **`views/report/ReportTemplateEditor.vue`**：编辑器占位页（路由 `/reports/templates/:templateId/edit`）
+- **`api/reportTemplate.ts`** + **`mock/modules/report/templateList.ts`**（18 条 mock）
+- **组件**：`ReportTemplateCreateBar`、`ReportTemplateCreateModal`、`ReportTemplateTable`、`ReportTemplateActionCell`、`ReportTemplateDeleteModal`、`ReportTemplateUnpublishModal`、`ReportTemplatePublishFailureModal`
+
+### 怎么实现的
+
+- 列表列：模板名称、版本、输出格式、可见范围、是否默认、状态（草稿/已发布/发布失败）、更新时间、操作
+- 操作：
+  - 编辑：跳转编辑器页
+  - 删除：仅非系统模板；`标准验收报告`、`管理摘要报告`（`isSystem: true`）无删除按钮
+  - 取消发布：仅已发布；确认后 API 并将行状态改为草稿
+  - 失败原因：仅发布失败；弹窗打开时请求 API
+- 新建：弹窗填名称 + 可选复制自 → 创建草稿 → 跳转编辑器
+
+### 注意事项
+
+- 编辑器页仍为占位，后续承接原型 Markdown 工作台
+- 报告列表顶栏「生成报告」仍待实现
+
+---
+
+## [2026-06-10] 报告管理 · 报告列表页
+
+### 改了什么
+
+- **`views/report/ReportList.vue`**：报告列表页（顶部操作区暂未实现）
+- **`api/report.ts`** + **`mock/modules/report/reportList.ts`**（24 条 mock）
+- **组件**：`ReportQueryBar`、`ReportTable`、`ReportActionCell`、`ReportDeleteModal`、`ReportFailureReasonModal`
+- **工具**：`utils/reportQuery.ts`、`utils/reportDisplay.ts`、`utils/reportDownload.ts`
+
+### 怎么实现的
+
+- 筛选：报告名称、项目名称（input）、生成时间（单日 `a-date-picker`，格式 YYYY-MM-DD）
+- 列表列：报告名称、关联项目、使用模板、生成时间、状态 Tag、操作
+- 操作按状态：
+  - 全部：删除（弹窗「删除后不可恢复，但不影响原始任务结果与证据链。」确认后调 API 并前端移除）
+  - 已完成：查看（按钮占位，无跳转）、下载（`getReportDownloadUrl` + 临时 `<a>` 触发）
+  - 失败：失败原因（弹窗打开时 `getReportFailureReason`）
+- 复用 `ListQueryBar` + `ListTable` + `useFilteredPaginatedList`（10 条/页）
+
+### 注意事项
+
+- 报告列表已支持「生成检测报告」弹窗
+- mock 下载链接为占位路径，联调后需替换为真实签名 URL
+- 「查看」交互待报告详情页实现后接入
+
+---
+
 ## [2026-06-10] 策略管理 · 策略列表页
 
 ### 改了什么

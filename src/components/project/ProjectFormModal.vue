@@ -59,7 +59,8 @@ const props = defineProps<{
 const visible = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{
-  success: []
+  /** 创建成功时携带新项目 ID，编辑成功时不传 */
+  success: [projectId?: string]
 }>()
 
 const submitting = ref(false)
@@ -115,8 +116,10 @@ async function handleOk() {
   submitting.value = true
   try {
     if (props.mode === 'create') {
-      await createProject(payload)
+      const res = await createProject(payload)
       message.success('创建成功')
+      visible.value = false
+      emit('success', res.data.projectId)
     } else {
       if (!props.projectId) {
         message.error('缺少项目 ID')
@@ -124,9 +127,9 @@ async function handleOk() {
       }
       await updateProject(props.projectId, payload)
       message.success('保存成功')
+      visible.value = false
+      emit('success')
     }
-    visible.value = false
-    emit('success')
   } finally {
     submitting.value = false
   }

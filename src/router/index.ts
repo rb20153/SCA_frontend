@@ -141,6 +141,19 @@ const routes: RouteRecordRaw[] = [
           breadcrumbs: crumbs('报告管理', '报告模板'),
         },
       },
+      {
+        path: 'reports/templates/:templateId/edit',
+        name: 'ReportTemplateEditor',
+        component: () => import('@/views/report/ReportTemplateEditor.vue'),
+        meta: {
+          title: '编辑模板',
+          breadcrumbs: crumbs(
+            '报告管理',
+            { title: '报告模板', path: '/reports/templates' },
+            '编辑模板',
+          ),
+        },
+      },
 
       // ── 知识库管理 ────────────────────────────────────────────────────────
       {

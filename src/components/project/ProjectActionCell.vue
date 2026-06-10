@@ -1,6 +1,6 @@
 <template>
   <span class="action-cell">
-    <a href="#" class="list-table-link" @click.prevent="emit('edit', project)">编辑</a>
+    <router-link :to="detailPath" class="list-table-link">编辑</router-link>
     <a href="#" class="list-table-link list-table-link--danger" @click.prevent="emit('delete', project)">
       删除
     </a>
@@ -8,16 +8,19 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Project } from '@/types/project'
 
-defineProps<{
+const props = defineProps<{
   project: Project
 }>()
 
 const emit = defineEmits<{
-  edit: [project: Project]
   delete: [project: Project]
 }>()
+
+/** 项目详情页路由 */
+const detailPath = computed(() => `/projects/${props.project.projectId}`)
 </script>
 
 <style scoped>

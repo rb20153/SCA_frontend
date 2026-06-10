@@ -44,10 +44,12 @@
             <span>策略管理</span>
           </a-menu-item>
 
-          <a-menu-item key="/reports">
+          <a-sub-menu key="reports">
             <template #icon><file-text-outlined /></template>
-            <span>报告管理</span>
-          </a-menu-item>
+            <template #title>报告管理</template>
+            <a-menu-item key="/reports">报告列表</a-menu-item>
+            <a-menu-item key="/reports/templates">报告模板</a-menu-item>
+          </a-sub-menu>
 
           <a-sub-menu key="knowledge">
             <template #icon><database-outlined /></template>
@@ -162,8 +164,16 @@ const theme = {
 watch(
   () => route.path,
   (path) => {
-    selectedKeys.value = [path]
+    if (path.startsWith('/reports/templates')) {
+      selectedKeys.value = ['/reports/templates']
+    } else if (path.startsWith('/reports')) {
+      selectedKeys.value = ['/reports']
+    } else {
+      selectedKeys.value = [path]
+    }
+
     if (path.startsWith('/detect')) openKeys.value = ['detect']
+    else if (path.startsWith('/reports')) openKeys.value = ['reports']
     else if (path.startsWith('/knowledge')) openKeys.value = ['knowledge']
     else if (path.startsWith('/system')) openKeys.value = ['system']
     else openKeys.value = []
