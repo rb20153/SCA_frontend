@@ -120,13 +120,14 @@ export interface VulnSource {
 }
 
 export interface VulnSourceListFilters {
-  sourceCode: VulnSourceCode | ''
+  /** 来源名称关键词 */
+  sourceName: string
   syncStatus: VulnSyncStatus | ''
   keyword: string
 }
 
 export interface VulnSourceQueryParams extends PageParams {
-  sourceCode?: VulnSourceCode
+  sourceName?: string
   syncStatus?: VulnSyncStatus
   keyword?: string
 }

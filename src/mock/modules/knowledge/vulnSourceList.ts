@@ -5,6 +5,7 @@ import type {
   VulnSourceQueryParams,
   VulnSyncStatus,
 } from '@/types/knowledge'
+import { VULN_SOURCE_CODE_LABEL } from '@/utils/vulnKnowledgeDisplay'
 import dayjs from 'dayjs'
 
 interface VulnSourceSeed {
@@ -155,8 +156,13 @@ function matchesKeyword(source: VulnSource, keyword: string): boolean {
 export function filterMockVulnSourceList(params: VulnSourceQueryParams): VulnSource[] {
   let list = [...MOCK_ALL_VULN_SOURCES]
 
-  if (params.sourceCode) {
-    list = list.filter((item) => item.sourceCode === params.sourceCode)
+  if (params.sourceName?.trim()) {
+    const sourceKeyword = params.sourceName.trim().toLowerCase()
+    list = list.filter(
+      (item) =>
+        item.sourceName.toLowerCase().includes(sourceKeyword) ||
+        VULN_SOURCE_CODE_LABEL[item.sourceCode].toLowerCase().includes(sourceKeyword),
+    )
   }
 
   if (params.syncStatus) {

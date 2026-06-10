@@ -1,10 +1,12 @@
 <template>
   <ListQueryBar @search="emit('search')" @reset="emit('reset')">
     <a-form-item label="来源">
-      <a-select
-        v-model:value="filters.sourceCode"
-        :options="VULN_SOURCE_FILTER_OPTIONS"
-        class="list-query-select"
+      <a-input
+        v-model:value="filters.sourceName"
+        placeholder="输入来源名称"
+        allow-clear
+        class="list-query-input"
+        @press-enter="emit('search')"
       />
     </a-form-item>
 
@@ -31,10 +33,7 @@
 <script setup lang="ts">
 import ListQueryBar from '@/components/common/ListQueryBar.vue'
 import type { VulnSourceListFilters } from '@/types/knowledge'
-import {
-  VULN_SOURCE_FILTER_OPTIONS,
-  VULN_SYNC_STATUS_FILTER_OPTIONS,
-} from '@/utils/vulnKnowledgeQuery'
+import { VULN_SYNC_STATUS_FILTER_OPTIONS } from '@/utils/vulnKnowledgeQuery'
 
 const filters = defineModel<VulnSourceListFilters>({ required: true })
 
