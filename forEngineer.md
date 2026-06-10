@@ -5,6 +5,29 @@
 
 ---
 
+## [2026-06-10] 日志列表 · 导出 / 筛选 / 列表 / 全链路抽屉
+
+### 改了什么
+
+- **`LogList.vue`**：顶部「导出日志」+ `LogQueryBar` 筛选 + 分页 `LogTable`
+- **组件**：`LogExportModal`（时间范围 + CSV/JSON）、`LogQueryBar`、`LogTable`、`LogActionCell`、`LogDetailDrawer`
+- **`api/system.ts`**：`getLogList`、`getLogDetail`、`exportLogs`
+- **mock**：`mock/modules/system/logList.ts`（22 条 + 详情 + Blob 导出）
+
+### 怎么实现的
+
+- 筛选复用 `ListQueryBar` + `useFilteredPaginatedList`；时间范围用 `a-range-picker` + `show-time`
+- 导出确定后请求后端拿 `downloadUrl`，`triggerReportDownload` 触发下载
+- 详情抽屉无底部按钮、无蓝色提示框；时间线用 `a-timeline`，原始日志用 `pre` 换行展示
+- 从检测任务「查看日志」跳转 `?taskId=` 时自动按关联任务筛选
+
+### 注意事项
+
+- 列表末列标题为「详情」，链接文案「全链路详情」
+- mock 导出在浏览器内生成 Blob URL，联调后改为后端签名链接
+
+---
+
 ## [2026-06-10] 文字溢出防护 · 公共组件 + 全列表接入
 
 ### 改了什么

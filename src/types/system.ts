@@ -69,3 +69,74 @@ export interface AlertQueryParams extends PageParams {
   /** 筛选日期，格式 YYYY-MM-DD */
   occurredDate?: string
 }
+
+/** 审计日志结果 */
+export type LogResult = 'success' | 'failure'
+
+/** 日志导出格式 */
+export type LogExportFormat = 'csv' | 'json'
+
+export interface LogListItem {
+  logId: string
+  traceId: string
+  /** 发生时间，ISO 8601 */
+  occurredAt: string
+  username: string
+  module: string
+  operation: string
+  resourceObject: string
+  ip: string
+  result: LogResult
+  /** 关联检测任务 ID，供从任务页跳转筛选 */
+  relatedTaskId?: string
+}
+
+export interface LogTimelineItem {
+  /** 展示用时刻，如 10:00:12 */
+  time: string
+  message: string
+}
+
+/** 全链路日志详情（抽屉） */
+export interface LogDetail {
+  logId: string
+  traceId: string
+  username: string
+  sourceIp: string
+  result: LogResult
+  auditConclusion: string
+  timeline: LogTimelineItem[]
+  /** 原始日志节选 */
+  rawLogExcerpt: string
+}
+
+export interface LogListFilters {
+  traceId: string
+  /** 时间范围（日期+时刻） */
+  occurredAtRange: [Dayjs, Dayjs] | null
+  username: string
+  module: string
+  result: LogResult | ''
+}
+
+export interface LogQueryParams extends PageParams {
+  traceId?: string
+  username?: string
+  module?: string
+  result?: LogResult
+  occurredAtStart?: string
+  occurredAtEnd?: string
+  /** 从检测任务页跳转时按任务 ID 筛选 */
+  taskId?: string
+}
+
+export interface LogExportParams {
+  startTime: string
+  endTime: string
+  format: LogExportFormat
+}
+
+export interface LogExportResult {
+  downloadUrl: string
+  fileName: string
+}
