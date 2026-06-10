@@ -5,6 +5,24 @@
 
 ---
 
+## [2026-06-10] 漏洞知识库 · 筛选 / 列表 / 立即同步
+
+### 改了什么
+
+- **`VulnKnowledgeBase.vue`**：统计卡片下接 `VulnSourceQueryBar` + 分页 `VulnSourceTable`
+- **组件**：`VulnSourceQueryBar`、`VulnSourceTable`、`VulnSourceActionCell`、`VulnSourceSyncModal`
+- **`api/knowledge.ts`**：`getVulnSourceList`、`syncVulnSource`
+- **mock**：`mock/modules/knowledge/vulnSourceList.ts`（8 条，含 NVD/CNVD/OSV/GitHub Advisory）
+
+### 怎么实现的
+
+- 筛选：来源、同步状态、关键词（匹配名称/描述/标签）
+- 状态 Tag：正常绿、延迟黄、警告红
+- 「查看条目」→ `/knowledge/vulnerabilities/items`，`history.state` 携带 `vulnSource`
+- 「立即同步」弹窗确认后调 API，成功后刷新列表与顶部卡片
+
+---
+
 ## [2026-06-10] 日志列表 · 导出 / 筛选 / 列表 / 全链路抽屉
 
 ### 改了什么

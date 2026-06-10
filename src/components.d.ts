@@ -116,5 +116,9 @@ declare module 'vue' {
     StatCard: typeof import('./components/common/StatCard.vue')['default']
     StatCardRow: typeof import('./components/common/StatCardRow.vue')['default']
     TaskTypeText: typeof import('./components/detect/TaskTypeText.vue')['default']
+    VulnSourceActionCell: typeof import('./components/knowledge/VulnSourceActionCell.vue')['default']
+    VulnSourceQueryBar: typeof import('./components/knowledge/VulnSourceQueryBar.vue')['default']
+    VulnSourceSyncModal: typeof import('./components/knowledge/VulnSourceSyncModal.vue')['default']
+    VulnSourceTable: typeof import('./components/knowledge/VulnSourceTable.vue')['default']
   }
 }

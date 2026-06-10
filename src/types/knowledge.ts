@@ -94,3 +94,45 @@ export interface VulnKnowledgeOverview {
   /** 最近同步时间，ISO 8601 */
   lastSyncedAt: string
 }
+
+/** 漏洞来源编码 */
+export type VulnSourceCode = 'nvd' | 'cnvd' | 'osv' | 'github_advisory'
+
+/** 漏洞来源同步状态 */
+export type VulnSyncStatus = 'normal' | 'delayed' | 'warning'
+
+export interface VulnSource {
+  sourceId: string
+  sourceCode: VulnSourceCode
+  /** 来源展示名，如 NVD */
+  sourceName: string
+  /** 来源类型描述，如官方漏洞库 */
+  sourceType: string
+  description: string
+  tags: string[]
+  recordCount: number
+  highRiskCount: number
+  /** 同步周期文案，如「每日」 */
+  syncCycle: string
+  /** 最近同步时间，ISO 8601 */
+  lastSyncedAt: string
+  syncStatus: VulnSyncStatus
+}
+
+export interface VulnSourceListFilters {
+  sourceCode: VulnSourceCode | ''
+  syncStatus: VulnSyncStatus | ''
+  keyword: string
+}
+
+export interface VulnSourceQueryParams extends PageParams {
+  sourceCode?: VulnSourceCode
+  syncStatus?: VulnSyncStatus
+  keyword?: string
+}
+
+export interface SyncVulnSourceParams {
+  sourceId: string
+  sourceCode: VulnSourceCode
+  sourceName: string
+}

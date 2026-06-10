@@ -1,41 +1,107 @@
 <template>
   <div class="page-container">
-    <PageLoading :loading="loading">
+    <PageLoading :loading="overviewLoading && statCards.length === 0">
       <StatCardRow v-if="statCards.length > 0" :items="statCards" />
     </PageLoading>
 
-    <a-result
-      class="page-placeholder"
-      status="info"
-      title="更多内容开发中"
-      sub-title="漏洞来源列表、同步操作等待实现"
+    <VulnSourceQueryBar
+      v-model="filterForm"
+      @search="handleSearch"
+      @reset="handleReset"
+    />
+
+    <a-card :bordered="false" class="table-card">
+      <PageLoading :loading="loading && sourceList.length === 0">
+        <ListEmptyGuide
+          v-if="!loading && sourceList.length === 0"
+          title="暂无漏洞来源"
+          description="当前筛选条件下没有匹配的漏洞来源"
+        />
+        <VulnSourceTable
+          v-else
+          :sources="sourceList"
+          :loading="loading"
+          :pagination="pagination"
+          @sync="openSyncModal"
+        />
+      </PageLoading>
+    </a-card>
+
+    <VulnSourceSyncModal
+      v-model:open="syncVisible"
+      :source="syncingSource"
+      @success="onSyncSuccess"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { getVulnKnowledgeOverview } from '@/api/knowledge'
+import { getVulnKnowledgeOverview, getVulnSourceList } from '@/api/knowledge'
+import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import StatCardRow from '@/components/common/StatCardRow.vue'
+import VulnSourceQueryBar from '@/components/knowledge/VulnSourceQueryBar.vue'
+import VulnSourceSyncModal from '@/components/knowledge/VulnSourceSyncModal.vue'
+import VulnSourceTable from '@/components/knowledge/VulnSourceTable.vue'
+import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
 import type { StatCardItem } from '@/types/common'
+import type { VulnSource } from '@/types/knowledge'
 import { mapVulnKnowledgeToStatCards } from '@/utils/statCard'
+import {
+  createEmptyVulnSourceListFilters,
+  vulnSourceListFiltersToQuery,
+} from '@/utils/vulnKnowledgeQuery'
 
-const loading = ref(false)
+const overviewLoading = ref(false)
 const statCards = ref<StatCardItem[]>([])
+const syncVisible = ref(false)
+const syncingSource = ref<VulnSource | null>(null)
 
-/** 拉取漏洞知识库页顶部卡片数据 */
+const {
+  filterForm,
+  loading,
+  list: sourceList,
+  pagination,
+  loadPage,
+  handleSearch,
+  handleReset,
+} = useFilteredPaginatedList<VulnSource, ReturnType<typeof createEmptyVulnSourceListFilters>>(
+  async (params) => (await getVulnSourceList(params)).data,
+  {
+    createEmptyFilters: createEmptyVulnSourceListFilters,
+    filtersToQuery: vulnSourceListFiltersToQuery,
+    pageSize: 10,
+    immediate: false,
+  },
+)
+
+/** 拉取漏洞知识库页顶部统计卡片 */
 async function fetchOverview() {
-  loading.value = true
+  overviewLoading.value = true
   try {
     const res = await getVulnKnowledgeOverview()
     statCards.value = mapVulnKnowledgeToStatCards(res.data)
   } finally {
-    loading.value = false
+    overviewLoading.value = false
   }
 }
 
-onMounted(fetchOverview)
+/** 打开立即同步确认弹窗 */
+function openSyncModal(source: VulnSource) {
+  syncingSource.value = source
+  syncVisible.value = true
+}
+
+/** 同步成功后刷新列表与概览 */
+async function onSyncSuccess() {
+  syncingSource.value = null
+  await Promise.all([fetchOverview(), loadPage()])
+}
+
+onMounted(async () => {
+  await Promise.all([fetchOverview(), handleSearch()])
+})
 </script>
 
 <style scoped>
@@ -43,7 +109,7 @@ onMounted(fetchOverview)
   min-height: 100%;
 }
 
-.page-placeholder {
-  margin-top: 24px;
+.table-card {
+  margin-top: 0;
 }
 </style>

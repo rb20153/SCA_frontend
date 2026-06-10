@@ -7,11 +7,18 @@ import type {
   KbVersionOverview,
   KbVersionQueryParams,
   UpdateKbProjectParams,
+  SyncVulnSourceParams,
   VulnKnowledgeOverview,
+  VulnSource,
+  VulnSourceQueryParams,
 } from '@/types/knowledge'
 import { MOCK_ALL_KB_PROJECTS } from '@/mock/modules/knowledge/knowledgeList'
 import { mockKnowledgeCoverageOverviewRes } from '@/mock/modules/knowledge/coverageOverview'
 import { mockVulnKnowledgeOverviewRes } from '@/mock/modules/knowledge/vulnKnowledgeOverview'
+import {
+  filterMockVulnSourceList,
+  mockSyncVulnSource,
+} from '@/mock/modules/knowledge/vulnSourceList'
 import {
   getMockKbVersionOverview,
   getMockKbVersions,
@@ -197,6 +204,46 @@ export function getKnowledgeCoverageOverview(): Promise<
 export function getVulnKnowledgeOverview(): Promise<ApiResponse<VulnKnowledgeOverview>> {
   // TODO: replace with → return request.get('/api/knowledge/vulnerabilities/overview')
   return Promise.resolve(mockVulnKnowledgeOverviewRes)
+}
+
+/**
+ * 获取漏洞来源列表（分页 + 筛选）
+ * @param params - 来源、同步状态、关键词、分页
+ */
+export function getVulnSourceList(
+  params: VulnSourceQueryParams,
+): Promise<ApiResponse<PageResult<VulnSource>>> {
+  const page = params.page ?? 1
+  const pageSize = params.pageSize ?? DEFAULT_PAGE_SIZE
+
+  const sorted = filterMockVulnSourceList(params)
+  const start = (page - 1) * pageSize
+  const list = sorted.slice(start, start + pageSize)
+
+  // TODO: replace with → return request.get('/api/knowledge/vulnerabilities/sources', { params })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: {
+      list,
+      total: sorted.length,
+      page,
+      pageSize,
+    },
+  })
+}
+
+/**
+ * 立即同步指定漏洞来源
+ * @param params - 来源 ID 与编码信息
+ */
+export function syncVulnSource(params: SyncVulnSourceParams): Promise<ApiResponse<VulnSource>> {
+  // TODO: replace with → return request.post(`/api/knowledge/vulnerabilities/sources/${params.sourceId}/sync`, params)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: mockSyncVulnSource(params),
+  })
 }
 
 /**
