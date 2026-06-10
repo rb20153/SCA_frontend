@@ -55,4 +55,8 @@ const emit = defineEmits<{
 .list-query-date {
   width: 180px;
 }
+
+.list-query-datetime-range {
+  width: 360px;
+}
 </style>

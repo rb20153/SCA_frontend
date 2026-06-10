@@ -5,6 +5,7 @@ import type { BreadcrumbItem } from '@/types/breadcrumb'
 export const useLayoutStore = defineStore('layout', () => {
   const sidebarCollapsed = ref(false)
   const breadcrumbs = ref<BreadcrumbItem[]>([])
+  const pageLoading = ref(false)
 
   /** 切换侧栏折叠状态 */
   function toggleSidebar() {
@@ -28,5 +29,18 @@ export const useLayoutStore = defineStore('layout', () => {
     ]
   }
 
-  return { sidebarCollapsed, breadcrumbs, toggleSidebar, setBreadcrumbs, mergeLastBreadcrumb }
+  /** 控制主内容区路由切换时的全局 loading 遮罩 */
+  function setPageLoading(loading: boolean) {
+    pageLoading.value = loading
+  }
+
+  return {
+    sidebarCollapsed,
+    breadcrumbs,
+    pageLoading,
+    toggleSidebar,
+    setBreadcrumbs,
+    mergeLastBreadcrumb,
+    setPageLoading,
+  }
 })

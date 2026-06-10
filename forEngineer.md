@@ -5,6 +5,106 @@
 
 ---
 
+## [2026-06-10] 抽离列表表格样式壳层 ListTable
+
+### 改了什么
+
+- **`components/common/ListTable.vue`**：统一 `a-table` 外壳（`size=middle`、横向滚动、分页透传、`bodyCell` 插槽）
+- **`utils/listTable.ts`**：`withListColumnDefaults()` 默认表头/单元格居中
+- 全局工具类：`list-table-link`、`list-table-status-tag`、`list-table-action-dash`
+- `ProjectTable`、`DetectTaskTable`、`ProjectActionCell`、`DetectTaskActionCell` 改用 `ListTable`
+
+### 怎么用
+
+```vue
+<ListTable
+  :columns="columns"
+  :data-source="list"
+  :loading="loading"
+  :pagination="pagination"
+  :scroll-x="1100"
+  row-key="id"
+>
+  <template #bodyCell="{ column, record }">...</template>
+</ListTable>
+```
+
+列定义无需再写 `align: 'center'`，由壳层自动补齐。
+
+---
+
+## [2026-06-10] 项目管理 · 项目列表页
+
+### 改了什么
+
+- **`views/project/ProjectList.vue`**：完整项目列表页（新增按钮、筛选、表格、分页）
+- **`api/project.ts`** + **`mock/modules/project/projectList.ts`**：28 条 mock，支持筛选/分页/增删改
+- **`types/project.ts`**、**`utils/projectQuery.ts`**、**`utils/projectDisplay.ts`**
+- **组件**：`ProjectCreateBar`、`ProjectQueryBar`、`ProjectTable`、`ProjectActionCell`、`ProjectFormModal`（新增/编辑共用）、`ProjectDeleteModal`（名称二次确认）
+
+### 怎么实现的
+
+- 筛选区复用 `ListQueryBar`；创建时间用 `a-range-picker` + `show-time`
+- 列表复用 `useFilteredPaginatedList`，每页 10 条，翻页重新请求
+- 表格样式对齐检测任务列表：表头居中、右下分页器
+- 删除弹窗：名称不一致时确定按钮禁用；一致才调 `deleteProject`
+- 项目名称列 `router-link` 跳转 `/projects/:projectId`（详情页仍为占位）
+
+### 注意事项
+
+- 项目详情页 `ProjectDetail.vue` 尚未实现
+- 联调时替换 `api/project.ts` 中四个函数即可，页面与组件无需改动
+
+---
+
+## [2026-06-10] 公共 Loading 与列表空状态引导组件
+
+### 改了什么
+
+- **`components/common/PageLoading.vue`**：基于 `a-spin` 的加载兜底
+  - `loading`：是否显示遮罩
+  - `tip`：提示文案，默认「加载中...」
+  - `routeMode`：路由切换时为内容区预留最小高度，减少布局跳动
+- **`components/common/ListEmptyGuide.vue`**：列表无数据时的引导占位
+  - `title`：主标题（必填）
+  - `description`：纯文本引导（当前页操作类场景）
+  - `hintBefore` + `linkTo` + `linkText` + `hintAfter`：带跳转链接的引导（跨页场景）
+  - `#hint` 插槽：完全自定义引导文案
+- **`stores/layout.ts`**：新增 `pageLoading` / `setPageLoading`
+- **`router/index.ts`**：路由 `beforeEach` 开启 loading，`afterEach` / `onError` 关闭
+- **`AdminLayout.vue`**：`<router-view>` 外包 `PageLoading route-mode`
+- **`Dashboard.vue`** / **`DetectTaskList.vue`**：接入上述组件
+
+### 怎么用
+
+**页面等接口数据：**
+```vue
+<PageLoading :loading="loading">
+  <!-- 页面内容 -->
+</PageLoading>
+```
+
+**列表无数据占位：**
+```vue
+<ListEmptyGuide
+  title="暂无项目"
+  hint-before="还没有项目，前往"
+  link-to="/projects"
+  link-text="项目管理"
+  hint-after="创建第一个项目"
+/>
+<!-- 或当前页操作 -->
+<ListEmptyGuide title="暂无检测任务" description="点击上方按钮创建任务" />
+```
+
+### 注意事项
+
+- 路由 loading 仅作用于 `AdminLayout` 内页面；登录页不受影响
+- 列表页首次加载用 `PageLoading`，有数据后翻页仍由 `a-table` 的 `loading` 负责，避免双重遮罩
+- 其他未开发的列表页开发时直接复用 `ListEmptyGuide`，按业务填 `title` 和引导文案即可
+
+---
+
 ## [2026-06-09] 抽离通用列表查询筛选（ListQueryBar + useFilteredPaginatedList）
 
 ### 改了什么

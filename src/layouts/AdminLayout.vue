@@ -109,7 +109,13 @@
 
         <!-- Page content -->
         <a-layout-content class="admin-content">
-          <router-view />
+          <PageLoading
+            :loading="layoutStore.pageLoading"
+            route-mode
+            tip="页面加载中..."
+          >
+            <router-view />
+          </PageLoading>
         </a-layout-content>
       </a-layout>
     </a-layout>
@@ -123,6 +129,7 @@ import {
   HomeOutlined, ProjectOutlined, ScanOutlined, SafetyOutlined,
   FileTextOutlined, DatabaseOutlined, SettingOutlined, BellOutlined,
 } from '@ant-design/icons-vue'
+import PageLoading from '@/components/common/PageLoading.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLayoutStore } from '@/stores/layout'
 

@@ -82,3 +82,4 @@ function buildMockDetectTasks(count: number): DetectTask[] {
 
 /** 全量 mock 任务池（按 createdAt 从新到旧） */
 export const MOCK_ALL_DETECT_TASKS: DetectTask[] = buildMockDetectTasks(MOCK_TASK_TOTAL)
+// export const MOCK_ALL_DETECT_TASKS: DetectTask[] = []

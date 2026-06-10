@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="dashboard-page">
-    <a-spin :spinning="loading">
+    <PageLoading :loading="loading">
       <!-- 顶部统计卡片 -->
       <a-row :gutter="[16, 16]" class="dashboard-section">
         <a-col v-for="item in stats" :key="item.key" :xs="24" :sm="12" :lg="6">
@@ -29,22 +29,20 @@
       <div class="dashboard-section">
         <h3 class="section-title">最近任务</h3>
         <a-card :bordered="false">
-          <a-spin :spinning="tasksLoading">
-            <a-empty v-if="!tasksLoading && recentTasks.length === 0" class="recent-empty">
-              <template #description>
-                <p class="recent-empty__title">暂无最近任务</p>
-                <p class="recent-empty__hint">
-                  还没有检测任务记录，前往
-                  <router-link to="/detect/tasks">检测任务</router-link>
-                  创建并执行扫描
-                </p>
-              </template>
-            </a-empty>
+          <PageLoading :loading="tasksLoading">
+            <ListEmptyGuide
+              v-if="!tasksLoading && recentTasks.length === 0"
+              title="暂无最近任务"
+              hint-before="还没有检测任务记录，前往"
+              link-to="/detect/tasks"
+              link-text="检测任务"
+              hint-after="创建并执行扫描"
+            />
             <DetectTaskTable v-else :tasks="recentTasks" :pagination="false" />
-          </a-spin>
+          </PageLoading>
         </a-card>
       </div>
-    </a-spin>
+    </PageLoading>
   </div>
 </template>
 
@@ -53,6 +51,8 @@ import { onMounted, ref } from 'vue'
 import { getDashboardOverview, getRecentTasks } from '@/api/dashboard'
 import type { DashboardStatItem } from '@/types/dashboard'
 import type { DetectTask } from '@/types/detect'
+import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
+import PageLoading from '@/components/common/PageLoading.vue'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import ChartPlaceholder from '@/components/dashboard/ChartPlaceholder.vue'
 import DetectTaskTable from '@/components/detect/DetectTaskTable.vue'
@@ -106,25 +106,5 @@ onMounted(fetchDashboardData)
   font-weight: 600;
   color: rgba(0, 0, 0, 0.88);
   margin: 0 0 16px;
-}
-
-.recent-empty {
-  padding: 32px 0;
-}
-
-.recent-empty__title {
-  margin: 0 0 8px;
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 14px;
-}
-
-.recent-empty__hint {
-  margin: 0;
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 13px;
-}
-
-.recent-empty__hint a {
-  color: #1677ff;
 }
 </style>

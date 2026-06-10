@@ -272,6 +272,13 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 })
 
+// ─── Route transition loading ─────────────────────────────────────────────────
+router.beforeEach((to, from) => {
+  if (to.path !== from.path) {
+    useLayoutStore().setPageLoading(true)
+  }
+})
+
 // ─── Navigation guard ─────────────────────────────────────────────────────────
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
@@ -302,9 +309,16 @@ router.beforeEach(async (to) => {
 
 /** 路由切换后根据 meta.breadcrumbs 自动更新顶栏面包屑 */
 router.afterEach((to) => {
+  useLayoutStore().setPageLoading(false)
+
   if (to.meta.requiresAuth === false) return
   const layoutStore = useLayoutStore()
   layoutStore.setBreadcrumbs(resolveBreadcrumbs(to))
+})
+
+/** 路由加载失败时关闭 loading，避免遮罩常驻 */
+router.onError(() => {
+  useLayoutStore().setPageLoading(false)
 })
 
 export default router

@@ -4,18 +4,18 @@
       <router-link
         v-if="action.key === 'viewResult'"
         :to="getTaskResultRoute(task)"
-        class="action-link"
+        class="list-table-link"
       >
         {{ action.label }}
       </router-link>
       <router-link
         v-else-if="action.key === 'viewLog'"
         :to="{ path: '/system/logs', query: { taskId: task.taskId } }"
-        class="action-link"
+        class="list-table-link"
       >
         {{ action.label }}
       </router-link>
-      <a v-else href="#" class="action-link" @click.prevent="openModal(action.key)">
+      <a v-else href="#" class="list-table-link" @click.prevent="openModal(action.key)">
         {{ action.label }}
       </a>
     </template>
@@ -270,7 +270,4 @@ async function submitDelete() {
   white-space: nowrap;
 }
 
-.action-link {
-  color: #1677ff;
-}
 </style>
