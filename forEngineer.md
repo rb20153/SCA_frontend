@@ -5,6 +5,28 @@
 
 ---
 
+## [2026-06-10] 策略管理 · 策略列表页
+
+### 改了什么
+
+- **`views/policy/PolicyList.vue`**：策略列表完整页
+- **`api/policy.ts`** + **`mock/modules/policy/policyList.ts`**（26 条 mock）
+- **组件**：`PolicyCreateBar`、`PolicyQueryBar`、`PolicyTable`、`PolicyActionCell`、`PolicyDeleteModal`
+
+### 怎么实现的
+
+- 「添加策略」与操作列「编辑」跳转 `/policies/:policyId/edit`（新建用 `new`）
+- 「版本/审批」「命中追溯」均跳转 `/policies/:policyId/governance`
+- 删除：引用项目数=0 弹窗确认后调 API；>0 提示需先解绑项目，确定仅关闭
+- 列表复用 `ListQueryBar` + `ListTable` + `useFilteredPaginatedList`（10 条/页）
+
+### 注意事项
+
+- `PolicyEditor` / `PolicyGovernance` 仍为占位页
+- mock 中 `快速扫描策略`、`漏洞深度分析策略` 引用项目数为 0，可测删除流程
+
+---
+
 ## [2026-06-10] 抽离列表表格样式壳层 ListTable
 
 ### 改了什么

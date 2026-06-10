@@ -120,3 +120,4 @@ function buildMockProjects(count: number): Project[] {
 
 /** 项目列表 mock 数据源（支持筛选、分页、增删改） */
 export const MOCK_ALL_PROJECTS: Project[] = buildMockProjects(MOCK_PROJECT_TOTAL)
+// export const MOCK_ALL_PROJECTS: Project[] = []

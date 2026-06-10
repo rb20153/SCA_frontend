@@ -118,7 +118,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/policy/PolicyGovernance.vue'),
         meta: {
           title: '版本与审批',
-          breadcrumbs: crumbs('策略管理', '版本与审批'),
+          breadcrumbs: crumbs('策略管理', { title: '策略列表', path: '/policies' }, '版本与审批'),
         },
       },
 
