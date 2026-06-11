@@ -1,4 +1,14 @@
-import type { TaskStatus, TaskType, ScanMode, TaskSourceMode, AutonomySourceMode, PageParams } from './common'
+import type {
+  TaskStatus,
+  TaskType,
+  TaskSourceMode,
+  AutonomySourceMode,
+  TaskExecutionMode,
+  RiskScanScope,
+  RiskDependencyDepth,
+  RiskSourceMode,
+  PageParams,
+} from './common'
 
 export interface DetectTask {
   taskId: string
@@ -32,13 +42,44 @@ export interface TerminateTaskParams {
   reason: string
 }
 
-export interface CreateDetectTaskParams {
-  taskName: string
-  taskType: TaskType
+/** 检测任务创建弹窗：关联项目下拉项 */
+export interface DetectTaskProjectOption {
   projectId: string
-  scanMode: ScanMode
-  policyId?: string
+  projectName: string
 }
+
+/** 开源风险检测：漏洞库版本选项 */
+export interface VulnDbVersionOption {
+  version: string
+  label: string
+}
+
+export interface CreateAutonomyDetectTaskParams {
+  taskType: 'autonomy'
+  taskName: string
+  projectId: string
+  scanMode: AutonomySourceMode
+  executionMode: TaskExecutionMode
+  workerCount: number
+  autoRetryEnabled: boolean
+  retryCount?: number
+}
+
+export interface CreateRiskDetectTaskParams {
+  taskType: 'open-source-risk'
+  taskName: string
+  projectId: string
+  /** 数据来源：扫描项目 / 导入 SBOM */
+  dataSource: RiskSourceMode
+  /** 扫描项目时必填 */
+  scanScope?: RiskScanScope
+  vulnDbVersion?: string
+  dependencyDepth?: RiskDependencyDepth
+  /** 导入 SBOM 时必填 */
+  sbomFile?: File
+}
+
+export type CreateDetectTaskParams = CreateAutonomyDetectTaskParams | CreateRiskDetectTaskParams
 
 export interface TaskQueryParams extends Partial<PageParams> {
   taskName?: string

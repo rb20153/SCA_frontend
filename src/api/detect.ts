@@ -2,11 +2,18 @@ import type { ApiResponse, PageResult } from '@/types/common'
 import type {
   DetectTask,
   CreateDetectTaskParams,
+  DetectTaskProjectOption,
   TaskQueryParams,
   UpdateDetectTaskParams,
   TerminateTaskParams,
+  VulnDbVersionOption,
 } from '@/types/detect'
 import { MOCK_ALL_DETECT_TASKS } from '@/mock/modules/detect/taskList'
+import {
+  getMockDetectTaskProjectOptions,
+  getMockVulnDbVersionOptions,
+  mockCreateDetectTask,
+} from '@/mock/modules/detect/taskCreateOptions'
 
 // TODO: replace with: import request from '@/utils/request'
 
@@ -70,10 +77,45 @@ export function getTaskList(params: TaskQueryParams): Promise<ApiResponse<PageRe
   })
 }
 
-/** 创建检测任务 */
-export function createDetectTask(_data: CreateDetectTaskParams): Promise<ApiResponse<DetectTask>> {
+/**
+ * 获取创建检测任务时的关联项目下拉选项
+ */
+export function getDetectTaskProjectOptions(): Promise<ApiResponse<DetectTaskProjectOption[]>> {
+  // TODO: replace with → return request.get('/api/detect/tasks/project-options')
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockDetectTaskProjectOptions(),
+  })
+}
+
+/**
+ * 获取开源风险检测可选的漏洞库版本列表
+ */
+export function getRiskDetectVulnDbVersions(): Promise<ApiResponse<VulnDbVersionOption[]>> {
+  // TODO: replace with → return request.get('/api/detect/tasks/risk/vuln-db-versions')
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockVulnDbVersionOptions(),
+  })
+}
+
+/**
+ * 创建检测任务（自主率 / 开源风险）
+ * @param data - 按 taskType 区分的创建参数
+ */
+export function createDetectTask(data: CreateDetectTaskParams): Promise<ApiResponse<DetectTask>> {
+  if (!data.taskName.trim()) {
+    return Promise.reject(new Error('请输入任务名称'))
+  }
+
   // TODO: replace with → return request.post('/api/detect/tasks', data)
-  return Promise.resolve({ code: 200, message: 'ok', data: MOCK_ALL_DETECT_TASKS[0] })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: mockCreateDetectTask(data),
+  })
 }
 
 /** 获取任务详情 */

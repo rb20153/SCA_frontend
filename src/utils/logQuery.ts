@@ -27,7 +27,7 @@ export function createEmptyLogListFilters(): LogListFilters {
     traceId: '',
     occurredAtRange: null,
     username: '',
-    module: '',
+    resourceObject: '',
     result: '',
   }
 }
@@ -44,11 +44,11 @@ export function logListFiltersToQuery(
   const query: Omit<LogQueryParams, 'page' | 'pageSize'> = {}
   const traceId = filters.traceId.trim()
   const username = filters.username.trim()
-  const moduleName = filters.module.trim()
+  const resourceObject = filters.resourceObject.trim()
 
   if (traceId) query.traceId = traceId
   if (username) query.username = username
-  if (moduleName) query.module = moduleName
+  if (resourceObject) query.resourceObject = resourceObject
   if (filters.result) query.result = filters.result
 
   if (filters.occurredAtRange) {

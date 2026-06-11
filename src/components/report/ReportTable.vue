@@ -21,8 +21,11 @@
       <template v-else-if="column.key === 'action'">
         <ReportActionCell
           :report="getReport(row)"
+          :download-checking="downloadChecking"
           @delete="(report) => emit('delete', report)"
           @failure-reason="(report) => emit('failure-reason', report)"
+          @download="(report) => emit('download', report)"
+          @view="(report) => emit('view', report)"
         />
       </template>
 
@@ -48,11 +51,14 @@ defineProps<{
   reports: Report[]
   loading?: boolean
   pagination: TablePaginationConfig
+  downloadChecking?: boolean
 }>()
 
 const emit = defineEmits<{
   delete: [report: Report]
   'failure-reason': [report: Report]
+  download: [report: Report]
+  view: [report: Report]
 }>()
 
 /** a-table bodyCell 的 record 为 unknown，收窄为 Report */

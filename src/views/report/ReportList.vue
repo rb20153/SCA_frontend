@@ -20,8 +20,11 @@
           :reports="reportList"
           :loading="loading"
           :pagination="pagination"
+          :download-checking="downloadChecking"
           @delete="openDeleteModal"
           @failure-reason="openFailureReasonModal"
+          @download="handleDownloadClick"
+          @view="openDetailDrawer"
         />
       </PageLoading>
     </a-card>
@@ -43,23 +46,41 @@
       v-model:open="failureReasonVisible"
       :report-id="failureReasonReport.reportId"
     />
+
+    <ReportDownloadModal
+      v-if="downloadReport && downloadExportPolicy"
+      v-model:open="downloadVisible"
+      :report="downloadReport"
+      :export-policy="downloadExportPolicy"
+    />
+
+    <ReportDetailDrawer
+      v-model:open="detailVisible"
+      :report-id="detailReportId"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { message } from 'ant-design-vue'
-import { getReportList } from '@/api/report'
+import { Modal, message } from 'ant-design-vue'
+import {
+  getReportDownloadStatus,
+  getReportList,
+  submitReportDownloadApplication,
+} from '@/api/report'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import ReportCreateBar from '@/components/report/ReportCreateBar.vue'
 import ReportDeleteModal from '@/components/report/ReportDeleteModal.vue'
+import ReportDetailDrawer from '@/components/report/ReportDetailDrawer.vue'
+import ReportDownloadModal from '@/components/report/ReportDownloadModal.vue'
 import ReportFailureReasonModal from '@/components/report/ReportFailureReasonModal.vue'
 import ReportGenerateModal from '@/components/report/ReportGenerateModal.vue'
 import ReportQueryBar from '@/components/report/ReportQueryBar.vue'
 import ReportTable from '@/components/report/ReportTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
-import type { Report } from '@/types/report'
+import type { Report, ReportExportPolicyPreview } from '@/types/report'
 import {
   createEmptyReportListFilters,
   reportListFiltersToQuery,
@@ -70,6 +91,12 @@ const deleteVisible = ref(false)
 const deletingReport = ref<Report | null>(null)
 const failureReasonVisible = ref(false)
 const failureReasonReport = ref<Report | null>(null)
+const downloadVisible = ref(false)
+const downloadReport = ref<Report | null>(null)
+const downloadExportPolicy = ref<ReportExportPolicyPreview | null>(null)
+const downloadChecking = ref(false)
+const detailVisible = ref(false)
+const detailReportId = ref<string | null>(null)
 
 const {
   filterForm,
@@ -98,6 +125,50 @@ function openDeleteModal(report: Report) {
 function openFailureReasonModal(report: Report) {
   failureReasonReport.value = report
   failureReasonVisible.value = true
+}
+
+/** 打开报告详情抽屉 */
+function openDetailDrawer(report: Report) {
+  detailReportId.value = report.reportId
+  detailVisible.value = true
+}
+
+/** 点击下载：先查审批状态，未通过则提示提交申请，已通过或无需审批则打开下载弹窗 */
+async function handleDownloadClick(report: Report) {
+  if (downloadChecking.value) return
+
+  downloadChecking.value = true
+  try {
+    const res = await getReportDownloadStatus(report.reportId)
+    const { requiresApproval, approvalState, exportPolicy } = res.data
+
+    if (requiresApproval && approvalState !== 'approved') {
+      if (approvalState === 'pending_review') {
+        message.warning('下载申请审批中，请稍后再试')
+        return
+      }
+
+      Modal.confirm({
+        title: '需要审批',
+        content: '该报告下载需要审批，是否提交申请？',
+        okText: '是',
+        cancelText: '否',
+        onOk: async () => {
+          await submitReportDownloadApplication(report.reportId)
+          message.success('已提交下载申请')
+        },
+      })
+      return
+    }
+
+    downloadReport.value = report
+    downloadExportPolicy.value = exportPolicy
+    downloadVisible.value = true
+  } catch {
+    message.error('获取下载信息失败')
+  } finally {
+    downloadChecking.value = false
+  }
 }
 
 /** 生成报告成功后刷新列表 */

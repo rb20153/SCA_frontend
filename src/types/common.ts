@@ -83,6 +83,15 @@ export const TASK_STATUS_COLOR: Record<TaskStatus, string> = {
 /** 自主率任务的扫描模式 */
 export type AutonomySourceMode = 'full-scan' | 'incremental-scan' | 'quick-scan'
 
+/** 自主率任务执行方式 */
+export type TaskExecutionMode = 'parallel' | 'distributed'
+
+/** 开源风险检测扫描范围 */
+export type RiskScanScope = 'source_and_build' | 'source_only'
+
+/** 开源风险检测依赖深度 */
+export type RiskDependencyDepth = 'direct_and_transitive' | 'direct_only'
+
 /** 开源风险任务的数据来源 */
 export type RiskSourceMode = 'project-scan' | 'import-sbom'
 

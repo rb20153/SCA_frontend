@@ -10,7 +10,7 @@
       </router-link>
       <router-link
         v-else-if="action.key === 'viewLog'"
-        :to="{ path: '/system/logs', query: { taskId: task.taskId } }"
+        :to="getTaskLogListRoute(task)"
         class="list-table-link"
       >
         {{ action.label }}
@@ -121,7 +121,11 @@ import {
   terminateTask,
   updateDetectTask,
 } from '@/api/detect'
-import { TASK_SOURCE_MODE_LABEL, getTaskResultRoute } from '@/utils/taskDisplay'
+import {
+  TASK_SOURCE_MODE_LABEL,
+  getTaskLogListRoute,
+  getTaskResultRoute,
+} from '@/utils/taskDisplay'
 import { getTaskActions, type TaskActionKey } from '@/utils/taskActions'
 
 const props = defineProps<{

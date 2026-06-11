@@ -20,7 +20,7 @@
         <button
           type="button"
           class="type-option"
-          @click="selectType('autonomy')"
+          @click="openAutonomyModal"
         >
           <span class="type-option__title">{{ TASK_TYPE_LABEL.autonomy }}</span>
           <span class="type-option__desc">与知识库比对，量化源码与指纹自主率</span>
@@ -28,36 +28,52 @@
         <button
           type="button"
           class="type-option"
-          @click="selectType('open-source-risk')"
+          @click="openRiskModal"
         >
           <span class="type-option__title">{{ TASK_TYPE_LABEL['open-source-risk'] }}</span>
           <span class="type-option__desc">组件识别、漏洞匹配与 SBOM 清单生成</span>
         </button>
       </div>
     </a-modal>
+
+    <AutonomyDetectTaskCreateModal
+      v-model:open="autonomyModalVisible"
+      @success="(task) => emit('created', task)"
+    />
+
+    <RiskDetectTaskCreateModal
+      v-model:open="riskModalVisible"
+      @success="(task) => emit('created', task)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
-import type { TaskType } from '@/types/common'
+import AutonomyDetectTaskCreateModal from '@/components/detect/AutonomyDetectTaskCreateModal.vue'
+import RiskDetectTaskCreateModal from '@/components/detect/RiskDetectTaskCreateModal.vue'
+import type { DetectTask } from '@/types/detect'
 import { TASK_TYPE_LABEL } from '@/utils/taskDisplay'
 
 const emit = defineEmits<{
-  'create-autonomy': []
-  'create-risk': []
+  created: [task: DetectTask]
 }>()
 
 const typeModalVisible = ref(false)
+const autonomyModalVisible = ref(false)
+const riskModalVisible = ref(false)
 
-function selectType(taskType: TaskType) {
+/** 选择自主率检测后打开三步向导弹窗 */
+function openAutonomyModal() {
   typeModalVisible.value = false
-  if (taskType === 'autonomy') {
-    emit('create-autonomy')
-  } else {
-    emit('create-risk')
-  }
+  autonomyModalVisible.value = true
+}
+
+/** 选择开源风险检测后打开创建弹窗 */
+function openRiskModal() {
+  typeModalVisible.value = false
+  riskModalVisible.value = true
 }
 </script>
 

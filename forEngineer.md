@@ -5,6 +5,18 @@
 
 ---
 
+## [2026-06-10] 检测任务 · 创建任务弹窗（自主率 / 开源风险）
+
+### 改了什么
+
+- **类型选择**后分别打开 `AutonomyDetectTaskCreateModal`（三步 `a-steps`）或 `RiskDetectTaskCreateModal`
+- **自主率**：选项目+任务名 → 扫描模式（切换提示语）→ 执行方式/Worker/自动重试；未完成当前步不可下一步
+- **开源风险**：顶部流程提示 + 任务名/项目；**数据来源**（扫描项目 / 导入 SBOM）在关联项目下方；SBOM 模式拖拽上传（.json/.xml/.spdx）且必须上传后才能创建
+- **列表进度**：`queued` 状态展示固定 10%（`getTaskDisplayProgress`）
+- API：`getDetectTaskProjectOptions`、`getRiskDetectVulnDbVersions`、`createDetectTask`（mock 写入 `MOCK_ALL_DETECT_TASKS` 头部）
+
+---
+
 ## [2026-06-10] 漏洞知识库 · 风险摘要占位
 
 ### 改了什么
@@ -342,8 +354,9 @@
 
 - **`views/report/ReportList.vue`**：报告列表页（顶部操作区暂未实现）
 - **`api/report.ts`** + **`mock/modules/report/reportList.ts`**（24 条 mock）
-- **组件**：`ReportQueryBar`、`ReportTable`、`ReportActionCell`、`ReportDeleteModal`、`ReportFailureReasonModal`
-- **工具**：`utils/reportQuery.ts`、`utils/reportDisplay.ts`、`utils/reportDownload.ts`
+- **组件**：`ReportQueryBar`、`ReportTable`、`ReportActionCell`、`ReportDeleteModal`、`ReportFailureReasonModal`、`ReportDownloadModal`、`ReportDetailDrawer`
+- **工具**：`utils/reportQuery.ts`、`utils/reportDisplay.ts`、`utils/reportDownload.ts`、`utils/reportDownloadDisplay.ts`
+- **mock**：`mock/modules/report/reportDownload.ts`（审批状态 + 导出策略摘要 + 下载文件名规则）
 
 ### 怎么实现的
 
@@ -351,7 +364,7 @@
 - 列表列：报告名称、关联项目、使用模板、生成时间、状态 Tag、操作
 - 操作按状态：
   - 全部：删除（弹窗「删除后不可恢复，但不影响原始任务结果与证据链。」确认后调 API 并前端移除）
-  - 已完成：查看（按钮占位，无跳转）、下载（`getReportDownloadUrl` + 临时 `<a>` 触发）
+  - 已完成：查看（`ReportDetailDrawer` 右侧抽屉）、下载（见下方「报告下载」）
   - 失败：失败原因（弹窗打开时 `getReportFailureReason`）
 - 复用 `ListQueryBar` + `ListTable` + `useFilteredPaginatedList`（10 条/页）
 
@@ -359,7 +372,46 @@
 
 - 报告列表已支持「生成检测报告」弹窗
 - mock 下载链接为占位路径，联调后需替换为真实签名 URL
-- 「查看」交互待报告详情页实现后接入
+---
+
+## [2026-06-10] 报告管理 · 查看抽屉
+
+### 改了什么
+
+- **`ReportDetailDrawer.vue`**：右侧抽屉，模式同 `LogDetailDrawer` / `VulnItemDetailDrawer`
+- **`getReportDetail()`**：打开抽屉时按 `reportId` 拉取详情（mock 复用列表数据）
+
+### 怎么实现的
+
+- 仅「已完成」行展示「查看」；点击后 `openDetailDrawer` 传入 `reportId`
+- 抽屉顶部 `a-descriptions`：报告名称、关联项目、模板、生成时间（`YYYY-MM-DD HH:mm`）
+- 下方 `flex: 1` 预览区占位，后续接入 PDF / HTML Viewer
+- 抽屉宽 840px，`body-style` 纵向 flex 占满可视高度
+
+---
+
+## [2026-06-10] 报告管理 · 下载流程
+
+### 改了什么
+
+- **`ReportList.vue`**：承接下载点击逻辑（审批判断 + 打开下载弹窗）
+- **`ReportDownloadModal.vue`**：格式/证据链选择 + 策略摘要展示
+- **`api/report.ts`**：新增 `getReportDownloadStatus`、`submitReportDownloadApplication`、`createReportDownload`（移除直链 `getReportDownloadUrl`）
+- **`mock/modules/report/reportDownload.ts`**：审批状态与下载文件 mock
+
+### 怎么实现的
+
+1. 点击「下载」→ `getReportDownloadStatus(reportId)`
+2. **需审批且未通过**（`report-003`）→ `Modal.confirm`「需要审批，是否提交申请？」→ 是则 `submitReportDownloadApplication`；审批中提示稍后再试
+3. **无需审批或已审批**（普通报告 / `report-005`）→ 打开 `ReportDownloadModal`
+4. 弹窗顶部 `a-alert` 展示：策略名、当前角色脱敏级别、水印预览（来自后端/mock 策略摘要）
+5. 用户选：下载格式（默认 PDF，可选 Word/HTML）、是否包含证据链（是/否）
+6. 确定 → `createReportDownload` → `triggerReportDownload`；含证据链时 mock 返回 `.zip`，否则按格式扩展名
+
+### 注意事项
+
+- mock 固定当前用户为「检测工程师 · 部分脱敏」；联调后由后端按 JWT 角色返回
+- `report-003`（飞控V2周检报告）用于演示审批流；提交后变为 `pending_review`，需 mock 或后端改为 `approved` 才能下载
 
 ---
 

@@ -30,10 +30,10 @@
       />
     </a-form-item>
 
-    <a-form-item label="模块">
+    <a-form-item label="资源/对象">
       <a-input
-        v-model:value="filters.module"
-        placeholder="输入模块"
+        v-model:value="filters.resourceObject"
+        placeholder="输入资源或对象"
         allow-clear
         class="list-query-input"
         @press-enter="emit('search')"

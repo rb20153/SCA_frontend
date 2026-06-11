@@ -50,7 +50,7 @@ function buildMockDetectTasks(count: number): DetectTask[] {
       taskName: `${seed.namePrefix}-${String(seq).padStart(3, '0')}`,
       taskType: seed.taskType,
       status: seed.status,
-      progress: seed.progress,
+      progress: seed.status === 'queued' ? 10 : seed.progress,
       projectId: seed.projectId,
       projectName: seed.projectName,
       sourceMode: seed.sourceMode,

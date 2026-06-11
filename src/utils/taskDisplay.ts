@@ -1,5 +1,6 @@
 import type { TaskSourceMode, TaskStatus, TaskType } from '@/types/common'
 import type { DetectTask } from '@/types/detect'
+import { QUEUED_TASK_DISPLAY_PROGRESS } from '@/utils/taskCreate'
 
 /** 检测类型中文文案 */
 export const TASK_TYPE_LABEL: Record<TaskType, string> = {
@@ -46,12 +47,28 @@ export function formatStatGrowth(growth: number, suffix = ''): string {
   return `增长 ${sign}${growth}${suffix}`
 }
 
+/** 失败任务跳转日志列表（按任务名称筛选资源/对象列） */
+export function getTaskLogListRoute(task: DetectTask) {
+  return {
+    path: '/system/logs',
+    query: { resourceObject: task.taskName },
+  }
+}
+
 /** 根据检测类型返回对应结果页路由 */
 export function getTaskResultRoute(task: DetectTask) {
   if (task.taskType === 'autonomy') {
     return { name: 'AutonomyDetectResult', params: { taskId: task.taskId } }
   }
   return { name: 'OpenSourceRiskDetail', params: { taskId: task.taskId } }
+}
+
+/** 列表展示的进度百分比（排队中固定 10%） */
+export function getTaskDisplayProgress(task: DetectTask): number {
+  if (task.status === 'queued') {
+    return QUEUED_TASK_DISPLAY_PROGRESS
+  }
+  return task.progress
 }
 
 /** 进度条状态：与运行状态联动 */

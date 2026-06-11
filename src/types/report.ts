@@ -4,6 +4,17 @@ import type { Dayjs } from 'dayjs'
 /** 报告生成状态 */
 export type ReportStatus = 'completed' | 'generating' | 'failed'
 
+/** 报告下载文件格式 */
+export type ReportDownloadFormat = 'pdf' | 'word' | 'html'
+
+/** 需审批报告的下载审批状态 */
+export type ReportDownloadApprovalState =
+  | 'not_required'
+  | 'pending_submit'
+  | 'pending_review'
+  | 'approved'
+  | 'rejected'
+
 export interface Report {
   reportId: string
   reportName: string
@@ -12,9 +23,12 @@ export interface Report {
   /** 生成时间，ISO 8601 */
   generatedAt: string
   status: ReportStatus
-  /** 已完成报告的可下载地址（mock 阶段占位） */
+  /** 已完成报告的可下载地址（mock 遗留字段，新流程走 createReportDownload） */
   downloadUrl?: string
 }
+
+/** 报告详情（查看抽屉；后续可扩展预览 URL 等字段） */
+export type ReportDetail = Report
 
 export interface ReportListFilters {
   reportName: string
@@ -27,6 +41,27 @@ export interface ReportQueryParams extends PageParams {
   projectName?: string
   /** 生成日期，格式 YYYY-MM-DD */
   generatedDate?: string
+}
+
+/** 下载前展示的导出策略摘要（脱敏、水印、策略名） */
+export interface ReportExportPolicyPreview {
+  policyName: string
+  desensitizeRoleLabel: string
+  desensitizeLevel: string
+  watermarkPreview: string
+}
+
+/** 点击下载时向后端查询的审批与策略信息 */
+export interface ReportDownloadStatus {
+  reportId: string
+  requiresApproval: boolean
+  approvalState: ReportDownloadApprovalState
+  exportPolicy: ReportExportPolicyPreview
+}
+
+export interface CreateReportDownloadParams {
+  format: ReportDownloadFormat
+  includeEvidenceChain: boolean
 }
 
 export interface ReportDownloadInfo {

@@ -61,7 +61,6 @@ const viewingLogId = ref<string | null>(null)
 
 const {
   filterForm,
-  appliedQuery,
   loading,
   list: logList,
   pagination,
@@ -83,16 +82,16 @@ function openDetailDrawer(log: LogListItem) {
   detailVisible.value = true
 }
 
-/** 从检测任务页带 taskId 跳转时，自动按任务筛选日志 */
-function applyRouteTaskFilter() {
-  const taskId = route.query.taskId
-  if (typeof taskId !== 'string' || !taskId) return
+/** 从检测任务页带任务名跳转时，自动按资源/对象列筛选日志 */
+function applyRouteLogFilter() {
+  const resourceObject = route.query.resourceObject
+  if (typeof resourceObject !== 'string' || !resourceObject) return
 
-  appliedQuery.value = { taskId }
+  filterForm.resourceObject = resourceObject
 }
 
 onMounted(async () => {
-  applyRouteTaskFilter()
+  applyRouteLogFilter()
   await handleSearch()
 })
 </script>

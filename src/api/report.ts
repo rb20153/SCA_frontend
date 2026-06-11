@@ -1,15 +1,24 @@
 import type { ApiResponse, PageResult } from '@/types/common'
 import type {
+  CreateReportDownloadParams,
   GenerateReportParams,
   Report,
+  ReportDetail,
   ReportDownloadInfo,
+  ReportDownloadStatus,
   ReportFailureReason,
   ReportQueryParams,
 } from '@/types/report'
+import {
+  createMockReportDownload,
+  getMockReportDownloadStatus,
+  submitMockReportDownloadApplication,
+} from '@/mock/modules/report/reportDownload'
 import { MOCK_ALL_DETECT_TASKS } from '@/mock/modules/detect/taskList'
 import { MOCK_ALL_PROJECTS } from '@/mock/modules/project/projectList'
 import {
   MOCK_ALL_REPORTS,
+  getMockReportDetail,
   getMockReportFailureReason,
 } from '@/mock/modules/report/reportList'
 import { MOCK_ALL_REPORT_TEMPLATES } from '@/mock/modules/report/templateList'
@@ -115,21 +124,87 @@ export function deleteReport(reportId: string): Promise<ApiResponse<null>> {
 }
 
 /**
- * 获取报告下载链接（已完成状态）
+ * 获取报告详情（查看抽屉）
  * @param reportId - 报告 ID
  */
-export function getReportDownloadUrl(
-  reportId: string,
-): Promise<ApiResponse<ReportDownloadInfo>> {
-  const report = MOCK_ALL_REPORTS.find((item) => item.reportId === reportId)
-  const url = report?.downloadUrl ?? `/mock/reports/${reportId}.pdf`
-  const fileName = `${report?.reportName ?? reportId}.pdf`
+export function getReportDetail(reportId: string): Promise<ApiResponse<ReportDetail>> {
+  const detail = getMockReportDetail(reportId)
+  if (!detail) {
+    return Promise.reject(new Error('报告不存在'))
+  }
 
-  // TODO: replace with → return request.get(`/api/reports/${reportId}/download-url`)
+  // TODO: replace with → return request.get(`/api/reports/${reportId}`)
+  return Promise.resolve({ code: 200, message: 'ok', data: detail })
+}
+
+/**
+ * 查询报告下载审批状态与导出策略摘要（点击下载时首先调用）
+ * @param reportId - 报告 ID
+ */
+export function getReportDownloadStatus(
+  reportId: string,
+): Promise<ApiResponse<ReportDownloadStatus>> {
+  const report = MOCK_ALL_REPORTS.find((item) => item.reportId === reportId)
+  if (!report || report.status !== 'completed') {
+    return Promise.reject(new Error('报告不可下载'))
+  }
+
+  // TODO: replace with → return request.get(`/api/reports/${reportId}/download-status`)
   return Promise.resolve({
     code: 200,
     message: 'ok',
-    data: { url, fileName },
+    data: getMockReportDownloadStatus(reportId),
+  })
+}
+
+/**
+ * 提交报告下载审批申请
+ * @param reportId - 报告 ID
+ */
+export function submitReportDownloadApplication(
+  reportId: string,
+): Promise<ApiResponse<null>> {
+  const status = getMockReportDownloadStatus(reportId)
+  if (!status.requiresApproval) {
+    return Promise.reject(new Error('该报告无需审批'))
+  }
+  if (status.approvalState === 'pending_review') {
+    return Promise.reject(new Error('申请已提交，请勿重复操作'))
+  }
+  if (status.approvalState === 'approved') {
+    return Promise.reject(new Error('已通过审批，请直接下载'))
+  }
+
+  submitMockReportDownloadApplication(reportId)
+
+  // TODO: replace with → return request.post(`/api/reports/${reportId}/download-applications`)
+  return Promise.resolve({ code: 200, message: 'ok', data: null })
+}
+
+/**
+ * 创建报告下载任务并返回临时下载链接
+ * @param reportId - 报告 ID
+ * @param params - 格式与是否包含证据链
+ */
+export function createReportDownload(
+  reportId: string,
+  params: CreateReportDownloadParams,
+): Promise<ApiResponse<ReportDownloadInfo>> {
+  const report = MOCK_ALL_REPORTS.find((item) => item.reportId === reportId)
+  if (!report || report.status !== 'completed') {
+    return Promise.reject(new Error('报告不可下载'))
+  }
+
+  const status = getMockReportDownloadStatus(reportId)
+  if (status.requiresApproval && status.approvalState !== 'approved') {
+    return Promise.reject(new Error('下载未通过审批'))
+  }
+
+  // TODO: replace with → return request.post(`/api/reports/${reportId}/downloads`, params)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: createMockReportDownload(reportId, report.reportName, params),
   })
 }
 

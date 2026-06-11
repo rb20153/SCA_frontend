@@ -115,18 +115,20 @@ export interface LogListFilters {
   /** 时间范围（日期+时刻） */
   occurredAtRange: [Dayjs, Dayjs] | null
   username: string
-  module: string
+  /** 资源/对象（如检测任务名称） */
+  resourceObject: string
   result: LogResult | ''
 }
 
 export interface LogQueryParams extends PageParams {
   traceId?: string
   username?: string
-  module?: string
   result?: LogResult
   occurredAtStart?: string
   occurredAtEnd?: string
-  /** 从检测任务页跳转时按任务 ID 筛选 */
+  /** 资源/对象关键词（模糊匹配，如任务名称） */
+  resourceObject?: string
+  /** @deprecated 从任务页跳转请使用 resourceObject（任务名） */
   taskId?: string
 }
 

@@ -1,9 +1,6 @@
 ﻿<template>
   <div class="page-container">
-    <DetectTaskCreateBar
-      @create-autonomy="onCreateAutonomy"
-      @create-risk="onCreateRisk"
-    />
+    <DetectTaskCreateBar @created="onTaskCreated" />
 
     <DetectTaskQueryBar
       v-model="filterForm"
@@ -34,7 +31,6 @@
 </template>
 
 <script setup lang="ts">
-import { message } from 'ant-design-vue'
 import { getTaskList } from '@/api/detect'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
@@ -62,14 +58,10 @@ const {
   },
 )
 
-/** 创建自主率检测任务（功能开发中） */
-function onCreateAutonomy() {
-  message.info('创建自主率检测任务（开发中）')
-}
-
-/** 创建开源风险检测任务（功能开发中） */
-function onCreateRisk() {
-  message.info('创建开源风险检测任务（开发中）')
+/** 创建任务成功后刷新列表到第一页 */
+async function onTaskCreated() {
+  pagination.current = 1
+  await loadPage()
 }
 
 /** 行内编辑成功后同步更新当前页列表数据 */

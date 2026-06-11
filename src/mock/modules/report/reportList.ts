@@ -87,6 +87,14 @@ function buildMockReports(count: number): Report[] {
 /** 报告列表 mock 数据源 */
 export const MOCK_ALL_REPORTS: Report[] = buildMockReports(MOCK_REPORT_TOTAL)
 
+/**
+ * 按报告 ID 获取详情（查看抽屉）
+ * @param reportId - 报告 ID
+ */
+export function getMockReportDetail(reportId: string): Report | undefined {
+  return MOCK_ALL_REPORTS.find((item) => item.reportId === reportId)
+}
+
 /** 按报告名称匹配种子数据中的失败原因 */
 export function getMockReportFailureReason(reportName: string): string {
   const baseName = reportName.replace(/-\d+$/, '')

@@ -24,7 +24,7 @@
 
       <template v-else-if="column.key === 'progress'">
         <a-progress
-          :percent="getTask(row).progress"
+          :percent="getTaskDisplayProgress(getTask(row))"
           :show-info="true"
           size="small"
           class="progress-cell"
@@ -53,7 +53,7 @@
           </router-link>
           <router-link
             v-else-if="getTask(row).status === 'failed'"
-            :to="{ path: '/system/logs', query: { taskId: getTask(row).taskId } }"
+            :to="getTaskLogListRoute(getTask(row))"
             class="list-table-link"
           >
             查看日志
@@ -82,6 +82,8 @@ import {
   DETECT_TASK_TABLE_SCROLL_X,
   TASK_SOURCE_MODE_LABEL,
   formatDurationMs,
+  getTaskDisplayProgress,
+  getTaskLogListRoute,
   getTaskProgressStatus,
   getTaskResultRoute,
 } from '@/utils/taskDisplay'

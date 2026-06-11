@@ -253,9 +253,9 @@ export function filterMockLogList(params: LogQueryParams): LogListItem[] {
     list = list.filter((item) => item.username.toLowerCase().includes(keyword))
   }
 
-  if (params.module) {
-    const keyword = params.module.toLowerCase()
-    list = list.filter((item) => item.module.toLowerCase().includes(keyword))
+  if (params.resourceObject) {
+    const keyword = params.resourceObject.toLowerCase()
+    list = list.filter((item) => item.resourceObject.toLowerCase().includes(keyword))
   }
 
   if (params.result) {

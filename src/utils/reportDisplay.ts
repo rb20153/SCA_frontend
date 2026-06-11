@@ -24,3 +24,12 @@ export function formatReportDate(value: string): string {
   const parsed = dayjs(value)
   return parsed.isValid() ? parsed.format('YYYY-MM-DD') : '—'
 }
+
+/**
+ * 格式化报告生成时间为详情展示（日期 + 时间）
+ * @param value - ISO 8601 字符串
+ */
+export function formatReportDateTime(value: string): string {
+  const parsed = dayjs(value)
+  return parsed.isValid() ? parsed.format('YYYY-MM-DD HH:mm') : '—'
+}
