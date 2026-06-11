@@ -8,6 +8,8 @@
       :growth="item.growth"
       :growth-suffix="item.growthSuffix"
       :warn-value="item.warnValue"
+      :link-label="item.linkLabel"
+      :link-to="item.linkTo"
     />
   </div>
 </template>

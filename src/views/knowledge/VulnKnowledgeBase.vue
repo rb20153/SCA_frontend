@@ -4,6 +4,13 @@
       <StatCardRow v-if="statCards.length > 0" :items="statCards" />
     </PageLoading>
 
+    <VulnKnowledgeRiskSummary />
+
+    <VulnSourceMaintainBar
+      @sync-all="syncAllVisible = true"
+      @import="importVisible = true"
+    />
+
     <VulnSourceQueryBar
       v-model="filterForm"
       @search="handleSearch"
@@ -32,6 +39,10 @@
       :source="syncingSource"
       @success="onSyncSuccess"
     />
+
+    <VulnSourceSyncAllModal v-model:open="syncAllVisible" @success="onMaintainSuccess" />
+
+    <VulnSourceImportModal v-model:open="importVisible" @success="onMaintainSuccess" />
   </div>
 </template>
 
@@ -41,7 +52,11 @@ import { getVulnKnowledgeOverview, getVulnSourceList } from '@/api/knowledge'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import StatCardRow from '@/components/common/StatCardRow.vue'
+import VulnKnowledgeRiskSummary from '@/components/knowledge/VulnKnowledgeRiskSummary.vue'
+import VulnSourceImportModal from '@/components/knowledge/VulnSourceImportModal.vue'
+import VulnSourceMaintainBar from '@/components/knowledge/VulnSourceMaintainBar.vue'
 import VulnSourceQueryBar from '@/components/knowledge/VulnSourceQueryBar.vue'
+import VulnSourceSyncAllModal from '@/components/knowledge/VulnSourceSyncAllModal.vue'
 import VulnSourceSyncModal from '@/components/knowledge/VulnSourceSyncModal.vue'
 import VulnSourceTable from '@/components/knowledge/VulnSourceTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
@@ -56,6 +71,8 @@ import {
 const overviewLoading = ref(false)
 const statCards = ref<StatCardItem[]>([])
 const syncVisible = ref(false)
+const syncAllVisible = ref(false)
+const importVisible = ref(false)
 const syncingSource = ref<VulnSource | null>(null)
 
 const {
@@ -93,9 +110,14 @@ function openSyncModal(source: VulnSource) {
   syncVisible.value = true
 }
 
-/** 同步成功后刷新列表与概览 */
+/** 单条同步成功后刷新列表与概览 */
 async function onSyncSuccess() {
   syncingSource.value = null
+  await Promise.all([fetchOverview(), loadPage()])
+}
+
+/** 全库同步 / 导入离线包成功后刷新列表与概览 */
+async function onMaintainSuccess() {
   await Promise.all([fetchOverview(), loadPage()])
 }
 

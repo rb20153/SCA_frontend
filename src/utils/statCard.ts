@@ -1,6 +1,10 @@
 import type { StatCardItem } from '@/types/common'
 import type { DashboardStatItem } from '@/types/dashboard'
-import type { KnowledgeCoverageOverview, VulnKnowledgeOverview } from '@/types/knowledge'
+import type {
+  KnowledgeCoverageOverview,
+  VulnItemOverview,
+  VulnKnowledgeOverview,
+} from '@/types/knowledge'
 import type { AlertCenterOverview } from '@/types/system'
 import dayjs from 'dayjs'
 
@@ -68,6 +72,8 @@ export function mapVulnKnowledgeToStatCards(overview: VulnKnowledgeOverview): St
       key: 'totalVulnCount',
       label: '漏洞总数',
       value: overview.totalVulnCount.toLocaleString('zh-CN'),
+      linkLabel: '查看漏洞条目',
+      linkTo: '/knowledge/vulnerabilities/items',
     },
     {
       key: 'highRiskCount',
@@ -79,6 +85,45 @@ export function mapVulnKnowledgeToStatCards(overview: VulnKnowledgeOverview): St
       key: 'lastSyncedAt',
       label: '最近同步',
       value: syncedAt.isValid() ? syncedAt.format('YYYY-MM-DD HH:mm') : '—',
+    },
+  ]
+}
+
+/**
+ * 将漏洞条目页概览转为 StatCardItem 列表
+ * @param overview - 条目 overview API 返回；有 activeSourceName 时第二格展示「来源」
+ */
+export function mapVulnItemToStatCards(overview: VulnItemOverview): StatCardItem[] {
+  const lastUpdated = dayjs(overview.lastUpdatedAt)
+  const contextCard: StatCardItem = overview.activeSourceName
+    ? {
+        key: 'activeSource',
+        label: '来源',
+        value: overview.activeSourceName,
+      }
+    : {
+        key: 'crossSourceDuplicate',
+        label: '跨库重复',
+        value: String(overview.crossSourceDuplicateCount ?? 0),
+      }
+
+  return [
+    {
+      key: 'matchedCount',
+      label: '命中条目',
+      value: overview.matchedCount.toLocaleString('zh-CN'),
+    },
+    contextCard,
+    {
+      key: 'highRiskCount',
+      label: '高危',
+      value: overview.highRiskCount.toLocaleString('zh-CN'),
+      warnValue: overview.highRiskCount > 0,
+    },
+    {
+      key: 'lastUpdatedAt',
+      label: '最近更新',
+      value: lastUpdated.isValid() ? lastUpdated.format('YYYY-MM-DD HH:mm') : '—',
     },
   ]
 }

@@ -101,39 +101,160 @@ export type VulnSourceCode = 'nvd' | 'cnvd' | 'osv' | 'github_advisory'
 /** 漏洞来源同步状态 */
 export type VulnSyncStatus = 'normal' | 'delayed' | 'warning'
 
+/** 漏洞来源种类：内置源 / 用户上传离线包 */
+export type VulnSourceKind = 'builtin' | 'offline_upload'
+
 export interface VulnSource {
   sourceId: string
-  sourceCode: VulnSourceCode
-  /** 来源展示名，如 NVD */
+  kind: VulnSourceKind
+  /** 内置源编码；离线包为 null */
+  sourceCode: VulnSourceCode | null
+  /** 来源展示名，如 NVD；离线包为来源标签 */
   sourceName: string
-  /** 来源类型描述，如官方漏洞库 */
+  /** 来源类型描述，如官方漏洞库 / 上传离线包 */
   sourceType: string
-  description: string
-  tags: string[]
-  recordCount: number
-  highRiskCount: number
-  /** 同步周期文案，如「每日」 */
-  syncCycle: string
-  /** 最近同步时间，ISO 8601 */
+  description?: string
+  tags?: string[]
+  /** 离线包为 null，列表展示 — */
+  recordCount: number | null
+  highRiskCount: number | null
+  /** 同步周期文案；离线包为 null */
+  syncCycle: string | null
+  /** 最近同步 / 上传时间，ISO 8601 */
   lastSyncedAt: string
   syncStatus: VulnSyncStatus
+}
+
+/** 全库同步弹窗预览（打开弹窗时由后端返回） */
+export interface VulnSyncAllPreview {
+  sourceNames: string[]
+  estimatedMinutes: number
+}
+
+export interface ImportOfflineVulnPackageParams {
+  sourceTag: string
+  file: File
 }
 
 export interface VulnSourceListFilters {
   /** 来源名称关键词 */
   sourceName: string
   syncStatus: VulnSyncStatus | ''
-  keyword: string
 }
 
 export interface VulnSourceQueryParams extends PageParams {
   sourceName?: string
   syncStatus?: VulnSyncStatus
-  keyword?: string
 }
 
 export interface SyncVulnSourceParams {
   sourceId: string
   sourceCode: VulnSourceCode
   sourceName: string
+}
+
+/** 漏洞条目严重等级（列表 / 详情展示） */
+export type VulnItemLevel = 'low' | 'medium' | 'high'
+
+/** 漏洞条目处置状态 */
+export type VulnItemStatus = 'synced' | 'needs_review' | 'pending_action'
+
+export interface VulnItemListItem {
+  itemId: string
+  /** CVE / CNVD 等公开编号 */
+  identifier: string
+  sourceId: string
+  sourceName: string
+  level: VulnItemLevel
+  affectedComponent: string
+  /** 更新时间，ISO 8601 */
+  updatedAt: string
+  status: VulnItemStatus
+}
+
+export interface VulnItemDetail {
+  itemId: string
+  identifier: string
+  sourceName: string
+  level: VulnItemLevel
+  cvssScore: number
+  description: string
+  affectedComponent: string
+  fixedVersion: string
+  /** 参考链接列表 */
+  referenceLinks: string[]
+}
+
+export interface VulnItemListFilters {
+  keyword: string
+  sourceName: string
+  /** 从来源列表跳转时携带，与 sourceName 二选一参与筛选 */
+  sourceId: string
+  level: VulnItemLevel | ''
+  status: VulnItemStatus | ''
+  /** CVE / CNVD 编号关键词 */
+  identifier: string
+}
+
+export interface VulnItemListQueryParams extends PageParams {
+  keyword?: string
+  sourceName?: string
+  sourceId?: string
+  level?: VulnItemLevel
+  status?: VulnItemStatus
+  identifier?: string
+}
+
+/** 漏洞条目页概览查询（与列表筛选参数对齐） */
+export type VulnItemOverviewQueryParams = Omit<VulnItemListQueryParams, 'page' | 'pageSize'>
+
+/** 漏洞条目导出格式 */
+export type VulnItemExportFormat = 'csv' | 'excel' | 'json'
+
+/** 漏洞条目导出范围 */
+export type VulnItemExportScope = 'filtered' | 'current_page'
+
+export interface VulnItemExportParams extends VulnItemOverviewQueryParams {
+  format: VulnItemExportFormat
+  scope: VulnItemExportScope
+  /** scope 为 current_page 时必填 */
+  page?: number
+  pageSize?: number
+}
+
+export interface VulnItemExportResult {
+  downloadUrl: string
+  fileName: string
+}
+
+/** 快捷检索建议中的筛选片段（未给出的字段视为清空） */
+export interface VulnItemQuickSearchFilters {
+  keyword?: string
+  sourceName?: string
+  sourceId?: string
+  level?: VulnItemLevel | ''
+  status?: VulnItemStatus | ''
+  identifier?: string
+}
+
+/** 漏洞条目页快捷检索建议（由后端下发） */
+export interface VulnItemQuickSearchSuggestion {
+  suggestionId: string
+  /** 完整说明（tooltip / 无障碍） */
+  label: string
+  /** 标签短文案；缺省时前端从 filters 推导 */
+  shortLabel?: string
+  filters: VulnItemQuickSearchFilters
+}
+
+/** 漏洞条目页统计卡片数据 */
+export interface VulnItemOverview {
+  matchedCount: number
+  highRiskCount: number
+  /** 最近更新时间，ISO 8601 */
+  lastUpdatedAt: string
+  /** 全库检索：跨来源重复条目数 */
+  crossSourceDuplicateCount?: number
+  /** 指定来源检索：当前来源名称 */
+  activeSourceName?: string
 }

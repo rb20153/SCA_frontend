@@ -21,7 +21,6 @@ export function createEmptyVulnSourceListFilters(): VulnSourceListFilters {
   return {
     sourceName: '',
     syncStatus: '',
-    keyword: '',
   }
 }
 
@@ -31,11 +30,9 @@ export function vulnSourceListFiltersToQuery(
 ): Omit<VulnSourceQueryParams, 'page' | 'pageSize'> {
   const query: Omit<VulnSourceQueryParams, 'page' | 'pageSize'> = {}
   const sourceName = filters.sourceName.trim()
-  const keyword = filters.keyword.trim()
 
   if (sourceName) query.sourceName = sourceName
   if (filters.syncStatus) query.syncStatus = filters.syncStatus
-  if (keyword) query.keyword = keyword
 
   return query
 }

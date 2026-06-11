@@ -7,6 +7,9 @@
     <div v-if="hasGrowth" class="stat-growth" :class="growthClass">
       {{ growthText }}
     </div>
+    <router-link v-if="linkTo && linkLabel" :to="linkTo" class="stat-link stat-link--action">
+      {{ linkLabel }}
+    </router-link>
   </a-card>
 </template>
 
@@ -23,6 +26,9 @@ const props = defineProps<{
   growthSuffix?: string
   /** 主数值是否使用警告色 */
   warnValue?: boolean
+  /** 卡片底部操作链接 */
+  linkLabel?: string
+  linkTo?: string
 }>()
 
 /** 是否展示增长率行 */
@@ -86,5 +92,19 @@ const growthClass = computed(() =>
 
 .stat-growth--down {
   color: #ff4d4f;
+}
+
+.stat-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.stat-link--action {
+  color: #52c41a;
+}
+
+.stat-link--action:hover {
+  color: #73d13d;
 }
 </style>

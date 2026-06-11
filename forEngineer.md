@@ -5,6 +5,86 @@
 
 ---
 
+## [2026-06-10] 漏洞知识库 · 风险摘要占位
+
+### 改了什么
+
+- **`VulnKnowledgeRiskSummary`**：统计卡片下方、`ChartPlaceholder` 占位，文案「高危 / 中危 / 低危来源分布（图表待接入）」
+- 后续在同组件内替换为 ECharts + 后端风险分布接口
+
+---
+
+## [2026-06-10] 漏洞条目页 · 快捷检索建议
+
+### 改了什么
+
+- **`VulnItemQuickSearchCard`**：与导出按钮同一行，以可点击 `a-tag` 展示；短文案由 `shortLabel` 或 filters 推导，完整说明在 tooltip
+- 点击建议 → `quickSearchSuggestionToFilters` 写入筛选表单 → `onSearch()` 自动查询；若 URL 带 `sourceId` 会先清 query
+- mock：`vulnItemQuickSearch.ts`（4 条，含全库关键词 / 单来源 + 编号 / 等级+状态组合）
+
+---
+
+## [2026-06-10] 漏洞条目页 · 导出检索结果
+
+### 改了什么
+
+- 页面顶部「导出当前检索结果」按钮 + `VulnItemExportModal`
+- 可选格式（默认 CSV：Excel / JSON）、范围（默认当前筛选结果 / 当前页）
+- `exportVulnItems()` 返回 `downloadUrl` + `fileName`，确定后 `triggerReportDownload` 自动下载并关弹窗
+- mock：`vulnItemExport.ts` 按筛选或当前页生成 Blob URL
+
+---
+
+## [2026-06-10] 漏洞条目页 · 筛选 / 列表 / 详情抽屉
+
+### 改了什么
+
+- **布局**：`VulnItemQueryBar` 在统计卡片上方；列表在卡片下方
+- **筛选**：关键词、来源（`?sourceId=` 跳转自动填充来源名并带 `sourceId` 查询）、等级（全部/低/中/高）、状态（全部/待处置/需复核/已同步）、CVE/CNVD 编号
+- **列表**：`VulnItemTable` 七列；长文本列 `ellipsis` + `ListTableCell`
+- **详情**：`VulnItemDetailDrawer` 打开时 `getVulnItemDetail`；描述与参考链接独占一行；无底部按钮
+- **统计联动**：查询/重置时 `getVulnItemOverview` 与 `getVulnItemList` 共用 `vulnItemListFiltersToQuery` 条件
+
+### 注意事项
+
+- 用户手动改来源输入框会清空 `sourceId`，避免名称与路由 ID 冲突
+- 重置且 URL 带 `sourceId` 时会 `router.replace` 清 query，由路由 watch 触发刷新
+
+---
+
+## [2026-06-10] 漏洞时间展示统一为日期 + 时间
+
+### 改了什么
+
+- **`formatVulnSourceLastSync`**：离线包「最近同步」与内置源一致，格式 `YYYY-MM-DD HH:mm`
+- **`mapVulnItemToStatCards`**：「最近更新」由仅日期改为 `YYYY-MM-DD HH:mm`
+
+---
+
+## [2026-06-10] 漏洞条目页 · 跳转上下文 + 统计卡片
+
+### 改了什么
+
+- **`VulnItemList.vue`**：按 `route.query.sourceId` 请求 `getVulnItemOverview`，展示 4 项 `StatCardRow`
+- **跳转**：漏洞总数卡片 → 全库（无 query）；来源列表「查看条目」→ `?sourceId=`
+- **`mapVulnItemToStatCards`**：无 sourceId 时第二格「跨库重复」；有 sourceId 时第二格「来源」+ 来源名
+
+---
+
+## [2026-06-10] 漏洞知识库 · 全库同步 / 导入离线包 / 来源模型
+
+### 改了什么
+
+- **维护区**：全库同步弹窗（打开时 `getVulnSyncAllPreview` 动态文案）、导入离线包弹窗（来源标签 + 拖拽上传）
+- **列表**：仅 NVD/CNVD/OSV/GitHub Advisory + 用户上传离线包；离线包记录数/高危/周期为 —，仅「查看条目」
+- **`VulnSource.kind`**：`builtin` | `offline_upload`；统计卡片「查看漏洞条目」链接改为增长绿 `#52c41a`
+
+### 注意事项
+
+- **同步周期**是后端配置展示字段，不需按周期轮询；仅在「同步进行中」时轮询任务/列表状态即可（后续联调补）
+
+---
+
 ## [2026-06-10] 漏洞知识库 · 筛选 / 列表 / 立即同步
 
 ### 改了什么

@@ -18,15 +18,6 @@
       />
     </a-form-item>
 
-    <a-form-item label="关键词">
-      <a-input
-        v-model:value="filters.keyword"
-        placeholder="来源名称/描述/标签"
-        allow-clear
-        class="list-query-input list-query-input-wide"
-        @press-enter="emit('search')"
-      />
-    </a-form-item>
   </ListQueryBar>
 </template>
 

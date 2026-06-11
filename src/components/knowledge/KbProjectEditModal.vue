@@ -88,6 +88,7 @@ watch(
       syncFormFromProps()
     }
   },
+  { immediate: true },
 )
 
 watch(

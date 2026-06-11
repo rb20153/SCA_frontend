@@ -33,7 +33,9 @@ const submitting = ref(false)
 
 /** 提交立即同步请求，成功后关闭弹窗并通知父级刷新 */
 async function handleOk() {
-  if (!props.source) return
+  if (!props.source?.sourceCode) {
+    return Promise.reject()
+  }
 
   submitting.value = true
   try {

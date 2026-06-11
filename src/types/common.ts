@@ -28,6 +28,10 @@ export interface StatCardItem {
   growthSuffix?: string
   /** 主数值是否使用警告色 */
   warnValue?: boolean
+  /** 卡片底部操作链接文案（与 linkTo 同时传入） */
+  linkLabel?: string
+  /** 操作链接跳转路径 */
+  linkTo?: string
 }
 
 // ─── SCA Domain canonical types ───────────────────────────────────────────────

@@ -9,15 +9,19 @@
   >
     <template #bodyCell="{ column, record: row, text }">
       <template v-if="column.key === 'recordCount'">
-        {{ formatVulnCount(getSource(row).recordCount) }}
+        {{ formatVulnMetric(getSource(row).recordCount) }}
       </template>
 
       <template v-else-if="column.key === 'highRiskCount'">
-        {{ formatVulnCount(getSource(row).highRiskCount) }}
+        {{ formatVulnMetric(getSource(row).highRiskCount) }}
+      </template>
+
+      <template v-else-if="column.key === 'syncCycle'">
+        {{ formatVulnSyncCycle(getSource(row).syncCycle) }}
       </template>
 
       <template v-else-if="column.key === 'lastSyncedAt'">
-        {{ formatVulnSourceSyncTime(getSource(row).lastSyncedAt) }}
+        {{ formatVulnSourceLastSync(getSource(row)) }}
       </template>
 
       <template v-else-if="column.key === 'syncStatus'">
@@ -48,8 +52,9 @@ import ListTable from '@/components/common/ListTable.vue'
 import ListTableCell from '@/components/common/ListTableCell.vue'
 import VulnSourceActionCell from '@/components/knowledge/VulnSourceActionCell.vue'
 import {
-  formatVulnCount,
-  formatVulnSourceSyncTime,
+  formatVulnMetric,
+  formatVulnSourceLastSync,
+  formatVulnSyncCycle,
   VULN_SOURCE_TABLE_SCROLL_X,
   VULN_SYNC_STATUS_COLOR,
   VULN_SYNC_STATUS_LABEL,

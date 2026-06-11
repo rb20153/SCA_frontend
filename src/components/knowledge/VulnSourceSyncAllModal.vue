@@ -1,0 +1,83 @@
+<template>
+  <a-modal
+    v-model:open="visible"
+    title="全库同步"
+    :confirm-loading="submitting"
+    ok-text="确定"
+    cancel-text="取消"
+    destroy-on-close
+    @ok="handleOk"
+  >
+    <a-spin :spinning="loading">
+      <p v-if="preview" class="sync-all-tip">
+        将对 {{ preview.sourceNames.join('、') }} 执行增量同步，预计需要
+        {{ preview.estimatedMinutes }} 分钟。
+      </p>
+    </a-spin>
+  </a-modal>
+</template>
+
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+import { message } from 'ant-design-vue'
+import { getVulnSyncAllPreview, syncAllVulnSources } from '@/api/knowledge'
+import type { VulnSyncAllPreview } from '@/types/knowledge'
+
+const visible = defineModel<boolean>('open', { required: true })
+
+const emit = defineEmits<{
+  success: []
+}>()
+
+const loading = ref(false)
+const submitting = ref(false)
+const preview = ref<VulnSyncAllPreview | null>(null)
+
+/** 打开弹窗时拉取全库同步预览 */
+async function fetchPreview() {
+  loading.value = true
+  preview.value = null
+  try {
+    const res = await getVulnSyncAllPreview()
+    preview.value = res.data
+  } finally {
+    loading.value = false
+  }
+}
+
+/** 提交全库同步请求 */
+async function handleOk() {
+  if (!preview.value) {
+    return Promise.reject()
+  }
+
+  submitting.value = true
+  try {
+    await syncAllVulnSources()
+    message.success('全库同步任务已提交')
+    visible.value = false
+    emit('success')
+  } finally {
+    submitting.value = false
+  }
+}
+
+watch(
+  () => visible.value,
+  (open) => {
+    if (open) {
+      fetchPreview()
+    } else {
+      preview.value = null
+    }
+  },
+)
+</script>
+
+<style scoped>
+.sync-all-tip {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.88);
+  line-height: 1.6;
+}
+</style>

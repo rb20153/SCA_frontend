@@ -7,16 +7,33 @@ import type {
   KbVersionOverview,
   KbVersionQueryParams,
   UpdateKbProjectParams,
+  ImportOfflineVulnPackageParams,
   SyncVulnSourceParams,
+  VulnItemDetail,
+  VulnItemExportParams,
+  VulnItemExportResult,
+  VulnItemListItem,
+  VulnItemListQueryParams,
+  VulnItemOverview,
+  VulnItemOverviewQueryParams,
+  VulnItemQuickSearchSuggestion,
   VulnKnowledgeOverview,
   VulnSource,
   VulnSourceQueryParams,
+  VulnSyncAllPreview,
 } from '@/types/knowledge'
 import { MOCK_ALL_KB_PROJECTS } from '@/mock/modules/knowledge/knowledgeList'
 import { mockKnowledgeCoverageOverviewRes } from '@/mock/modules/knowledge/coverageOverview'
 import { mockVulnKnowledgeOverviewRes } from '@/mock/modules/knowledge/vulnKnowledgeOverview'
+import { getMockVulnItemExportResult } from '@/mock/modules/knowledge/vulnItemExport'
+import { getMockVulnItemDetail, getMockVulnItemListPage } from '@/mock/modules/knowledge/vulnItemList'
+import { getMockVulnItemOverview } from '@/mock/modules/knowledge/vulnItemOverview'
+import { getMockVulnItemQuickSearchSuggestions } from '@/mock/modules/knowledge/vulnItemQuickSearch'
 import {
   filterMockVulnSourceList,
+  getMockVulnSyncAllPreview,
+  mockImportOfflineVulnPackage,
+  mockSyncAllVulnSources,
   mockSyncVulnSource,
 } from '@/mock/modules/knowledge/vulnSourceList'
 import {
@@ -230,6 +247,133 @@ export function getVulnSourceList(
       page,
       pageSize,
     },
+  })
+}
+
+/**
+ * 获取漏洞条目页快捷检索建议
+ */
+export function getVulnItemQuickSearchSuggestions(): Promise<
+  ApiResponse<VulnItemQuickSearchSuggestion[]>
+> {
+  // TODO: replace with → return request.get('/api/knowledge/vulnerabilities/items/quick-search-suggestions')
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockVulnItemQuickSearchSuggestions(),
+  })
+}
+
+/**
+ * 获取漏洞条目页概览（与列表共用筛选参数）
+ * @param params - 关键词、来源、等级、编号等筛选条件
+ */
+export function getVulnItemOverview(
+  params: VulnItemOverviewQueryParams = {},
+): Promise<ApiResponse<VulnItemOverview>> {
+  // TODO: replace with → return request.get('/api/knowledge/vulnerabilities/items/overview', { params })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockVulnItemOverview(params),
+  })
+}
+
+/**
+ * 获取漏洞条目列表（分页 + 筛选）
+ * @param params - 分页与筛选参数
+ */
+export function getVulnItemList(
+  params: VulnItemListQueryParams,
+): Promise<ApiResponse<PageResult<VulnItemListItem>>> {
+  const page = params.page ?? 1
+  const pageSize = params.pageSize ?? DEFAULT_PAGE_SIZE
+  const { list, total } = getMockVulnItemListPage({ ...params, page, pageSize })
+
+  // TODO: replace with → return request.get('/api/knowledge/vulnerabilities/items', { params })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: {
+      list,
+      total,
+      page,
+      pageSize,
+    },
+  })
+}
+
+/**
+ * 导出漏洞条目检索结果
+ * @param params - 筛选条件、导出格式与范围
+ */
+export function exportVulnItems(
+  params: VulnItemExportParams,
+): Promise<ApiResponse<VulnItemExportResult>> {
+  // TODO: replace with → return request.post('/api/knowledge/vulnerabilities/items/export', params)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockVulnItemExportResult(params),
+  })
+}
+
+/**
+ * 获取漏洞条目详情
+ * @param itemId - 条目 ID
+ */
+export function getVulnItemDetail(itemId: string): Promise<ApiResponse<VulnItemDetail>> {
+  const detail = getMockVulnItemDetail(itemId)
+  if (!detail) {
+    return Promise.reject(new Error('漏洞条目不存在'))
+  }
+
+  // TODO: replace with → return request.get(`/api/knowledge/vulnerabilities/items/${itemId}`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: detail,
+  })
+}
+
+/**
+ * 获取全库同步弹窗预览（来源名列表与预计耗时）
+ */
+export function getVulnSyncAllPreview(): Promise<ApiResponse<VulnSyncAllPreview>> {
+  // TODO: replace with → return request.get('/api/knowledge/vulnerabilities/sources/sync-all/preview')
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockVulnSyncAllPreview(),
+  })
+}
+
+/**
+ * 对全部内置漏洞来源执行增量同步
+ */
+export function syncAllVulnSources(): Promise<ApiResponse<null>> {
+  // TODO: replace with → return request.post('/api/knowledge/vulnerabilities/sources/sync-all')
+  mockSyncAllVulnSources()
+  return Promise.resolve({ code: 200, message: 'ok', data: null })
+}
+
+/**
+ * 导入离线漏洞包
+ * @param params - 来源标签与漏洞包文件
+ */
+export function importOfflineVulnPackage(
+  params: ImportOfflineVulnPackageParams,
+): Promise<ApiResponse<VulnSource>> {
+  const sourceTag = params.sourceTag.trim()
+  if (!sourceTag) {
+    return Promise.reject(new Error('请输入来源标签'))
+  }
+
+  // TODO: replace with FormData → request.post('/api/knowledge/vulnerabilities/sources/import-offline', formData)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: mockImportOfflineVulnPackage(params),
   })
 }
 
