@@ -41,7 +41,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { getKbProjectList } from '@/api/knowledge'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
@@ -55,6 +56,8 @@ import {
   createEmptyKbProjectListFilters,
   kbProjectListFiltersToQuery,
 } from '@/utils/knowledgeQuery'
+
+const route = useRoute()
 
 const editVisible = ref(false)
 const editingProject = ref<KbProject | null>(null)
@@ -75,8 +78,22 @@ const {
     createEmptyFilters: createEmptyKbProjectListFilters,
     filtersToQuery: kbProjectListFiltersToQuery,
     pageSize: 10,
+    immediate: false,
   },
 )
+
+/** 从覆盖统计待补全清单跳转时，自动按项目名称筛选 */
+function applyRouteProjectFilter() {
+  const projectName = route.query.projectName
+  if (typeof projectName !== 'string' || !projectName) return
+
+  filterForm.projectName = projectName
+}
+
+onMounted(async () => {
+  applyRouteProjectFilter()
+  await handleSearch()
+})
 
 /** 打开编辑弹窗 */
 function openEditModal(project: KbProject) {

@@ -5,6 +5,44 @@
 
 ---
 
+## [2026-06-10] 知识库 · 覆盖统计页布局微调
+
+### 改了什么
+
+- 待补全清单：建议动作列宽收窄（112px + ellipsis），去掉横向 `scroll-x`，避免底部滚动条
+- 分页由 5 条/页改为 **6 条/页**
+- 第一行左右栏 `flex` 等高：采集方式分布图表 `flexBody` 自动撑高，与分类覆盖底部对齐
+- 第二行左右栏等高：待补全卡片与更新趋势模块总高度一致
+
+### 怎么实现的
+
+- `ChartPlaceholder` 新增 `flexBody`：在 `coverage-panel-stack--fill` 内占满剩余高度
+- `KnowledgeCoverage.vue` 两行均用 `type="flex"` + `coverage-section--stretch` 拉伸列高
+
+---
+
+## [2026-06-10] 知识库 · 覆盖统计页（完整）
+
+### 改了什么
+
+- **第一行**：分类覆盖 / 采集方式分布（`ChartPlaceholder` + `CoverageStatTable`）
+- **第二行左**：待补全清单（`CoveragePendingTable` + `ListTable`，6 条/页）
+- **第二行右**：更新趋势（图表占位 + `CoverageUpdateWeekList` 最近 3 周）
+- **`KnowledgeBaseList.vue`**：支持 `?projectName=` 自动筛选（从待补全「查看」跳转）
+
+### 怎么实现的
+
+- 待补全列：项目名称、缺口、影响 Tag（低/中/高）、建议动作、操作（查看）
+- 更新趋势列表：左 `Wxx`、右更新简介，数据来自 `getCoverageUpdateTrendWeeks`
+- 查看 → `router.push({ path: '/knowledge', query: { projectName } })`
+
+### 注意事项
+
+- 图表区域仍为占位，后续替换 ECharts
+- `CoverageStatTable` 与 `ListTable` 分工：小统计表 vs 分页业务列表
+
+---
+
 ## [2026-06-10] 检测任务 · 创建任务弹窗（自主率 / 开源风险）
 
 ### 改了什么

@@ -86,6 +86,48 @@ export interface KnowledgeCoverageOverview {
   pendingProjectCount: number
 }
 
+/** 分类覆盖统计行 */
+export interface CategoryCoverageStat {
+  category: string
+  projectCount: number
+  versionCount: number
+  /** 目录覆盖率，0–100 */
+  directoryCoverageRate: number
+  /** 漏洞映射率，0–100 */
+  vulnMappingRate: number
+}
+
+/** 采集方式覆盖统计行 */
+export interface CollectionMethodCoverageStat {
+  method: string
+  projectCount: number
+  /** 成功率，0–100 */
+  successRate: number
+  /** 平均耗时（分钟） */
+  avgDurationMinutes: number
+}
+
+/** 待补全项影响程度 */
+export type CoverageGapImpact = 'low' | 'medium' | 'high'
+
+/** 覆盖统计 · 待补全清单行 */
+export interface CoveragePendingItem {
+  pendingId: string
+  projectName: string
+  gapDescription: string
+  impact: CoverageGapImpact
+  suggestedAction: string
+}
+
+export interface CoveragePendingQueryParams extends PageParams {}
+
+/** 覆盖统计 · 更新趋势周条目 */
+export interface CoverageUpdateTrendWeek {
+  /** 周次标签，如 W20 */
+  weekLabel: string
+  summary: string
+}
+
 /** 漏洞知识库页顶部概览 */
 export interface VulnKnowledgeOverview {
   sourceCount: number

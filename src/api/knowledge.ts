@@ -2,6 +2,11 @@ import type { ApiResponse, PageResult } from '@/types/common'
 import type {
   KbProject,
   KbProjectQueryParams,
+  CategoryCoverageStat,
+  CollectionMethodCoverageStat,
+  CoveragePendingItem,
+  CoveragePendingQueryParams,
+  CoverageUpdateTrendWeek,
   KnowledgeCoverageOverview,
   KbVersion,
   KbVersionOverview,
@@ -23,6 +28,10 @@ import type {
   VulnSyncAllPreview,
 } from '@/types/knowledge'
 import { MOCK_ALL_KB_PROJECTS } from '@/mock/modules/knowledge/knowledgeList'
+import { mockCategoryCoverageStatsRes } from '@/mock/modules/knowledge/coverageCategoryStats'
+import { mockCollectionMethodCoverageStatsRes } from '@/mock/modules/knowledge/coverageCollectionMethodStats'
+import { getMockCoveragePendingListPage } from '@/mock/modules/knowledge/coveragePendingList'
+import { mockCoverageUpdateTrendWeeksRes } from '@/mock/modules/knowledge/coverageUpdateTrend'
 import { mockKnowledgeCoverageOverviewRes } from '@/mock/modules/knowledge/coverageOverview'
 import { mockVulnKnowledgeOverviewRes } from '@/mock/modules/knowledge/vulnKnowledgeOverview'
 import { getMockVulnItemExportResult } from '@/mock/modules/knowledge/vulnItemExport'
@@ -213,6 +222,43 @@ export function getKnowledgeCoverageOverview(): Promise<
 > {
   // TODO: replace with → return request.get('/api/knowledge/coverage/overview')
   return Promise.resolve(mockKnowledgeCoverageOverviewRes)
+}
+
+/**
+ * 获取分类覆盖统计列表（无分页）
+ */
+export function getCategoryCoverageStats(): Promise<ApiResponse<CategoryCoverageStat[]>> {
+  // TODO: replace with → return request.get('/api/knowledge/coverage/category-stats')
+  return Promise.resolve(mockCategoryCoverageStatsRes)
+}
+
+/**
+ * 获取采集方式覆盖统计列表（无分页）
+ */
+export function getCollectionMethodCoverageStats(): Promise<
+  ApiResponse<CollectionMethodCoverageStat[]>
+> {
+  // TODO: replace with → return request.get('/api/knowledge/coverage/collection-method-stats')
+  return Promise.resolve(mockCollectionMethodCoverageStatsRes)
+}
+
+/**
+ * 获取待补全清单（分页）
+ * @param params - 分页参数，默认每页 5 条
+ */
+export function getCoveragePendingList(
+  params: CoveragePendingQueryParams,
+): Promise<ApiResponse<PageResult<CoveragePendingItem>>> {
+  // TODO: replace with → return request.get('/api/knowledge/coverage/pending-items', { params })
+  return Promise.resolve(getMockCoveragePendingListPage(params))
+}
+
+/**
+ * 获取最近三周更新趋势列表
+ */
+export function getCoverageUpdateTrendWeeks(): Promise<ApiResponse<CoverageUpdateTrendWeek[]>> {
+  // TODO: replace with → return request.get('/api/knowledge/coverage/update-trend/weeks')
+  return Promise.resolve(mockCoverageUpdateTrendWeeksRes)
 }
 
 /**
