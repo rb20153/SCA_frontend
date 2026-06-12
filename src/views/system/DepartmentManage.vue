@@ -34,10 +34,14 @@
       @success="onFormSuccess"
     />
 
-    <DepartmentDeleteModal
+    <BoundCountDeleteModal
       v-if="deletingDepartment"
       v-model:open="deleteVisible"
-      :department="deletingDepartment"
+      title="删除部门"
+      :bound-count="deletingDepartment.memberCount"
+      block-message="该部门下有成员绑定，请移除全部成员再操作。"
+      confirm-message="一旦删除不可恢复，是否确认删除？"
+      :delete-fn="() => deleteDepartment(deletingDepartment!.departmentId)"
       @success="onDeleteSuccess"
     />
   </div>
@@ -45,11 +49,11 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { getDepartmentList } from '@/api/system'
+import { deleteDepartment, getDepartmentList } from '@/api/system'
+import BoundCountDeleteModal from '@/components/common/BoundCountDeleteModal.vue'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import DepartmentCreateBar from '@/components/system/DepartmentCreateBar.vue'
-import DepartmentDeleteModal from '@/components/system/DepartmentDeleteModal.vue'
 import DepartmentFormModal from '@/components/system/DepartmentFormModal.vue'
 import DepartmentQueryBar from '@/components/system/DepartmentQueryBar.vue'
 import DepartmentTable from '@/components/system/DepartmentTable.vue'
@@ -117,7 +121,7 @@ async function onFormSuccess() {
   await loadPage()
 }
 
-/** 打开删除流程（先查成员再确认） */
+/** 打开删除确认（绑定数来自列表行数据） */
 function openDeleteModal(department: Department) {
   deletingDepartment.value = department
   deleteVisible.value = true

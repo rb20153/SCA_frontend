@@ -191,3 +191,90 @@ export interface DepartmentMemberCheckResult {
   hasMembers: boolean
   memberCount: number
 }
+
+/** 角色启用状态 */
+export type RoleStatus = 'enabled' | 'disabled'
+
+/** RBAC 权限 Key */
+export type RolePermissionKey =
+  | 'menu.home'
+  | 'menu.project'
+  | 'menu.scan'
+  | 'menu.risk'
+  | 'menu.ai'
+  | 'menu.policy'
+  | 'menu.report'
+  | 'menu.kb'
+  | 'menu.sys_user'
+  | 'menu.sys_role'
+  | 'menu.sys_dept'
+  | 'menu.sys_log'
+  | 'menu.sys_alert'
+  | 'menu.sys_msg'
+  | 'menu.sys_profile'
+  | 'op.project_write'
+  | 'op.project_member'
+  | 'op.deliverable'
+  | 'op.task_run'
+  | 'op.result_view'
+  | 'op.risk_scan'
+  | 'op.ai_parse'
+  | 'op.policy_edit'
+  | 'op.policy_approve'
+  | 'op.report_gen'
+  | 'op.report_export'
+  | 'op.kb_write'
+  | 'op.user_manage'
+  | 'op.role_manage'
+  | 'op.dept_manage'
+  | 'op.log_export'
+  | 'op.alert_handle'
+
+export type RolePermissionMap = Record<RolePermissionKey, boolean>
+
+/** 角色持久化字段（不含绑定用户数） */
+export interface RoleRecord {
+  roleId: string
+  roleName: string
+  roleCode: string
+  status: RoleStatus
+  remark: string
+  /** 是否内置角色（内置不可删除） */
+  isBuiltin: boolean
+  permissions: RolePermissionMap
+  /** 创建时间，ISO 8601 */
+  createdAt: string
+}
+
+/** 角色列表项（含绑定用户数） */
+export interface Role extends RoleRecord {
+  boundUserCount: number
+}
+
+export interface RoleListFilters {
+  roleName: string
+  status: RoleStatus | ''
+}
+
+export interface RoleQueryParams extends PageParams {
+  roleName?: string
+  status?: RoleStatus
+}
+
+export interface CreateRoleParams {
+  roleName: string
+  roleCode: string
+  status: RoleStatus
+  remark: string
+  permissions: RolePermissionMap
+}
+
+export type UpdateRoleParams = CreateRoleParams
+
+export interface RoleFormValues {
+  roleName: string
+  roleCode: string
+  status: RoleStatus
+  remark: string
+  permissions: RolePermissionMap
+}

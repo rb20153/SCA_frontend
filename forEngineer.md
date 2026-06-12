@@ -5,6 +5,83 @@
 
 ---
 
+## [2026-06-12] 用户详情抽屉 · 项目展示改为 Tag
+
+### 改了什么
+
+- `UserDetailDrawer.vue`：「已加入项目」「负责项目」由 `a-tabs` 改为独立 `a-tag` 列表
+
+### 为什么这么做
+
+- Tab 有选中态和底部横线，但点击即跳转项目页，不需要切换态，视觉上也像 Tab 控件而非链接标签
+
+### 怎么实现的
+
+- 两组项目各用 `flex-wrap` 排列默认样式 Tag，统一样式无选中态；hover 变主题蓝；点击 `router.push(/projects/:id)`
+
+---
+
+## [2026-06-12] 系统管理 · 用户列表（详情/删除/重置密码）
+
+### 改了什么
+
+- **详情抽屉**：用户名/姓名/部门/角色/状态/最后登录；已加入项目、负责项目各一组可点击 Tag，点击跳转项目详情
+- **删除**：复用 `BoundCountDeleteModal`；`ownedProjectCount > 0` 提示先移交负责项目
+- **重置密码**：两步弹窗（确认 → 展示随机密码 → 提交）；mock 写入 `siteMessageList.ts` 系统公告
+- mock：`userProjects.ts`（用户-项目关系）、`siteMessageList.ts`（站内消息，含密码重置通知模板）
+
+---
+
+## [2026-06-12] 系统管理 · 用户列表页
+
+### 改了什么
+
+- 实现 `UserList.vue`：新增用户、筛选、分页列表、新增/修改弹窗
+- 组件：`UserCreateBar`、`UserQueryBar`、`UserTable`、`UserActionCell`、`UserFormModal`
+- 新增 `src/api/user.ts`、`src/types/user.ts`、`mock/modules/system/userList.ts`（12 条用户）
+- 工具：`userQuery.ts`、`userDisplay.ts`、`userValidation.ts`、`passwordGenerator.ts`
+
+### 怎么实现的
+
+- 弹窗打开时并行请求 `getEnabledDepartmentOptions` + `getEnabledRoleOptions`
+- 新增时初始密码前端自动生成 8 位（大小写+数字），可点「重新生成」
+- 筛选：真实姓名、系统角色（全部+API）、部门 input、创建时间范围（含时分）
+- 操作列：修改可用；详情/删除/重置密码灰色占位无交互
+- 创建用户会同步更新部门 `memberCount` 与角色 `boundUserCount` mock
+
+### 注意事项
+
+- 用户名 4-20 位字母数字；手机号 `^1[3-9]\\d{9}$`
+- 登录注册用的 `auth/users.ts` 与系统用户列表 mock 分离，创建用户会写入 `MOCK_REGISTERED_USERNAMES`
+
+---
+
+## [2026-06-12] 系统管理 · 角色管理页
+
+### 改了什么
+
+- 实现 `RoleManage.vue`：新增按钮、筛选、分页列表、右侧抽屉（名称/编码/状态/备注/权限树）
+- 组件：`RoleCreateBar`、`RoleQueryBar`、`RoleTable`、`RoleActionCell`、`RoleFormDrawer`、`RolePermissionTree`
+- mock：`roleList.ts`（4 内置 + 2 自定义）、`rolePermissionDefs.ts`（与原型 `ROLE_PERMISSIONS` 一致）
+- API：`getRoleList` / `createRole` / `updateRole` / `deleteRole`
+- 公共组件 `BoundCountDeleteModal`：部门/角色删除共用；部门删除改为用列表 `memberCount`，不再请求 `checkDepartmentMembers`
+- 删除 `DepartmentDeleteModal.vue`
+
+### 怎么实现的
+
+- 新建角色默认权限 = 只读角色；可在权限树勾选更多项
+- 内置角色（admin/auditor/engineer/readonly）操作列显示灰色「内置」，不可删除
+- 自定义角色删除：用列表 `boundUserCount` 判断，>0 提示先解绑
+- 角色编码校验：`^[A-Za-z_]+$`；内置角色编辑时编码只读
+- 内置只读角色：未勾选的权限项 disabled（与原型一致）
+
+### 注意事项
+
+- 权限树定义在 mock，组件通过 `utils/rolePermissions.ts` 桥接引用
+- `checkDepartmentMembers` API 仍保留但未在删除流程使用
+
+---
+
 ## [2026-06-12] 系统管理 · 部门管理页（成员人数列 + 删除弹窗修复）
 
 ### 改了什么

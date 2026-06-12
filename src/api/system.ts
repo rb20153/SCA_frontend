@@ -6,6 +6,7 @@ import type {
   AlertOverviewQueryParams,
   AlertQueryParams,
   CreateDepartmentParams,
+  CreateRoleParams,
   Department,
   DepartmentMemberCheckResult,
   DepartmentQueryParams,
@@ -14,7 +15,10 @@ import type {
   LogExportResult,
   LogListItem,
   LogQueryParams,
+  Role,
+  RoleQueryParams,
   UpdateDepartmentParams,
+  UpdateRoleParams,
 } from '@/types/system'
 import {
   MOCK_ALL_DEPARTMENTS,
@@ -23,6 +27,15 @@ import {
   filterMockDepartmentList,
   getMockDepartmentMemberCount,
 } from '@/mock/modules/system/departmentList'
+import {
+  MOCK_ALL_ROLES,
+  MOCK_ROLE_USER_COUNTS,
+  createMockRoleId,
+  filterMockRoleList,
+  getMockRoleUserCount,
+  isMockRoleCodeTaken,
+} from '@/mock/modules/system/roleList'
+import { isValidRoleCode } from '@/utils/roleValidation'
 import { getMockAlertCenterOverviewRes } from '@/mock/modules/system/alertOverview'
 import { filterMockAlertList, getMockAlertDetail } from '@/mock/modules/system/alertList'
 import {
@@ -267,5 +280,159 @@ export function deleteDepartment(departmentId: string): Promise<ApiResponse<null
   delete MOCK_DEPARTMENT_MEMBER_COUNTS[departmentId]
 
   // TODO: replace with → return request.delete(`/api/system/departments/${departmentId}`)
+  return Promise.resolve({ code: 200, message: 'ok', data: null })
+}
+
+/**
+ * 获取角色列表（分页 + 筛选）
+ * @param params - 角色名称、状态、分页
+ */
+export function getRoleList(
+  params: RoleQueryParams,
+): Promise<ApiResponse<PageResult<Role>>> {
+  const page = params.page ?? 1
+  const pageSize = params.pageSize ?? DEFAULT_PAGE_SIZE
+
+  const sorted = filterMockRoleList(params)
+  const start = (page - 1) * pageSize
+  const list = sorted.slice(start, start + pageSize)
+
+  // TODO: replace with → return request.get('/api/system/roles', { params })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: {
+      list,
+      total: sorted.length,
+      page,
+      pageSize,
+    },
+  })
+}
+
+/**
+ * 新增角色
+ * @param data - 角色名称、编码、状态、备注、权限
+ */
+export function createRole(data: CreateRoleParams): Promise<ApiResponse<Role>> {
+  const roleName = data.roleName.trim()
+  const roleCode = data.roleCode.trim()
+
+  if (!roleName) {
+    return Promise.reject(new Error('角色名称不能为空'))
+  }
+  if (!roleCode) {
+    return Promise.reject(new Error('角色编码不能为空'))
+  }
+  if (!isValidRoleCode(roleCode)) {
+    return Promise.reject(new Error('角色编码仅允许英文字母与下划线'))
+  }
+  if (isMockRoleCodeTaken(roleCode)) {
+    return Promise.reject(new Error('角色编码已存在'))
+  }
+
+  const roleId = createMockRoleId()
+  const record = {
+    roleId,
+    roleName,
+    roleCode,
+    status: data.status,
+    remark: data.remark.trim(),
+    isBuiltin: false,
+    permissions: { ...data.permissions },
+    createdAt: new Date().toISOString(),
+  }
+
+  MOCK_ALL_ROLES.push(record)
+  MOCK_ROLE_USER_COUNTS[roleId] = 0
+
+  // TODO: replace with → return request.post('/api/system/roles', data)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: { ...record, boundUserCount: 0 },
+  })
+}
+
+/**
+ * 更新角色
+ * @param roleId - 角色 ID
+ * @param data - 可编辑字段
+ */
+export function updateRole(
+  roleId: string,
+  data: UpdateRoleParams,
+): Promise<ApiResponse<Role>> {
+  const roleName = data.roleName.trim()
+  const roleCode = data.roleCode.trim()
+
+  if (!roleName) {
+    return Promise.reject(new Error('角色名称不能为空'))
+  }
+  if (!roleCode) {
+    return Promise.reject(new Error('角色编码不能为空'))
+  }
+  if (!isValidRoleCode(roleCode)) {
+    return Promise.reject(new Error('角色编码仅允许英文字母与下划线'))
+  }
+
+  const index = MOCK_ALL_ROLES.findIndex((item) => item.roleId === roleId)
+  if (index < 0) {
+    return Promise.reject(new Error('角色不存在'))
+  }
+
+  const current = MOCK_ALL_ROLES[index]
+  if (current.isBuiltin && current.roleCode !== roleCode) {
+    return Promise.reject(new Error('内置角色编码不可修改'))
+  }
+  if (isMockRoleCodeTaken(roleCode, roleId)) {
+    return Promise.reject(new Error('角色编码已存在'))
+  }
+
+  const updated = {
+    ...current,
+    roleName,
+    roleCode: current.isBuiltin ? current.roleCode : roleCode,
+    status: data.status,
+    remark: data.remark.trim(),
+    permissions: { ...data.permissions },
+  }
+  MOCK_ALL_ROLES[index] = updated
+
+  // TODO: replace with → return request.put(`/api/system/roles/${roleId}`, data)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: {
+      ...updated,
+      boundUserCount: getMockRoleUserCount(roleId),
+    },
+  })
+}
+
+/**
+ * 删除角色（仅自定义角色；调用方应先确认 boundUserCount 为 0）
+ * @param roleId - 角色 ID
+ */
+export function deleteRole(roleId: string): Promise<ApiResponse<null>> {
+  const index = MOCK_ALL_ROLES.findIndex((item) => item.roleId === roleId)
+  if (index < 0) {
+    return Promise.reject(new Error('角色不存在'))
+  }
+
+  const current = MOCK_ALL_ROLES[index]
+  if (current.isBuiltin) {
+    return Promise.reject(new Error('内置角色不可删除'))
+  }
+
+  const boundUserCount = getMockRoleUserCount(roleId)
+  if (boundUserCount > 0) {
+    return Promise.reject(new Error('该角色下仍有用户绑定'))
+  }
+
+  MOCK_ALL_ROLES.splice(index, 1)
+  delete MOCK_ROLE_USER_COUNTS[roleId]
+
+  // TODO: replace with → return request.delete(`/api/system/roles/${roleId}`)
   return Promise.resolve({ code: 200, message: 'ok', data: null })
 }

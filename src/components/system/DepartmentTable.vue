@@ -17,6 +17,17 @@
         </a-tag>
       </template>
 
+      <template v-else-if="column.key === 'memberCount'">
+        <a
+          v-if="getDepartment(row).memberCount > 0"
+          class="list-table-link"
+          @click.prevent="goUsersByDepartment(getDepartment(row))"
+        >
+          {{ getDepartment(row).memberCount }}
+        </a>
+        <span v-else>{{ getDepartment(row).memberCount }}</span>
+      </template>
+
       <template v-else-if="column.key === 'createdAt'">
         {{ formatDepartmentDateTime(getDepartment(row).createdAt) }}
       </template>
@@ -35,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import type { Department } from '@/types/system'
 import ListTable from '@/components/common/ListTable.vue'
@@ -58,9 +70,19 @@ const emit = defineEmits<{
   delete: [department: Department]
 }>()
 
+const router = useRouter()
+
 /** a-table bodyCell 的 record 为 unknown，收窄为 Department */
 function getDepartment(row: unknown): Department {
   return row as Department
+}
+
+/** 成员人数 > 0 时跳转用户列表并按部门名称筛选 */
+function goUsersByDepartment(department: Department) {
+  router.push({
+    path: '/system/users',
+    query: { departmentName: department.departmentName },
+  })
 }
 
 const columns: TableColumnsType<Department> = [
