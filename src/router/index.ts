@@ -235,6 +235,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'system/departments',
+        name: 'DepartmentManage',
+        component: () => import('@/views/system/DepartmentManage.vue'),
+        meta: {
+          title: '部门管理',
+          breadcrumbs: crumbs('系统管理', '部门管理'),
+        },
+      },
+      {
         path: 'system/logs',
         name: 'LogList',
         component: () => import('@/views/system/LogList.vue'),

@@ -63,6 +63,7 @@
             <template #icon><setting-outlined /></template>
             <template #title>系统管理</template>
             <a-menu-item key="/system/users">用户列表</a-menu-item>
+            <a-menu-item key="/system/departments">部门管理</a-menu-item>
             <a-menu-item key="/system/roles">角色管理</a-menu-item>
             <a-menu-item key="/system/logs">日志列表</a-menu-item>
             <a-menu-item key="/system/alerts">告警中心</a-menu-item>

@@ -142,3 +142,52 @@ export interface LogExportResult {
   downloadUrl: string
   fileName: string
 }
+
+/** 部门启用状态 */
+export type DepartmentStatus = 'enabled' | 'disabled'
+
+/** 部门持久化字段（mock / 后端存储，不含成员数） */
+export interface DepartmentRecord {
+  departmentId: string
+  departmentName: string
+  status: DepartmentStatus
+  remark: string
+  /** 创建时间，ISO 8601 */
+  createdAt: string
+}
+
+/** 部门列表项（含成员人数） */
+export interface Department extends DepartmentRecord {
+  /** 当前绑定成员数 */
+  memberCount: number
+}
+
+export interface DepartmentListFilters {
+  departmentName: string
+  status: DepartmentStatus | ''
+}
+
+export interface DepartmentQueryParams extends PageParams {
+  departmentName?: string
+  status?: DepartmentStatus
+}
+
+export interface CreateDepartmentParams {
+  departmentName: string
+  status: DepartmentStatus
+  remark: string
+}
+
+export type UpdateDepartmentParams = CreateDepartmentParams
+
+export interface DepartmentFormValues {
+  departmentName: string
+  status: DepartmentStatus
+  remark: string
+}
+
+/** 删除部门前成员绑定检查 */
+export interface DepartmentMemberCheckResult {
+  hasMembers: boolean
+  memberCount: number
+}

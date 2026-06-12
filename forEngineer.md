@@ -5,6 +5,54 @@
 
 ---
 
+## [2026-06-12] 系统管理 · 部门管理页（成员人数列 + 删除弹窗修复）
+
+### 改了什么
+
+- 列表在备注后新增「成员人数」列，数据来自 `Department.memberCount`
+- 修复删除弹窗首次打开时确定按钮不可点：`watch` 增加 `immediate: true`，挂载时即执行成员检查
+
+---
+
+## [2026-06-12] 系统管理 · 部门管理页（去掉排序字段）
+
+### 改了什么
+
+- 新增/编辑弹窗与列表列移除「排序」；列表按创建时间倒序
+- `DepartmentActionCell` 改为与项目列表一致的 `action-cell`（`gap: 12px`），修复修改/删除贴在一起
+
+---
+
+## [2026-06-12] 系统管理 · 部门管理页
+
+### 改了什么
+
+- 新增页面 `DepartmentManage.vue`（路由 `/system/departments`）
+- 新增组件：`DepartmentCreateBar`、`DepartmentQueryBar`、`DepartmentFormModal`、`DepartmentTable`、`DepartmentActionCell`、`DepartmentDeleteModal`
+- `api/system.ts`：部门列表/新增/修改/删除前校验/删除
+- `types/system.ts`：部门相关类型
+- `mock/modules/system/departmentList.ts`：11 条平级部门 + 成员数映射
+- `utils/departmentQuery.ts`、`utils/departmentDisplay.ts`
+- `AdminLayout` 系统管理菜单增加「部门管理」
+
+### 为什么这么做
+
+按原型实现部门管理，但**不做上下级**：所有部门平级展示，弹窗无「上级部门」字段。
+
+### 怎么实现的
+
+- 列表数据流复用 `useFilteredPaginatedList` + `ListQueryBar` + `ListTable`（与项目列表一致）
+- 新增/修改共用 `DepartmentFormModal`：`mode` 区分 create/edit，确定后调 `createDepartment` / `updateDepartment`，成功后 `loadPage()` 刷新
+- 删除流程：`DepartmentDeleteModal` 打开时先 `checkDepartmentMembers`；有成员显示不可删提示；无成员二次确认后 `deleteDepartment`，前端乐观移除行并修正 `pagination.total`
+- Mock 在内存数组 `MOCK_ALL_DEPARTMENTS` 上 CRUD，成员数在 `MOCK_DEPARTMENT_MEMBER_COUNTS`（如 dept-001 有 2 人，dept-003 可删）
+
+### 注意事项 / 已知限制
+
+- 全部为 mock，联调时替换 `api/system.ts` 内 TODO 为 `request.*`
+- 用户列表/角色管理仍为占位页，部门与用户绑定在用户页实现后再接真实校验
+
+---
+
 ## [2026-06-10] 知识库 · 覆盖统计页布局微调
 
 ### 改了什么
