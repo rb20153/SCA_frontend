@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import { message } from 'ant-design-vue'
 import type { ApiResponse } from '@/types/common'
+import { clearStoredToken, getStoredToken } from '@/utils/tokenStorage'
 
 const request: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL as string,
@@ -11,7 +12,7 @@ const request: AxiosInstance = axios.create({
 // ─── Request interceptor ─────────────────────────────────────────────────────
 request.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('sca_token')
+    const token = getStoredToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -43,7 +44,7 @@ request.interceptors.response.use(
     message.error(msg)
 
     if (status === 401) {
-      localStorage.removeItem('sca_token')
+      clearStoredToken()
       window.location.href = '/login'
     }
 

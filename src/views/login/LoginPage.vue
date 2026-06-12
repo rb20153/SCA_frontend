@@ -34,6 +34,11 @@
           />
         </a-form-item>
 
+        <div class="login-extras">
+          <a-checkbox v-model:checked="rememberMe">记住我</a-checkbox>
+          <span class="forgot-hint">忘记密码请联系管理员重置</span>
+        </div>
+
         <a-form-item style="margin-bottom: 0">
           <a-button type="primary" html-type="submit" size="large" block :loading="loading">
             登 录
@@ -79,12 +84,16 @@
           />
         </a-form-item>
 
-        <a-form-item name="department" label="部门">
-          <a-input
-            v-model:value="registerForm.department"
+        <a-form-item name="departmentId" label="部门">
+          <a-select
+            v-model:value="registerForm.departmentId"
             size="large"
-            placeholder="请输入所在部门"
+            placeholder="请选择部门"
+            :options="departmentSelectOptions"
+            :loading="departmentLoading"
             allow-clear
+            show-search
+            option-filter-prop="label"
           />
         </a-form-item>
 
@@ -129,26 +138,38 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
 import { login, checkUsernameAvailable, register } from '@/api/auth'
+import { getEnabledDepartmentOptions } from '@/api/user'
+import type { DepartmentOption } from '@/types/user'
+import { getRememberMePreference } from '@/utils/tokenStorage'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-// ── Mode ─────────────────────────────────────────────────────────────────────
 type PageMode = 'login' | 'register'
 const mode = ref<PageMode>('login')
 
 const loginFormRef = ref<FormInstance>()
 const registerFormRef = ref<FormInstance>()
 const loading = ref(false)
+const rememberMe = ref(getRememberMePreference())
 
-// ── Login ─────────────────────────────────────────────────────────────────────
+const departmentOptions = ref<DepartmentOption[]>([])
+const departmentLoading = ref(false)
+
+const departmentSelectOptions = computed(() =>
+  departmentOptions.value.map((item) => ({
+    label: item.departmentName,
+    value: item.departmentId,
+  })),
+)
+
 const loginForm = reactive({ username: '', password: '' })
 
 const loginRules = {
@@ -156,11 +177,12 @@ const loginRules = {
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 }
 
+/** 提交登录，按记住我选择 token 存储策略 */
 async function handleLogin() {
   loading.value = true
   try {
     const res = await login({ username: loginForm.username, password: loginForm.password })
-    authStore.setToken(res.data.token)
+    authStore.setToken(res.data.token, rememberMe.value)
     authStore.setUserInfo(res.data.userInfo)
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.push(redirect)
@@ -169,15 +191,32 @@ async function handleLogin() {
   }
 }
 
-// ── Register ─────────────────────────────────────────────────────────────────
 const registerForm = reactive({
   username: '',
   realName: '',
   phone: '',
-  department: '',
+  departmentId: undefined as string | undefined,
   password: '',
   confirmPassword: '',
 })
+
+/** 拉取启用状态的部门下拉（注册页打开时调用，无需登录） */
+async function loadDepartmentOptions() {
+  if (departmentOptions.value.length > 0) return
+  departmentLoading.value = true
+  try {
+    const res = await getEnabledDepartmentOptions()
+    departmentOptions.value = res.data
+  } finally {
+    departmentLoading.value = false
+  }
+}
+
+/** 根据选中的部门 ID 解析部门名称，供注册接口提交 */
+function resolveDepartmentName(departmentId: string): string | null {
+  const matched = departmentOptions.value.find((item) => item.departmentId === departmentId)
+  return matched?.departmentName ?? null
+}
 
 async function checkUsernameExists(_rule: unknown, value: string) {
   if (!value || value.length < 4) return Promise.resolve()
@@ -225,6 +264,7 @@ const registerRules = {
       trigger: 'blur',
     },
   ],
+  departmentId: [{ required: true, message: '请选择部门', trigger: 'change' }],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { validator: checkPasswordStrength, trigger: 'change' },
@@ -235,14 +275,26 @@ const registerRules = {
   ],
 }
 
+/** 提交注册信息，部门名称由下拉选项解析后传给接口 */
 async function handleRegister() {
+  const departmentId = registerForm.departmentId
+  if (!departmentId) {
+    message.warning('请选择部门')
+    return
+  }
+  const departmentName = resolveDepartmentName(departmentId)
+  if (!departmentName) {
+    message.warning('所选部门无效，请重新选择')
+    return
+  }
+
   loading.value = true
   try {
     await register({
       username: registerForm.username,
       realName: registerForm.realName,
       phone: registerForm.phone,
-      department: registerForm.department,
+      department: departmentName,
       password: registerForm.password,
     })
     message.success('注册成功，请登录')
@@ -254,14 +306,14 @@ async function handleRegister() {
   }
 }
 
-// ── Mode switch ───────────────────────────────────────────────────────────────
+/** 切换登录/注册模式，进入注册时拉取部门下拉 */
 function switchMode(target: PageMode) {
   mode.value = target
-  // Reset forms when switching to avoid stale validation state
   if (target === 'login') {
     registerFormRef.value?.resetFields()
   } else {
     loginFormRef.value?.resetFields()
+    loadDepartmentOptions()
   }
 }
 </script>
@@ -294,6 +346,18 @@ function switchMode(target: PageMode) {
 }
 
 .login-logo p {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.login-extras {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.forgot-hint {
   font-size: 12px;
   color: rgba(0, 0, 0, 0.45);
 }

@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { getCurrentUser } from '@/api/auth'
+import { clearStoredToken, getStoredToken, setStoredToken } from '@/utils/tokenStorage'
 
 export interface UserInfo {
   userId: string
@@ -12,16 +13,19 @@ export interface UserInfo {
 }
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string>(localStorage.getItem('sca_token') ?? '')
+  const token = ref<string>(getStoredToken())
   const userInfo = ref<UserInfo | null>(null)
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => userInfo.value?.role === 'admin')
 
-  /** 写入 token 并同步到 localStorage，刷新后仍保持登录态 */
-  function setToken(t: string) {
+  /**
+   * 写入 token 并按记住我选择 localStorage 或 sessionStorage
+   * @param remember - 默认 true；false 时关闭浏览器后需重新登录
+   */
+  function setToken(t: string, remember = true) {
     token.value = t
-    localStorage.setItem('sca_token', t)
+    setStoredToken(t, remember)
   }
 
   /** 写入用户信息到 Pinia（仅内存，刷新后需通过 fetchUserInfo 恢复） */
@@ -38,11 +42,11 @@ export const useAuthStore = defineStore('auth', () => {
     userInfo.value = res.data
   }
 
-  /** 清除登录态：Pinia 状态 + localStorage token */
+  /** 清除登录态：Pinia 状态 + 两处 storage 中的 token */
   function logout() {
     token.value = ''
     userInfo.value = null
-    localStorage.removeItem('sca_token')
+    clearStoredToken()
   }
 
   return { token, userInfo, isLoggedIn, isAdmin, setToken, setUserInfo, fetchUserInfo, logout }

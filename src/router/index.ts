@@ -310,7 +310,7 @@ router.beforeEach(async (to) => {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
 
-  // token 在 localStorage 中持久化，Pinia 刷新后会丢失 userInfo，此处补拉一次
+  // token 在 localStorage（记住我）或 sessionStorage 中，Pinia 刷新后会丢失 userInfo，此处补拉一次
   if (authStore.isLoggedIn && !authStore.userInfo) {
     try {
       await authStore.fetchUserInfo()

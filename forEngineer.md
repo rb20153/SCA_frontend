@@ -5,6 +5,27 @@
 
 ---
 
+## [2026-06-12] 登录页 · 记住我 / 忘记密码提示 / 注册部门下拉
+
+### 改了什么
+
+- `LoginPage.vue`：登录表单增加「记住我」勾选 +「忘记密码请联系管理员重置」小字
+- `tokenStorage.ts`（新）：统一管理 token 读写；记住我→`localStorage`，否则→`sessionStorage`
+- `auth.ts` / `request.ts`：改为走 `tokenStorage` 工具
+- 注册表单「部门」由输入框改为下拉，调用 `getEnabledDepartmentOptions()` 拉启用部门
+
+### 怎么实现的
+
+- 登录成功 `authStore.setToken(token, rememberMe)`，偏好键 `sca_remember_me` 存 localStorage 供回显
+- 注册切换时 `loadDepartmentOptions()`，提交时将 `departmentId` 解析为 `departmentName` 传给 `register()`
+- 登出/401 只清 token，不清记住我偏好
+
+### 注意事项
+
+- 注册部门接口与用户管理弹窗共用 `getEnabledDepartmentOptions`，联调时须允许未登录访问（或单独提供公开 options 接口）
+
+---
+
 ## [2026-06-12] 用户详情抽屉 · 项目展示改为 Tag
 
 ### 改了什么
