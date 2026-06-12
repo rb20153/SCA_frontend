@@ -5,6 +5,29 @@
 
 ---
 
+## [2026-06-12] 系统管理 · 站内消息页
+
+### 改了什么
+
+- 实现 `SiteMessage.vue`：全部标为已读、筛选（类型/标题/状态）、分页列表
+- 组件：`SiteMessageActionBar`、`SiteMessageQueryBar`、`SiteMessageTable`、`SiteMessageActionCell`
+- 新增 `api/siteMessage.ts`、`types/siteMessage.ts`、扩展 `mock/.../siteMessageList.ts`（12 条 admin 消息）
+- `ListTable` 增加可选 `rowClassName`，未读行浅蓝背景
+
+### 怎么实现的
+
+- 列表按 `createdAt` 倒序；mock 按 `recipientUsername` 过滤当前用户
+- 操作列按 `action.type` 跳转；任务通知用 `action.taskType`：自主率→`/result`，开源风险/SBOM→`/risk`
+- 标为已读/查看xx：先 `updateSiteMessageReadStatus` 再 `syncMessageRead` 即时去掉行高亮，查看xx 后再 `router.push`
+- 页面容器勿再加 padding（`AdminLayout.admin-content` 已有 margin 24px）
+
+### 注意事项
+
+- 密码重置公告仍由 `appendPasswordResetSiteMessage` 追加，带「去修改密码」操作
+- 联调时需 `GET /api/system/messages` 等接口，未读数顶栏角标尚未接入
+
+---
+
 ## [2026-06-12] 登录页 · 记住我 / 忘记密码提示 / 注册部门下拉
 
 ### 改了什么

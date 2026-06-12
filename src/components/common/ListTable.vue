@@ -7,6 +7,7 @@
       :pagination="pagination"
       :scroll="scrollX ? { x: scrollX } : undefined"
       :row-key="rowKey"
+      :row-class-name="rowClassNameFn"
       size="middle"
     >
       <template #bodyCell="scope">
@@ -37,6 +38,8 @@ const props = withDefaults(
     loading?: boolean
     /** 分页配置；首页简表等场景传 false */
     pagination?: TablePaginationConfig | false
+    /** 按行返回 tr 的 class，用于未读高亮等 */
+    rowClassName?: (record: T) => string
   }>(),
   {
     loading: false,
@@ -46,6 +49,11 @@ const props = withDefaults(
 
 /** 补齐列表表头默认居中 */
 const normalizedColumns = computed(() => withListColumnDefaults(props.columns))
+
+/** 适配 a-table row-class-name 签名 */
+function rowClassNameFn(record: T): string {
+  return props.rowClassName?.(record) ?? ''
+}
 </script>
 
 <style scoped>
