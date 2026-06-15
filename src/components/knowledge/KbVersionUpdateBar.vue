@@ -17,36 +17,53 @@
     >
       <p class="type-modal-hint">请选择版本更新方式</p>
       <div class="type-options">
-        <button
-          type="button"
-          class="type-option"
-          @click="selectMode('fetch')"
-        >
+        <button type="button" class="type-option" @click="handleSelectFetch">
           <span class="type-option__title">获取更新</span>
           <span class="type-option__desc">从云端仓库拉取差异并创建新版本快照</span>
         </button>
-        <button
-          type="button"
-          class="type-option"
-          @click="selectMode('upload')"
-        >
+        <button type="button" class="type-option" @click="handleSelectUpload">
           <span class="type-option__title">上传更新包</span>
           <span class="type-option__desc">上传 zip / 7z / tar.gz 更新包生成新版本</span>
         </button>
       </div>
     </a-modal>
+
+    <KbVersionFetchModal
+      v-model:open="fetchVisible"
+      :kb-project-id="kbProjectId"
+    />
+
+    <KbVersionUploadModal
+      v-model:open="uploadVisible"
+      :kb-project-id="kbProjectId"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
+import KbVersionFetchModal from '@/components/knowledge/KbVersionFetchModal.vue'
+import KbVersionUploadModal from '@/components/knowledge/KbVersionUploadModal.vue'
+
+defineProps<{
+  kbProjectId: string
+}>()
 
 const typeModalVisible = ref(false)
+const fetchVisible = ref(false)
+const uploadVisible = ref(false)
 
-/** 选择更新方式后关闭弹窗（后续交互待实现） */
-function selectMode(_mode: 'fetch' | 'upload') {
+/** 选择获取更新后打开拉取结果弹窗 */
+function handleSelectFetch() {
   typeModalVisible.value = false
+  fetchVisible.value = true
+}
+
+/** 选择上传更新包后打开上传弹窗 */
+function handleSelectUpload() {
+  typeModalVisible.value = false
+  uploadVisible.value = true
 }
 </script>
 

@@ -1,4 +1,4 @@
-import type { KbVersion, KbVersionOverview, KbVersionStatus } from '@/types/knowledge'
+import type { FetchKbVersionUpdateResult, KbVersion, KbVersionOverview, KbVersionStatus } from '@/types/knowledge'
 import { MOCK_ALL_KB_PROJECTS } from '@/mock/modules/knowledge/knowledgeList'
 
 interface KbVersionTemplate {
@@ -196,4 +196,31 @@ export function getMockKbVersionOverview(kbProjectId: string): KbVersionOverview
     referencedProjectCount: project.referencedProjectCount,
     lastFetchedAt,
   }
+}
+
+/**
+ * mock：获取版本更新（云端拉取）
+ * @param kbProjectId - 知识库项目 ID
+ */
+export function mockFetchKbVersionUpdate(kbProjectId: string): FetchKbVersionUpdateResult {
+  void kbProjectId
+  return {
+    packageSizeGb: 2.4,
+    estimatedMinutes: 18,
+    message: '系统已开始拉取云端仓库差异并创建版本快照。',
+  }
+}
+
+/**
+ * mock：上传版本更新包（后端异步处理，不写入列表）
+ * @param kbProjectId - 知识库项目 ID
+ * @param file - 更新包文件
+ */
+export function mockUploadKbVersionPackage(
+  kbProjectId: string,
+  file: File,
+): { parseTaskId: string } {
+  void kbProjectId
+  void file
+  return { parseTaskId: `kb-ver-upload-${Date.now()}` }
 }

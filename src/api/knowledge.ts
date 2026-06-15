@@ -10,9 +10,12 @@ import type {
   CreateKbProjectParams,
   CreateKbProjectResult,
   KnowledgeCoverageOverview,
+  FetchKbVersionUpdateResult,
   KbVersion,
   KbVersionOverview,
   KbVersionQueryParams,
+  UploadKbVersionPackageParams,
+  UploadKbVersionPackageResult,
   UpdateKbProjectParams,
   ImportOfflineVulnPackageParams,
   SyncVulnSourceParams,
@@ -50,6 +53,8 @@ import {
 import {
   getMockKbVersionOverview,
   getMockKbVersions,
+  mockFetchKbVersionUpdate,
+  mockUploadKbVersionPackage,
 } from '@/mock/modules/knowledge/versionList'
 
 // TODO: replace with: import request from '@/utils/request'
@@ -233,6 +238,38 @@ export function getKbVersionList(
       page,
       pageSize,
     },
+  })
+}
+
+/**
+ * 获取版本更新（从云端拉取差异）
+ * @param kbProjectId - 知识库项目 ID
+ */
+export function fetchKbVersionUpdate(
+  kbProjectId: string,
+): Promise<ApiResponse<FetchKbVersionUpdateResult>> {
+  // TODO: replace with → return request.post(`/api/knowledge/projects/${kbProjectId}/versions/fetch-update`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: mockFetchKbVersionUpdate(kbProjectId),
+  })
+}
+
+/**
+ * 上传版本更新包（后端异步处理，前端不刷新列表）
+ * @param kbProjectId - 知识库项目 ID
+ * @param params - 更新包文件
+ */
+export function uploadKbVersionPackage(
+  kbProjectId: string,
+  params: UploadKbVersionPackageParams,
+): Promise<ApiResponse<UploadKbVersionPackageResult>> {
+  // TODO: replace with FormData → request.post(`/api/knowledge/projects/${kbProjectId}/versions/upload-package`, formData)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: mockUploadKbVersionPackage(kbProjectId, params.file),
   })
 }
 

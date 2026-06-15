@@ -91,6 +91,26 @@ export interface KbVersionQueryParams extends PageParams {
   kbProjectId: string
 }
 
+/** 获取版本更新（云端拉取）响应 */
+export interface FetchKbVersionUpdateResult {
+  /** 更新包大小（GB） */
+  packageSizeGb: number
+  /** 预计索引构建耗时（分钟） */
+  estimatedMinutes: number
+  /** 后端附加提示文案 */
+  message: string
+}
+
+/** 上传版本更新包请求 */
+export interface UploadKbVersionPackageParams {
+  file: File
+}
+
+/** 上传版本更新包响应（后端异步处理） */
+export interface UploadKbVersionPackageResult {
+  parseTaskId?: string
+}
+
 /** 覆盖统计页顶部概览 */
 export interface KnowledgeCoverageOverview {
   /** 项目覆盖率，0–100 */

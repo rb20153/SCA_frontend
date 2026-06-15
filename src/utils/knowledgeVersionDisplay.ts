@@ -33,3 +33,15 @@ export function formatKbVersionDate(value: string): string {
   const parsed = dayjs(value)
   return parsed.isValid() ? parsed.format('YYYY-MM-DD') : '—'
 }
+
+/**
+ * 格式化更新包大小为 GB 展示文案
+ * @param sizeGb - 大小（GB）
+ */
+export function formatKbVersionPackageSizeGb(sizeGb: number): string {
+  if (!Number.isFinite(sizeGb) || sizeGb < 0) {
+    return '—'
+  }
+  const text = sizeGb >= 10 ? sizeGb.toFixed(1) : sizeGb.toFixed(2).replace(/\.?0+$/, '')
+  return `${text} GB`
+}

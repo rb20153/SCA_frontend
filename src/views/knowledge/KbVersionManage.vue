@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <KbVersionUpdateBar />
+    <KbVersionUpdateBar :kb-project-id="kbProjectId" />
 
     <PageLoading :loading="overviewLoading && !overview">
       <StatCardRow v-if="statItems.length > 0" :items="statItems" :columns="5" />

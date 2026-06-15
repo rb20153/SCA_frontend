@@ -5,16 +5,33 @@
 
 ---
 
+## [2026-06-15] 知识库 · 版本管理更新（获取更新 / 上传更新包）
+
+### 改了什么
+
+- **`KbVersionFetchModal`**：选「获取更新」后自动请求 `fetchKbVersionUpdate`，loading 期间仅旋转动画；成功展示包大小与预计分钟数 + 后端 `message`；仅「确定」关闭
+- **`KbVersionUploadModal`**：拖拽上传 zip/7z/tar.gz，复用 `useSingleFileUpload`；`uploadKbVersionPackage`
+- **`KbVersionUpdateBar`** 传入 `kbProjectId`，串联双选与两个子弹窗
+
+### 注意事项
+
+- 联调：`POST .../versions/fetch-update`、`POST .../versions/upload-package`
+- 提交后不刷新版本列表
+
+---
+
 ## [2026-06-15] 知识库 · 添加开源项目弹窗
 
 ### 改了什么
 
 - **`KnowledgeBaseList.vue`** 顶部「添加开源项目」按钮
-- **`KbProjectAddModal.vue`**：项目名称、分类、复用 **`SourceIngestForm`**（`入库方式`）、上传模式版本号、**`TagInput`** 标签、备注
+- **`KbProjectAddModal.vue`**：三步向导（基本信息 → 入库配置 → 补充信息），样式对齐 `AutonomyDetectTaskCreateModal`；复用 **`SourceIngestForm`**、**`TagInput`**
 - **`TagInput.vue`**：回车生成 tag、可删除，公共组件
 - **`createKbProject`** API + mock（异步处理，不刷新列表）
 
 ### 注意事项
+
+- 第二步内容区可滚动，避免小屏溢出
 
 - 联调：`POST /api/knowledge/projects`
 - 标签提交为 `string[]`，mock 不落库
