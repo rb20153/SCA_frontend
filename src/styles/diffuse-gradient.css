@@ -1,0 +1,26 @@
+/**
+ * 弥散渐变背景（登录页全屏 / 文字头像等复用）
+ * 参考浅蓝天空色，左上为主色团，向右下渐淡
+ */
+
+.diffuse-gradient-page {
+  position: relative;
+  background-color: #eef6fc;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 15% 20%, rgba(64, 150, 255, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 55% at 85% 15%, rgba(135, 196, 255, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 70% at 50% 100%, rgba(200, 230, 255, 0.55) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 0% 80%, rgba(255, 255, 255, 0.9) 0%, transparent 45%);
+}
+
+.diffuse-gradient-avatar {
+  background-color: transparent !important;
+  background-image:
+    radial-gradient(circle at 30% 25%, #69b1ff 0%, transparent 55%),
+    radial-gradient(circle at 75% 70%, #91caff 0%, transparent 50%),
+    linear-gradient(135deg, #4096ff 0%, #1677ff 48%, #0958d9 100%) !important;
+  color: #fff !important;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(22, 119, 255, 0.28);
+  border: 2px solid rgba(255, 255, 255, 0.65);
+}

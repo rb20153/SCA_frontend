@@ -45,7 +45,7 @@
 import { reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { createProject, updateProject } from '@/api/project'
-import type { ProjectFormValues } from '@/types/project'
+import type { Project, ProjectFormValues } from '@/types/project'
 
 const props = defineProps<{
   /** 弹窗模式：新增或编辑 */
@@ -59,8 +59,8 @@ const props = defineProps<{
 const visible = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{
-  /** 创建成功时携带新项目 ID，编辑成功时不传 */
-  success: [projectId?: string]
+  /** 创建成功时携带新项目；编辑成功时不传参 */
+  success: [project?: Project]
 }>()
 
 const submitting = ref(false)
@@ -124,7 +124,7 @@ async function handleOk() {
       const res = await createProject(payload)
       message.success('创建成功')
       visible.value = false
-      emit('success', res.data.projectId)
+      emit('success', res.data)
     } else {
       if (!props.projectId) {
         message.error('缺少项目 ID')

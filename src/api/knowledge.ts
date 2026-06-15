@@ -7,6 +7,8 @@ import type {
   CoveragePendingItem,
   CoveragePendingQueryParams,
   CoverageUpdateTrendWeek,
+  CreateKbProjectParams,
+  CreateKbProjectResult,
   KnowledgeCoverageOverview,
   KbVersion,
   KbVersionOverview,
@@ -27,7 +29,7 @@ import type {
   VulnSourceQueryParams,
   VulnSyncAllPreview,
 } from '@/types/knowledge'
-import { MOCK_ALL_KB_PROJECTS } from '@/mock/modules/knowledge/knowledgeList'
+import { MOCK_ALL_KB_PROJECTS, mockCreateKbProject } from '@/mock/modules/knowledge/knowledgeList'
 import { mockCategoryCoverageStatsRes } from '@/mock/modules/knowledge/coverageCategoryStats'
 import { mockCollectionMethodCoverageStatsRes } from '@/mock/modules/knowledge/coverageCollectionMethodStats'
 import { getMockCoveragePendingListPage } from '@/mock/modules/knowledge/coveragePendingList'
@@ -108,6 +110,26 @@ export function getKbProjectList(
       page,
       pageSize,
     },
+  })
+}
+
+/**
+ * 添加开源项目（仓库拉取或上传源码包；后端异步处理，前端不刷新列表）
+ * @param params - 项目名称、分类、入库方式与凭据或压缩包等
+ */
+export function createKbProject(
+  params: CreateKbProjectParams,
+): Promise<ApiResponse<CreateKbProjectResult>> {
+  const name = params.projectName.trim()
+  if (!name) {
+    return Promise.reject(new Error('项目名称不能为空'))
+  }
+
+  // TODO: replace with FormData / JSON → request.post('/api/knowledge/projects', ...)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: mockCreateKbProject(params),
   })
 }
 

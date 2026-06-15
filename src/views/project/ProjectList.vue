@@ -83,9 +83,13 @@ const {
 )
 
 /** 创建成功后跳转项目详情页，便于继续上传交付物与配置策略 */
-function onCreateSuccess(projectId?: string) {
-  if (projectId) {
-    router.push(`/projects/${projectId}`)
+function onCreateSuccess(project?: Project) {
+  if (project) {
+    router.push({
+      name: 'ProjectDetail',
+      params: { projectId: project.projectId },
+      state: { project },
+    })
     return
   }
   loadPage()

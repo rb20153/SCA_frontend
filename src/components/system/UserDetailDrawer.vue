@@ -69,6 +69,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import { getUserDetail } from '@/api/user'
 import type { UserDetail } from '@/types/user'
 import {
@@ -85,6 +86,7 @@ const props = defineProps<{
 const visible = defineModel<boolean>('open', { required: true })
 
 const router = useRouter()
+const { withFrom } = useRouteWithFrom()
 const loading = ref(false)
 const detail = ref<UserDetail | null>(null)
 
@@ -114,7 +116,7 @@ watch(
 
 /** 点击项目 Tag 跳转项目详情 */
 function handleProjectClick(projectId: string) {
-  router.push(`/projects/${projectId}`)
+  router.push(withFrom(`/projects/${projectId}`))
 }
 </script>
 

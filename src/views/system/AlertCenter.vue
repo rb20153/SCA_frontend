@@ -1,9 +1,10 @@
 ﻿<template>
   <div class="page-container">
-    <a-tabs v-model:active-key="queueStatus" class="queue-tabs" @change="onTabChange">
-      <a-tab-pane key="pending" tab="未处理" />
-      <a-tab-pane key="handled" tab="已处理" />
-    </a-tabs>
+    <PageNavTabs
+      v-model:active-key="queueStatus"
+      :tabs="ALERT_QUEUE_TABS"
+      @change="onTabChange"
+    />
 
     <PageLoading :loading="overviewLoading && statCards.length === 0">
       <StatCardRow v-if="statCards.length > 0" :items="statCards" :columns="4" />
@@ -45,6 +46,7 @@ import { computed, onMounted, ref } from 'vue'
 import { getAlertCenterOverview, getAlertList } from '@/api/system'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
+import PageNavTabs from '@/components/common/PageNavTabs.vue'
 import StatCardRow from '@/components/common/StatCardRow.vue'
 import AlertDetailDrawer from '@/components/system/AlertDetailDrawer.vue'
 import AlertQueryBar from '@/components/system/AlertQueryBar.vue'
@@ -56,6 +58,7 @@ import {
   alertListFiltersToQuery,
   createEmptyAlertListFilters,
 } from '@/utils/alertQuery'
+import { ALERT_QUEUE_TABS } from '@/utils/alertDisplay'
 import { mapAlertCenterToStatCards } from '@/utils/statCard'
 
 const queueStatus = ref<AlertQueueStatus>('pending')
@@ -119,14 +122,6 @@ onMounted(async () => {
 <style scoped>
 .page-container {
   min-height: 100%;
-}
-
-.queue-tabs {
-  margin-bottom: 16px;
-}
-
-.queue-tabs :deep(.ant-tabs-nav) {
-  margin-bottom: 0;
 }
 
 .table-card {

@@ -1,5 +1,5 @@
 <template>
-  <div class="login-page">
+  <div class="login-page diffuse-gradient-page">
     <a-card class="login-card" :bordered="false">
       <div class="login-logo">
         <h2>SCA 检测平台</h2>
@@ -321,16 +321,21 @@ function switchMode(target: PageMode) {
 <style scoped>
 .login-page {
   min-height: 100vh;
-  background: #f0f2f5;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
 }
 
 .login-card {
+  position: relative;
+  z-index: 1;
   width: 420px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
+  max-width: 100%;
+  box-shadow: 0 8px 32px rgba(22, 119, 255, 0.12);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .login-logo {

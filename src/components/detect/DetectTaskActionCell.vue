@@ -10,7 +10,7 @@
       </router-link>
       <router-link
         v-else-if="action.key === 'viewLog'"
-        :to="getTaskLogListRoute(task)"
+        :to="withFrom(getTaskLogListRoute(task))"
         class="list-table-link"
       >
         {{ action.label }}
@@ -121,6 +121,7 @@ import {
   terminateTask,
   updateDetectTask,
 } from '@/api/detect'
+import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import {
   TASK_SOURCE_MODE_LABEL,
   getTaskLogListRoute,
@@ -131,6 +132,8 @@ import { getTaskActions, type TaskActionKey } from '@/utils/taskActions'
 const props = defineProps<{
   task: DetectTask
 }>()
+
+const { withFrom } = useRouteWithFrom()
 
 const emit = defineEmits<{
   'task-updated': [task: DetectTask]

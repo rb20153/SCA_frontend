@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import type { Department } from '@/types/system'
 import ListTable from '@/components/common/ListTable.vue'
@@ -71,6 +72,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { withFrom } = useRouteWithFrom()
 
 /** a-table bodyCell 的 record 为 unknown，收窄为 Department */
 function getDepartment(row: unknown): Department {
@@ -79,10 +81,12 @@ function getDepartment(row: unknown): Department {
 
 /** 成员人数 > 0 时跳转用户列表并按部门名称筛选 */
 function goUsersByDepartment(department: Department) {
-  router.push({
-    path: '/system/users',
-    query: { departmentName: department.departmentName },
-  })
+  router.push(
+    withFrom({
+      path: '/system/users',
+      query: { departmentName: department.departmentName },
+    }),
+  )
 }
 
 const columns: TableColumnsType<Department> = [

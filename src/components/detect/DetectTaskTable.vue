@@ -53,7 +53,7 @@
           </router-link>
           <router-link
             v-else-if="getTask(row).status === 'failed'"
-            :to="getTaskLogListRoute(getTask(row))"
+            :to="withFrom(getTaskLogListRoute(getTask(row)))"
             class="list-table-link"
           >
             查看日志
@@ -77,8 +77,10 @@ import ListTable from '@/components/common/ListTable.vue'
 import ListTableCell from '@/components/common/ListTableCell.vue'
 import DetectTaskActionCell from '@/components/detect/DetectTaskActionCell.vue'
 import TaskTypeText from '@/components/detect/TaskTypeText.vue'
+import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import {
   DETECT_TASK_LIST_SCROLL_X,
+  DETECT_TASK_TABLE_NO_PROJECT_SCROLL_X,
   DETECT_TASK_TABLE_SCROLL_X,
   TASK_SOURCE_MODE_LABEL,
   formatDurationMs,
@@ -98,12 +100,15 @@ const props = withDefaults(
     showSourceMode?: boolean
     /** 检测任务列表页展示完整操作列（含弹窗交互） */
     showFullActions?: boolean
+    /** 隐藏「项目」列（项目详情关联任务等场景） */
+    hideProjectColumn?: boolean
   }>(),
   {
     loading: false,
     pagination: false,
     showSourceMode: false,
     showFullActions: false,
+    hideProjectColumn: false,
   },
 )
 
@@ -111,6 +116,8 @@ const emit = defineEmits<{
   'task-updated': [task: DetectTask]
   'task-deleted': [taskId: string]
 }>()
+
+const { withFrom } = useRouteWithFrom()
 
 /** a-table bodyCell 的 record 为 unknown，收窄为 DetectTask */
 function getTask(row: unknown): DetectTask {
@@ -123,8 +130,11 @@ const columns = computed<TableColumnsType<DetectTask>>(() => {
   const cols: TableColumnsType<DetectTask> = [
     { title: '任务名称', dataIndex: 'taskName', key: 'taskName', width: 180, ellipsis: true },
     { title: '检测类型', key: 'taskType', width: 130 },
-    { title: '项目', dataIndex: 'projectName', key: 'projectName', width: 160, ellipsis: true },
   ]
+
+  if (!props.hideProjectColumn) {
+    cols.push({ title: '项目', dataIndex: 'projectName', key: 'projectName', width: 160, ellipsis: true })
+  }
 
   if (props.showSourceMode) {
     cols.push({ title: '来源/模式', key: 'sourceMode', width: 120 })
@@ -141,6 +151,9 @@ const columns = computed<TableColumnsType<DetectTask>>(() => {
 })
 
 const tableScrollX = computed(() => {
+  if (props.hideProjectColumn) {
+    return DETECT_TASK_TABLE_NO_PROJECT_SCROLL_X
+  }
   if (props.showSourceMode && props.showFullActions) {
     return DETECT_TASK_LIST_SCROLL_X
   }

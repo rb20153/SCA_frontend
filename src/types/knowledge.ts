@@ -1,4 +1,5 @@
 import type { PageParams } from '@/types/common'
+import type { SourceIngestFormState } from '@/types/sourceIngest'
 import type { Dayjs } from 'dayjs'
 
 /** 开源项目分类 */
@@ -42,6 +43,22 @@ export interface UpdateKbProjectParams {
   category: KbProjectCategory
   collectMode: KbCollectMode
   tags?: string
+}
+
+/** 添加开源项目请求 */
+export interface CreateKbProjectParams extends SourceIngestFormState {
+  projectName: string
+  category: KbProjectCategory
+  /** 上传源码包模式下的版本号 */
+  packageVersion?: string
+  tags?: string[]
+  remark?: string
+  packageFile?: File
+}
+
+/** 添加开源项目响应（后端异步处理） */
+export interface CreateKbProjectResult {
+  parseTaskId?: string
 }
 
 /** 知识库版本更新状态 */

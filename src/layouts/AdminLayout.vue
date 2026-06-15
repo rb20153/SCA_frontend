@@ -76,12 +76,15 @@
       <a-layout class="admin-main">
         <!-- Header: fixed + full 100vw; sidebar (z-index 100) overlays the left overlap -->
         <a-layout-header class="admin-header">
-          <a-breadcrumb class="header-breadcrumb">
-            <a-breadcrumb-item v-for="(crumb, index) in layoutStore.breadcrumbs" :key="index">
-              <router-link v-if="crumb.path" :to="crumb.path">{{ crumb.title }}</router-link>
-              <span v-else>{{ crumb.title }}</span>
-            </a-breadcrumb-item>
-          </a-breadcrumb>
+          <div class="header-left" :style="{ paddingLeft: `${siderWidth}px` }">
+            <PageBackButton />
+            <a-breadcrumb class="header-breadcrumb">
+              <a-breadcrumb-item v-for="(crumb, index) in layoutStore.breadcrumbs" :key="index">
+                <router-link v-if="crumb.path" :to="crumb.path">{{ crumb.title }}</router-link>
+                <span v-else>{{ crumb.title }}</span>
+              </a-breadcrumb-item>
+            </a-breadcrumb>
+          </div>
 
           <div class="header-right">
             <a-badge :count="unreadCount" :overflow-count="99">
@@ -133,6 +136,7 @@ import {
   FileTextOutlined, DatabaseOutlined, SettingOutlined, BellOutlined,
 } from '@ant-design/icons-vue'
 import PageLoading from '@/components/common/PageLoading.vue'
+import PageBackButton from '@/components/layout/PageBackButton.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLayoutStore } from '@/stores/layout'
 
@@ -174,6 +178,9 @@ watch(
     ) {
       // 项目目录、版本管理为知识库列表的子页，侧栏仍高亮「知识库管理」
       selectedKeys.value = ['/knowledge']
+    } else if (path.startsWith('/projects/')) {
+      // 项目详情为列表子页，侧栏仍高亮「项目管理」
+      selectedKeys.value = ['/projects']
     } else {
       selectedKeys.value = [path]
     }
@@ -260,11 +267,17 @@ function handleLogout() {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
+.header-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  transition: padding-left 0.2s;
+}
+
 .header-breadcrumb {
   flex: 1;
-  /* Push breadcrumb text start to just past the sidebar; sidebar will visually cover the gap */
-  padding-left: v-bind('siderWidth + "px"');
-  transition: padding-left 0.2s;
+  min-width: 0;
 }
 
 .header-right {

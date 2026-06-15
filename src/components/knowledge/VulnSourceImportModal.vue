@@ -42,6 +42,7 @@ import { message } from 'ant-design-vue'
 import type { UploadFile } from 'ant-design-vue'
 import type { RcFile } from 'ant-design-vue/es/vc-upload/interface'
 import { importOfflineVulnPackage } from '@/api/knowledge'
+import { createSingleUploadFileList, getUploadOriginFile } from '@/utils/fileUpload'
 
 const visible = defineModel<boolean>('open', { required: true })
 
@@ -61,14 +62,7 @@ function resetForm() {
 
 /** 拦截自动上传，构造带 originFileObj 的 UploadFile 供提交读取 */
 function handleBeforeUpload(file: RcFile) {
-  fileList.value = [
-    {
-      uid: file.uid,
-      name: file.name,
-      status: 'done',
-      originFileObj: file,
-    },
-  ]
+  fileList.value = createSingleUploadFileList(file)
   return false
 }
 
@@ -85,7 +79,7 @@ async function handleOk() {
     return Promise.reject()
   }
 
-  const file = fileList.value[0]?.originFileObj
+  const file = getUploadOriginFile(fileList.value)
   if (!file) {
     message.warning('请上传漏洞包文件')
     return Promise.reject()

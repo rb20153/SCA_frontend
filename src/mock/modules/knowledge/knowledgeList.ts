@@ -1,4 +1,4 @@
-import type { KbCollectMode, KbProject, KbProjectCategory } from '@/types/knowledge'
+import type { CreateKbProjectParams, KbCollectMode, KbProject, KbProjectCategory } from '@/types/knowledge'
 
 interface KbProjectSeed {
   projectName: string
@@ -119,3 +119,12 @@ function buildMockKbProjects(count: number): KbProject[] {
 /** 知识库开源项目列表 mock 数据源 */
 export const MOCK_ALL_KB_PROJECTS: KbProject[] = buildMockKbProjects(MOCK_KB_PROJECT_TOTAL)
 // export const MOCK_ALL_KB_PROJECTS: KbProject[] = []
+
+/**
+ * mock：添加开源项目（后端异步处理，不立即写入列表）
+ * @param params - 添加参数
+ */
+export function mockCreateKbProject(params: CreateKbProjectParams): { parseTaskId: string } {
+  void params
+  return { parseTaskId: `kb-parse-${Date.now()}` }
+}

@@ -17,6 +17,12 @@ export interface PageParams {
   pageSize: number
 }
 
+/** 页面顶部导航 Tab 项（PageNavTabs 通用） */
+export interface PageNavTabItem {
+  key: string
+  label: string
+}
+
 /** 统计卡片单项（StatCard / StatCardRow 通用） */
 export interface StatCardItem {
   key: string

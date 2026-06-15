@@ -1,0 +1,183 @@
+<template>
+  <a-modal
+    v-model:open="visible"
+    title="添加开源项目"
+    width="720px"
+    :confirm-loading="submitting"
+    :ok-button-props="{ disabled: !canSubmit }"
+    ok-text="确定"
+    cancel-text="取消"
+    destroy-on-close
+    @ok="handleOk"
+  >
+    <a-form layout="vertical" class="kb-add-form">
+      <a-form-item label="项目名称" required>
+        <a-input
+          v-model:value="projectName"
+          placeholder="请输入项目名称"
+          allow-clear
+        />
+      </a-form-item>
+
+      <a-form-item label="分类" required>
+        <a-select
+          v-model:value="category"
+          placeholder="请选择分类"
+          :options="KB_PROJECT_CATEGORY_OPTIONS"
+          class="kb-add-select"
+        />
+      </a-form-item>
+
+      <SourceIngestForm
+        ref="ingestFormRef"
+        v-model="ingestForm"
+        source-mode-label="入库方式"
+      />
+
+      <a-form-item
+        v-if="ingestForm.sourceMode === 'upload-source-package'"
+        label="版本号"
+        required
+      >
+        <a-input
+          v-model:value="packageVersion"
+          placeholder="例如：v2312"
+          allow-clear
+        />
+      </a-form-item>
+
+      <a-form-item label="标签">
+        <TagInput ref="tagInputRef" v-model="tags" />
+      </a-form-item>
+
+      <a-form-item label="备注">
+        <a-textarea
+          v-model:value="remark"
+          :rows="3"
+          placeholder="可选备注"
+          allow-clear
+        />
+      </a-form-item>
+    </a-form>
+  </a-modal>
+</template>
+
+<script setup lang="ts">
+import { computed, reactive, ref, watch } from 'vue'
+import { message } from 'ant-design-vue'
+import { createKbProject } from '@/api/knowledge'
+import SourceIngestForm from '@/components/common/SourceIngestForm.vue'
+import TagInput from '@/components/common/TagInput.vue'
+import type { KbProjectCategory } from '@/types/knowledge'
+import type { SourceIngestFormState } from '@/types/sourceIngest'
+import { KB_PROJECT_CATEGORY_OPTIONS } from '@/utils/knowledgeQuery'
+import { createDefaultSourceIngestForm, validateSourceIngestForm } from '@/utils/sourceIngest'
+
+const visible = defineModel<boolean>('open', { required: true })
+
+const submitting = ref(false)
+const projectName = ref('')
+const category = ref<KbProjectCategory | undefined>(undefined)
+const ingestForm = reactive<SourceIngestFormState>(createDefaultSourceIngestForm())
+const packageVersion = ref('')
+const tags = ref<string[]>([])
+const remark = ref('')
+
+const ingestFormRef = ref<InstanceType<typeof SourceIngestForm> | null>(null)
+const tagInputRef = ref<InstanceType<typeof TagInput> | null>(null)
+
+/** 表单是否满足提交条件 */
+const canSubmit = computed(() => validateKbAddForm().valid)
+
+/** 校验添加开源项目表单 */
+function validateKbAddForm(): { valid: true } | { valid: false; message: string } {
+  if (!projectName.value.trim()) {
+    return { valid: false, message: '请输入项目名称' }
+  }
+  if (!category.value) {
+    return { valid: false, message: '请选择分类' }
+  }
+
+  const packageFile =
+    ingestForm.sourceMode === 'upload-source-package'
+      ? ingestFormRef.value?.getPackageFile()
+      : undefined
+
+  const ingestValidation = validateSourceIngestForm(ingestForm, packageFile)
+  if (!ingestValidation.valid) {
+    return ingestValidation
+  }
+
+  if (ingestForm.sourceMode === 'upload-source-package' && !packageVersion.value.trim()) {
+    return { valid: false, message: '请输入版本号' }
+  }
+
+  return { valid: true }
+}
+
+/** 重置表单 */
+function resetForm() {
+  projectName.value = ''
+  category.value = undefined
+  Object.assign(ingestForm, createDefaultSourceIngestForm())
+  packageVersion.value = ''
+  tags.value = []
+  remark.value = ''
+  ingestFormRef.value?.resetUpload()
+  tagInputRef.value?.clearInput()
+}
+
+/** 提交添加开源项目；成功后关闭弹窗，不刷新列表 */
+async function handleOk() {
+  const validation = validateKbAddForm()
+  if (!validation.valid) {
+    message.warning(validation.message)
+    return Promise.reject()
+  }
+
+  const packageFile =
+    ingestForm.sourceMode === 'upload-source-package'
+      ? ingestFormRef.value?.getPackageFile()
+      : undefined
+
+  submitting.value = true
+  try {
+    await createKbProject({
+      projectName: projectName.value.trim(),
+      category: category.value as KbProjectCategory,
+      ...ingestForm,
+      packageVersion:
+        ingestForm.sourceMode === 'upload-source-package'
+          ? packageVersion.value.trim()
+          : undefined,
+      tags: tags.value.length > 0 ? [...tags.value] : undefined,
+      remark: remark.value.trim() || undefined,
+      packageFile,
+    })
+    message.success('开源项目已提交，后台处理中')
+    visible.value = false
+  } finally {
+    submitting.value = false
+  }
+}
+
+watch(
+  () => visible.value,
+  (open) => {
+    if (!open) {
+      resetForm()
+    }
+  },
+)
+</script>
+
+<style scoped>
+.kb-add-form {
+  margin-top: 0;
+}
+
+.kb-add-select {
+  width: 100%;
+  max-width: 360px;
+}
+</style>

@@ -5,6 +5,200 @@
 
 ---
 
+## [2026-06-15] 知识库 · 添加开源项目弹窗
+
+### 改了什么
+
+- **`KnowledgeBaseList.vue`** 顶部「添加开源项目」按钮
+- **`KbProjectAddModal.vue`**：项目名称、分类、复用 **`SourceIngestForm`**（`入库方式`）、上传模式版本号、**`TagInput`** 标签、备注
+- **`TagInput.vue`**：回车生成 tag、可删除，公共组件
+- **`createKbProject`** API + mock（异步处理，不刷新列表）
+
+### 注意事项
+
+- 联调：`POST /api/knowledge/projects`
+- 标签提交为 `string[]`，mock 不落库
+
+---
+
+## [2026-06-15] 项目详情 · 添加源码交付物弹窗 + 公共 SourceIngestForm
+
+### 改了什么
+
+- 新增 **`SourceIngestForm.vue`**（`components/common/`）：来源方式切换、仓库拉取凭据、压缩包上传，供交付物与后续知识库「添加开源项目」复用
+- 新增 **`ProjectSourceDeliverableAddModal.vue`**：封装 SourceIngestForm + 扫描路径前缀，提交 `addProjectSourceDeliverable`
+- **`types/sourceIngest.ts`**、**`utils/sourceIngest.ts`**：共用类型、校验、扩展名常量
+- **`ProjectDeliverableAddBar`**：选「添加源码交付物」打开新弹窗
+
+### 怎么实现的
+
+- 仓库拉取：地址必填（仅 placeholder）；登录方式联动 Token / 用户名密码 / SSH 私钥；匿名访问显示蓝色 info
+- 上传源码包：复用 `useSingleFileUpload`，仅允许 zip / 7z / tar.gz
+- 扫描路径前缀可选，仅 placeholder，无长文案提示
+- 确定后调 API，提示后台解析，不刷新列表
+
+### 注意事项
+
+- 知识库添加开源项目尚未接入 SourceIngestForm，接入时传 `source-mode-label="入库方式"` 即可
+- 联调：`POST /api/projects/:projectId/deliverables/add-source`
+
+---
+
+## [2026-06-15] 项目详情 · 交付物类型 Tag + 二进制上传
+
+### 改了什么
+
+- **`ProjectDeliverableTable.vue`**：类型列改为 `a-tag`（源码 purple / 二进制 orange）
+- 新增 **`ProjectBinaryDeliverableUploadModal.vue`**：拖拽上传 `.a/.so/.dll`，校验通过后「确定」才可点
+- **`ProjectDeliverableAddBar.vue`**：选「上传二进制」后打开上传弹窗；传入 `projectId`
+- 公共上传：**`utils/fileUpload.ts`**、**`composables/useSingleFileUpload.ts`**；`VulnSourceImportModal`、`RiskDetectTaskCreateModal` 已复用
+- **`api/project.ts`**：`uploadProjectBinaryDeliverable`；mock 在 `projectDeliverables.ts`
+
+### 怎么实现的
+
+- `before-upload` 拦截自动上传，校验后缀；`hasValidFile` 控制确定按钮 disabled
+- 确认后调 `uploadProjectBinaryDeliverable`，提示「后台解析中」，**不刷新列表**（等后端解析完成）
+- 「添加源码交付物」仍占位，未实现
+
+### 注意事项
+
+- 联调：`POST /api/projects/:projectId/deliverables/upload-binary`，FormData 字段 `file`
+- 列表更新需后端解析完成后的推送或轮询，当前 mock 不写入列表
+
+---
+
+## [2026-06-15] 项目详情 · 交付物 Tab
+
+### 改了什么
+
+- 新增 **`ProjectDeliverablesPanel.vue`** 及交付物表格/操作/删除弹窗、**`ProjectDeliverableAddBar.vue`**（双选类型弹窗，样式对齐检测任务创建）
+- **`mock/modules/project/projectDeliverables.ts`**：含仓库拉取/上传源码包/上传文件三类 mock
+- **`api/project.ts`**：`getProjectDeliverableList`、`getProjectDeliverableDownload`、`deleteProjectDeliverable`
+- **`utils/projectDeliverableDisplay.ts`**：来源/类型文案、大小与时间格式化、剪贴板复制
+
+### 怎么实现的
+
+- 添加交付物：双选弹窗（添加源码交付物 / 上传二进制），选中后暂关弹窗，后续表单待做
+- 列表 `ListTable` 分页 10 条；仓库类「查看来源」复制 URL 并新标签打开；上传类「下载」点击时调 API 再 `triggerReportDownload`
+- 所有项均有红色「删除」，确认文案「是否将该交付物从「xx项目」项目中移除？」
+
+### 注意事项
+
+- mock 仓库 URL 暂为 `https://github.com/`；联调后由列表项 `repositoryUrl` 字段返回
+- `proj-002` 有 7 条交付物，可测分页
+
+---
+
+## [2026-06-15] 项目详情 · 项目成员 Tab
+
+### 改了什么
+
+- 新增 **`ProjectMembersPanel.vue`** 及成员表格/操作/三个弹窗组件
+- **`mock/modules/project/projectMembers.ts`**：初始成员（负责人 + 额外成员），复用 `MOCK_ALL_USERS`
+- **`api/project.ts`**：`getProjectMemberList`、`searchProjectMemberCandidates`、`addProjectMember`、`transferProjectOwner`、`removeProjectMember`
+- **`types/project.ts`**：`ProjectMember`、`ProjectMemberCandidate` 等
+
+### 怎么实现的
+
+- 添加成员：输入防抖 300ms 搜索 → 下拉选姓名 → 确认后添加；无匹配显示「没有找到该用户」
+- 成员列表：`ListTable` 分页 10 条；负责人无操作，成员可「设为负责人」「移除」
+- 更换负责人后同步 `MOCK_ALL_PROJECTS.owner` 并 emit 更新顶部摘要卡片
+
+### 注意事项
+
+- mock 下「结构分析平台」负责人为李四，另有张三、吴九等成员；搜索「张」可测添加流程
+- 联调时替换 `api/project.ts` 中 5 个成员相关函数即可
+
+---
+
+## [2026-06-15] 项目详情 · 关联任务 Tab
+
+### 改了什么
+
+- 新增 **`ProjectRelatedTasksPanel.vue`**：左上角「创建检测任务」链至 `/detect/tasks`；下方复用 `DetectTaskTable`（无项目列、有分页、操作列与首页最近任务一致）
+- **`api/project.ts`** 新增 `getProjectRelatedTasks()`，mock 阶段委托 `getTaskList({ projectId })` 复用检测任务数据
+- **`DetectTaskTable`** 新增 `hideProjectColumn`；**`taskDisplay.ts`** 新增 `DETECT_TASK_TABLE_NO_PROJECT_SCROLL_X`
+- **`verifyProjectRelatedTasks()`**：接口返回后二次校验 `projectId` + `projectName` 与当前项目一致
+
+### 怎么实现的
+
+- `ProjectDetail` 在 `activeTab === 'tasks'` 时展示面板；切换 Tab 时 `router.replace` 同步 `?tab=`，避免 Tab 选中态丢失
+- 关联任务列表在 `visible` 为 true 时请求，创建按钮用 `router.push` 替代 `router-link`（避免挂载 link 干扰 `history.state`）
+- 列与首页最近任务相同：任务名称、检测类型、运行状态、进度、耗时、操作（查看结果/查看日志）
+- 每页 10 条，分页器与检测任务列表页一致
+
+### 注意事项
+
+- mock 下 `proj-001`（飞控仿真V2）等有多条关联任务可供验证
+- 联调时替换 `getProjectRelatedTasks` 为真实 API 即可，二次校验逻辑可保留
+
+---
+
+## [2026-06-15] 项目管理 · 项目详情页骨架
+
+### 改了什么
+
+- 实现 **`ProjectDetail.vue`**：顶部 4 项项目简介 + 5 个 Tab（内容区占位）
+- 新增 **`ProjectDetailSummary.vue`**：复用 `StatCard`，状态项用 `#value` 插槽展示 Tag
+- 新增公共 **`PageNavTabs.vue`**，告警中心改为复用该组件
+- **`StatCard.vue`** 增加 `#value` 插槽，支持 Tag 等非文本主数值
+- **`api/project.ts`** 新增 `getProjectDetail()`；列表「编辑」/ 新建成功跳转经 `history.state.project` 携带数据
+
+### 怎么实现的
+
+- 详情页优先读 `history.state.project`（与 `KbVersionManage` 同模式）；缺失时调 `getProjectDetail` 兜底
+- Tab 配置在 `utils/projectDisplay.ts` → `PROJECT_DETAIL_TABS`（基本信息、交付物、检测策略、项目成员、关联任务）
+- 各 Tab 下方 `a-card` 暂空，后续按 Tab 分别实现
+
+### 注意事项
+
+- 刷新详情页会丢失 `history.state`，需走 API；mock 阶段 `getProjectDetail` 从 `MOCK_ALL_PROJECTS` 查找
+- 从告警中心等跨模块跳转项目详情时，若未携带 state 仍会 API 兜底
+
+---
+
+## [2026-06-12] 系统管理 · 个人设置页
+
+### 改了什么
+
+- 实现 `UserProfile.vue`：左侧头像/姓名/用户名 + Tab（基本设置、修改密码、消息偏好）
+- 组件：`ProfileSider`、`ProfileBasicPanel`、`ProfilePasswordPanel`、`ProfileNotifyPanel`
+- 新增 `api/profile.ts`、`types/profile.ts`、`mock/.../userProfile.ts`
+
+### 怎么实现的
+
+- 基本设置：姓名/手机/部门可改；用户名与角色只读；部门下拉请求 `getProfileDepartmentOptions`（全部部门）
+- 更新基本信息 → `updateUserProfile`；取消 → 重新 `getUserProfile` 恢复表单
+- 修改密码 → `changeUserPassword`，成功后 `logout` 并跳登录；mock 旧密码默认 `Admin123`
+- 消息偏好 5 项多选 → `updateNotifyPreferences`；站内消息「去修改密码」带 `?tab=password`
+
+### 注意事项
+
+- mock 当前用户固定 admin（`user-001`）；联调后 `/api/system/profile` 应凭 token 识别当前用户
+
+---
+
+## [2026-06-12] 顶栏「返回」与跨模块 from 来源
+
+### 改了什么
+
+- `PageBackButton` 置于 `AdminLayout` 面包屑左侧
+- `utils/navigation.ts`：`appendFromQuery`、`shouldShowPageBack`、`resolvePageBackTarget`
+- `composables/usePageBack.ts`、`useRouteWithFrom.ts`
+
+### 怎么实现的
+
+- 显示条件：`meta.showBack`、或 URL 带 `?from=`、或面包屑层级 ≥ 3
+- 返回优先级：`from` → `router.back()` → 面包屑上级 path → 首页
+- 跨模块跳转已带 `from`：站内消息、部门/角色→用户、用户详情→项目、告警详情、覆盖统计→知识库、任务→日志
+
+### 注意事项
+
+- 新增跨模块 `router.push` / `router-link` 请用 `useRouteWithFrom().withFrom(target)`
+- `from` 仅接受站内相对路径，排除 `/login`
+
+---
+
 ## [2026-06-12] 系统管理 · 站内消息页
 
 ### 改了什么

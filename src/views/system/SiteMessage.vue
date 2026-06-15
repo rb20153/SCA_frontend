@@ -45,6 +45,7 @@ import SiteMessageTable from '@/components/system/SiteMessageTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
 import { useAuthStore } from '@/stores/auth'
 import type { SiteMessage, SiteMessageListFilters } from '@/types/siteMessage'
+import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import { resolveSiteMessageActionRoute } from '@/utils/siteMessageNavigation'
 import {
   createEmptySiteMessageListFilters,
@@ -53,6 +54,7 @@ import {
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { withFrom } = useRouteWithFrom()
 
 const markAllLoading = ref(false)
 
@@ -122,7 +124,7 @@ async function handleActionClick(msg: SiteMessage) {
     syncMessageRead(msg.messageId, true)
   }
 
-  await router.push(resolveSiteMessageActionRoute(msg.action))
+  await router.push(withFrom(resolveSiteMessageActionRoute(msg.action)))
 }
 
 /** 切换单条已读/未读：请求后端后同步行高亮 */

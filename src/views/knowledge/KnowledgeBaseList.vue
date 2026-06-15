@@ -1,5 +1,14 @@
 <template>
   <div class="page-container">
+    <div class="page-actions">
+      <a-button type="primary" @click="addVisible = true">
+        <template #icon>
+          <PlusOutlined />
+        </template>
+        添加开源项目
+      </a-button>
+    </div>
+
     <KbProjectQueryBar
       v-model="filterForm"
       @search="handleSearch"
@@ -37,15 +46,19 @@
       :project="deletingProject"
       @success="onDeleteSuccess"
     />
+
+    <KbProjectAddModal v-model:open="addVisible" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { PlusOutlined } from '@ant-design/icons-vue'
 import { useRoute } from 'vue-router'
 import { getKbProjectList } from '@/api/knowledge'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
+import KbProjectAddModal from '@/components/knowledge/KbProjectAddModal.vue'
 import KbProjectDeleteModal from '@/components/knowledge/KbProjectDeleteModal.vue'
 import KbProjectEditModal from '@/components/knowledge/KbProjectEditModal.vue'
 import KbProjectQueryBar from '@/components/knowledge/KbProjectQueryBar.vue'
@@ -59,6 +72,7 @@ import {
 
 const route = useRoute()
 
+const addVisible = ref(false)
 const editVisible = ref(false)
 const editingProject = ref<KbProject | null>(null)
 const deleteVisible = ref(false)
@@ -145,5 +159,9 @@ async function onDeleteSuccess() {
 <style scoped>
 .page-container {
   min-height: 100%;
+}
+
+.page-actions {
+  margin-bottom: 16px;
 }
 </style>

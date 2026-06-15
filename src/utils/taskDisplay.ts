@@ -103,6 +103,15 @@ export const DETECT_TASK_TABLE_SCROLL_X =
   COL_WIDTH.elapsed +
   COL_WIDTH.action
 
+/** 无「项目」列的任务表格 scroll.x（项目详情关联任务等） */
+export const DETECT_TASK_TABLE_NO_PROJECT_SCROLL_X =
+  COL_WIDTH.taskName +
+  COL_WIDTH.taskType +
+  COL_WIDTH.status +
+  COL_WIDTH.progress +
+  COL_WIDTH.elapsed +
+  COL_WIDTH.action
+
 /** 检测任务列表页 scroll.x（含来源/模式列与完整操作列） */
 export const DETECT_TASK_LIST_SCROLL_X =
   COL_WIDTH.taskName +

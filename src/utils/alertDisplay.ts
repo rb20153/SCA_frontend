@@ -1,6 +1,12 @@
 import type { AlertLevel } from '@/types/system'
-import type { TaskType } from '@/types/common'
+import type { PageNavTabItem, TaskType } from '@/types/common'
 import dayjs from 'dayjs'
+
+/** 告警中心顶部 Tab：未处理 / 已处理 */
+export const ALERT_QUEUE_TABS: PageNavTabItem[] = [
+  { key: 'pending', label: '未处理' },
+  { key: 'handled', label: '已处理' },
+]
 
 export const ALERT_LEVEL_LABEL: Record<AlertLevel, string> = {
   critical: '紧急',

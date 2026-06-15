@@ -1,8 +1,16 @@
 <template>
   <a-card :bordered="false" class="stat-card">
     <div class="stat-label">{{ label }}</div>
-    <div class="stat-value" :class="{ 'stat-value--warn': warnValue }">
-      <EllipsisText :text="value" />
+    <div
+      class="stat-value"
+      :class="{
+        'stat-value--warn': warnValue && !hasCustomValue,
+        'stat-value--custom': hasCustomValue,
+      }"
+    >
+      <slot name="value">
+        <EllipsisText :text="value" />
+      </slot>
     </div>
     <div v-if="hasGrowth" class="stat-growth" :class="growthClass">
       {{ growthText }}
@@ -14,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useSlots } from 'vue'
 import EllipsisText from '@/components/common/EllipsisText.vue'
 import { formatStatGrowth } from '@/utils/taskDisplay'
 
@@ -30,6 +38,11 @@ const props = defineProps<{
   linkLabel?: string
   linkTo?: string
 }>()
+
+const slots = useSlots()
+
+/** 是否使用 #value 插槽自定义主数值区域 */
+const hasCustomValue = computed(() => Boolean(slots.value))
 
 /** 是否展示增长率行 */
 const hasGrowth = computed(() => props.growth !== undefined)
@@ -80,6 +93,14 @@ const growthClass = computed(() =>
 .stat-value--warn,
 .stat-value--warn :deep(.ant-typography) {
   color: #faad14;
+}
+
+.stat-value--custom {
+  font-size: inherit;
+  font-weight: normal;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
 }
 
 .stat-growth {

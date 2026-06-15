@@ -47,6 +47,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import type { Role } from '@/types/system'
 import ListTable from '@/components/common/ListTable.vue'
@@ -71,6 +72,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { withFrom } = useRouteWithFrom()
 
 /** a-table bodyCell 的 record 为 unknown，收窄为 Role */
 function getRole(row: unknown): Role {
@@ -79,10 +81,12 @@ function getRole(row: unknown): Role {
 
 /** 绑定用户数 > 0 时跳转用户列表并按角色名称筛选 */
 function goUsersByRole(role: Role) {
-  router.push({
-    path: '/system/users',
-    query: { roleName: role.roleName },
-  })
+  router.push(
+    withFrom({
+      path: '/system/users',
+      query: { roleName: role.roleName },
+    }),
+  )
 }
 
 const columns: TableColumnsType<Role> = [

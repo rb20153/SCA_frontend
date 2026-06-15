@@ -79,8 +79,8 @@
               :file-list="sbomFileList"
               :before-upload="handleBeforeUpload"
               :max-count="1"
-              accept=".json,.xml,.spdx"
-              @remove="handleRemoveSbom"
+              :accept="sbomAccept"
+              @remove="clearSbomFile"
             >
               <p class="upload-icon">
                 <InboxOutlined />
@@ -101,14 +101,14 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { InboxOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
-import type { UploadFile } from 'ant-design-vue'
-import type { RcFile } from 'ant-design-vue/es/vc-upload/interface'
 import {
   createDetectTask,
   getDetectTaskProjectOptions,
   getRiskDetectVulnDbVersions,
 } from '@/api/detect'
+import { useSingleFileUpload } from '@/composables/useSingleFileUpload'
 import type { DetectTask, DetectTaskProjectOption, VulnDbVersionOption } from '@/types/detect'
+import { toAcceptAttribute } from '@/utils/fileUpload'
 import {
   RISK_DATA_SOURCE_OPTIONS,
   RISK_DEPENDENCY_DEPTH_OPTIONS,
@@ -123,12 +123,23 @@ const emit = defineEmits<{
 }>()
 
 const SBOM_ALLOWED_EXTENSIONS = ['.json', '.xml', '.spdx'] as const
+const sbomAccept = toAcceptAttribute(SBOM_ALLOWED_EXTENSIONS)
 
 const optionsLoading = ref(false)
 const submitting = ref(false)
 const projects = ref<DetectTaskProjectOption[]>([])
 const vulnDbVersions = ref<VulnDbVersionOption[]>([])
-const sbomFileList = ref<UploadFile[]>([])
+
+const {
+  fileList: sbomFileList,
+  hasValidFile: hasSbomFile,
+  handleBeforeUpload,
+  clearFile: clearSbomFile,
+  getSelectedFile: getSelectedSbomFile,
+} = useSingleFileUpload({
+  allowedExtensions: SBOM_ALLOWED_EXTENSIONS,
+  invalidExtensionMessage: '仅支持 SPDX / CycloneDX 格式（.json、.xml、.spdx）',
+})
 
 const form = reactive(createDefaultRiskTaskForm())
 
@@ -148,12 +159,6 @@ const vulnDbOptions = computed(() =>
   })),
 )
 
-/** 是否已选择有效 SBOM 文件 */
-const hasSbomFile = computed(() => {
-  const file = sbomFileList.value[0]?.originFileObj
-  return file instanceof File
-})
-
 /** 必填项校验 */
 const canSubmit = computed(() => {
   if (!form.taskName.trim() || !form.projectId.trim()) return false
@@ -162,12 +167,6 @@ const canSubmit = computed(() => {
   }
   return hasSbomFile.value
 })
-
-/** 校验 SBOM 文件扩展名是否为 SPDX / CycloneDX 常用格式 */
-function isAllowedSbomFile(file: RcFile): boolean {
-  const lowerName = file.name.toLowerCase()
-  return SBOM_ALLOWED_EXTENSIONS.some((ext) => lowerName.endsWith(ext))
-}
 
 /** 拉取项目与漏洞库版本选项 */
 async function fetchOptions() {
@@ -190,35 +189,12 @@ async function fetchOptions() {
 /** 重置表单与上传列表 */
 function resetForm() {
   Object.assign(form, createDefaultRiskTaskForm())
-  sbomFileList.value = []
+  clearSbomFile()
 }
 
 /** 切换数据来源时清空 SBOM 上传状态 */
 function onDataSourceChange() {
-  sbomFileList.value = []
-}
-
-/** 拦截自动上传，仅保留本地文件引用 */
-function handleBeforeUpload(file: RcFile) {
-  if (!isAllowedSbomFile(file)) {
-    message.error('仅支持 SPDX / CycloneDX 格式（.json、.xml、.spdx）')
-    return false
-  }
-
-  sbomFileList.value = [
-    {
-      uid: file.uid,
-      name: file.name,
-      status: 'done',
-      originFileObj: file,
-    },
-  ]
-  return false
-}
-
-/** 移除已选 SBOM 文件 */
-function handleRemoveSbom() {
-  sbomFileList.value = []
+  clearSbomFile()
 }
 
 /** 提交创建开源风险检测任务；校验失败时阻止弹窗关闭 */
@@ -229,7 +205,7 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
-    const sbomFile = sbomFileList.value[0]?.originFileObj
+    const sbomFile = getSelectedSbomFile()
     const isImportSbom = form.dataSource === 'import-sbom'
 
     const res = await createDetectTask({
@@ -238,7 +214,7 @@ async function handleSubmit() {
       projectId: form.projectId,
       dataSource: form.dataSource,
       ...(isImportSbom
-        ? { sbomFile: sbomFile instanceof File ? sbomFile : undefined }
+        ? { sbomFile }
         : {
             scanScope: form.scanScope,
             vulnDbVersion: form.vulnDbVersion,

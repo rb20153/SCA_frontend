@@ -28,7 +28,11 @@
           </a-descriptions-item>
           <a-descriptions-item v-if="detail.relatedTask" label="关联任务">
             <router-link
-              :to="getAlertRelatedTaskRoute(detail.relatedTask.taskId, detail.relatedTask.taskType)"
+              :to="
+                withFrom(
+                  getAlertRelatedTaskRoute(detail.relatedTask.taskId, detail.relatedTask.taskType),
+                )
+              "
               class="list-table-link detail-link"
             >
               <DetailText :text="detail.relatedTask.taskName" />
@@ -36,7 +40,7 @@
           </a-descriptions-item>
           <a-descriptions-item v-if="detail.relatedProject" label="关联项目">
             <router-link
-              :to="`/projects/${detail.relatedProject.projectId}`"
+              :to="withFrom(`/projects/${detail.relatedProject.projectId}`)"
               class="list-table-link detail-link"
             >
               <DetailText :text="detail.relatedProject.projectName" />
@@ -60,6 +64,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { getAlertDetail } from '@/api/system'
+import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import DetailText from '@/components/common/DetailText.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import type { AlertDetail } from '@/types/system'
@@ -75,6 +80,8 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+
+const { withFrom } = useRouteWithFrom()
 
 const loading = ref(false)
 const detail = ref<AlertDetail | null>(null)
