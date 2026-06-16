@@ -1,6 +1,6 @@
 <template>
   <span class="action-cell">
-    <router-link :to="directoryPath" class="list-table-link">项目目录</router-link>
+    <router-link :to="directoryTo" class="list-table-link">项目目录</router-link>
     <a
       v-if="version.status === 'ready'"
       href="#"
@@ -30,15 +30,28 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { KbVersion } from '@/types/knowledge'
+import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
+import type { KbProject, KbVersion } from '@/types/knowledge'
 
 const props = defineProps<{
   version: KbVersion
+  /** 版本管理页上下文项目，跳转目录时一并携带供顶部统计卡片展示 */
+  kbProject?: KbProject | null
 }>()
 
-/** 项目目录页路由 */
-const directoryPath = computed(
-  () => `/knowledge/${props.version.kbProjectId}/directory`,
+const { withFrom } = useRouteWithFrom()
+
+/** 项目目录页路由（携带项目 + 版本上下文 + from 供顶栏返回） */
+const directoryTo = computed(() =>
+  withFrom({
+    name: 'KbProjectDirectory',
+    params: { kbProjectId: props.version.kbProjectId },
+    query: { versionId: props.version.versionId },
+    state: {
+      kbProject: props.kbProject ?? undefined,
+      kbVersion: props.version,
+    },
+  }),
 )
 </script>
 

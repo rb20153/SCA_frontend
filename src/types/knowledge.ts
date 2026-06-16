@@ -91,6 +91,31 @@ export interface KbVersionQueryParams extends PageParams {
   kbProjectId: string
 }
 
+/** 项目目录页 · 知识库项目下拉选项 */
+export interface KbProjectSelectOption {
+  kbProjectId: string
+  projectName: string
+}
+
+/** 项目目录页 · 版本下拉选项 */
+export interface KbVersionSelectOption {
+  versionId: string
+  versionNo: string
+}
+
+/** 项目目录页筛选表单 */
+export interface KbProjectDirectoryFilters {
+  versionId: string
+  keyword: string
+}
+
+/** 项目目录页查询参数（目录树 / 文件检索，后续对接） */
+export interface KbProjectDirectoryQueryParams {
+  kbProjectId: string
+  versionId?: string
+  keyword?: string
+}
+
 /** 获取版本更新（云端拉取）响应 */
 export interface FetchKbVersionUpdateResult {
   /** 更新包大小（GB） */

@@ -5,6 +5,157 @@
 
 ---
 
+## 公共组件清单（`src/components/common/`，截至 2026-06-16）
+
+共 **18 个**对外 Vue 组件（另含 `LinuxStyleFileTreeNode` 为树组件内部递归子组件，不单独引用）。引用数为在 `src/` 内 import/模板使用的业务文件数（不含 `components.d.ts`）。
+
+### 一、页面状态与布局（4 个）
+
+| 组件 | 作用 | 引用约 |
+|---|---|---|
+| `PageLoading` | 页面/面板 loading 遮罩，支持路由切换最小高度 | 35 处 |
+| `ListEmptyGuide` | 列表空态 + 可选跳转引导 | 22 处 |
+| `PageNavTabs` | 详情页 Tab 导航 | 3 处（项目详情、开源风险详情、告警中心） |
+| `StatCard` / `StatCardRow` | 统计卡片 / 卡片行 | 各 8–9 处（首页、知识库、告警、项目摘要等） |
+
+### 二、列表页体系（4 个）
+
+| 组件 | 作用 | 引用约 |
+|---|---|---|
+| `ListQueryBar` | 统一查询区卡片（查询/重置 + `#extra-actions` 插槽） | 18 处 |
+| `ListTable` | 封装 `a-table`，统一分页/滚动/默认单元格 | 21 张业务表 |
+| `ListTableCell` | 单元格默认渲染（省略号或 `—`） | 随 `ListTable` |
+| `EllipsisText` | 超长文本省略 + tooltip | 3 处 |
+
+### 三、表单与远程数据（4 个）
+
+| 组件 | 作用 | 引用约 |
+|---|---|---|
+| `UserSearchInput` | 防抖搜用户，候选列表点选 | 4 处 |
+| `AsyncOptionsSelect` | 展开下拉时请求选项（部门/项目/知识库版本等） | 11 处 |
+| `TagInput` | 回车添加标签 | 3 处 |
+| `SourceIngestForm` | 源码入库表单（仓库拉取 / 上传包 + 凭据联动） | 4 处 |
+
+### 四、向导与表单操作（2 个，较上一版新增）
+
+| 组件 | 作用 | 引用约 |
+|---|---|---|
+| `FormStepWizardModal` | 分步向导弹窗壳（步骤条 + 上一步/下一步） | 3 处（创建项目、自主检测任务、添加开源项目） |
+| `ProfileFormActions` | 详情 Tab 内保存/取消按钮区 | 3 处（项目基本信息/策略、个人设置） |
+
+### 五、目录树（1 个，较上一版新增）
+
+| 组件 | 作用 | 引用约 |
+|---|---|---|
+| `LinuxStyleFileTree` | Linux 风格目录树（展开/收起、文件高亮、`v-model:selected-file-id`、展开/折叠全部 API） | 1 处（知识库项目目录）；配套 `utils/fileTree.ts`、`types/fileTree.ts` |
+
+### 六、详情展示（1 个）
+
+| 组件 | 作用 | 引用约 |
+|---|---|---|
+| `DetailText` | 抽屉/详情中长文本展示，可保留换行 | 7 处 |
+
+### 七、通用弹窗（1 个）
+
+| 组件 | 作用 | 引用约 |
+|---|---|---|
+| `BoundCountDeleteModal` | 删除前绑定数校验 | 3 处（用户/角色/部门） |
+
+### 配套公共能力（非 `common/` 组件，常与上面一起用）
+
+| 类型 | 路径 | 说明 |
+|---|---|---|
+| Loader 工具 | `src/utils/remoteSelectLoaders.ts` | 部门/检测项目/知识库项目与版本下拉 |
+| 文件树工具 | `src/utils/fileTree.ts` + `src/types/fileTree.ts` | 默认展开路径、关键字过滤、展开/折叠 map |
+| 上传 composable | `src/composables/useSingleFileUpload.ts` | 单文件拖拽上传校验 |
+| 文件工具 | `src/utils/fileUpload.ts` | accept 后缀、扩展名校验 |
+| 源码入库 | `src/types/sourceIngest.ts` + `src/utils/sourceIngest.ts` | 与 `SourceIngestForm` 配套 |
+| 列表分页 | `src/composables/usePaginatedList.ts` / `useFilteredPaginatedList.ts` | 列表页分页 + 筛选 |
+| 详情返回 | `src/components/layout/PageBackButton.vue` + `usePageBack` + `useRouteWithFrom` | 顶栏返回与 `from` query |
+| 图表生命周期 | `src/composables/useECharts.ts` / `useG6Graph.ts` | ECharts / G6 封装 |
+| 轮询 | `src/composables/usePolling.ts` | 任务进度等定时刷新 |
+
+---
+
+## [2026-06-16] 知识库 · 目录树展开/折叠 + 列表修复 + 分版本 mock
+
+### 改了什么
+
+- **修复知识库列表空白**：`api/knowledge.ts` 误删 `MOCK_ALL_KB_PROJECTS` import，导致 `getKbProjectList` 运行时报错、列表无法渲染
+- **筛选区**：重置右侧新增「展开全部」「折叠全部」（`ListQueryBar` `#extra-actions`）
+- **`LinuxStyleFileTree`**：暴露 `expandAll()` / `collapseToFirstLevel()`（折叠至仅第一级根目录展开）
+- **`projectDirectoryTree.ts` 重写**：按 `kbProjectId` + `versionId` 返回不同目录结构（OpenFOAM / Eigen / fmt / Deal.II / PETSc 等各有差异；同项目不同版本文件数/目录也有区别）
+
+### 注意事项
+
+- 「折叠全部」= 仅第一级根目录展开，其下子目录全部收起
+- 切换版本后目录树会整体替换，节点 ID 带版本前缀避免选中态串扰
+
+---
+
+## [2026-06-16] 知识库 · 项目目录树（公共组件 LinuxStyleFileTree）
+
+### 改了什么
+
+- **`LinuxStyleFileTree.vue` + `LinuxStyleFileTreeNode.vue`**（`components/common/`）：Linux 风格目录树公共组件；目录 `name/` + ▸▾ 展开收起；文件点击高亮；`v-model:selected-file-id`；数据变化时默认展开至首个文件并选中
+- **`utils/fileTree.ts`**、**`types/fileTree.ts`**：默认展开路径、关键字过滤、按 ID 查找节点
+- **`mock/modules/knowledge/projectDirectoryTree.ts`** + **`getKbProjectDirectoryTree()`**：OpenFOAM（kb-001）对齐原型目录结构
+- **`KbProjectDirectory.vue`**：筛选区下方 1:3 布局（左树右详情占位）；查询/重置刷新目录树
+
+### 注意事项
+
+- 右侧文件详情仅占位，选中文件后显示文件名提示
+- 关键字检索在 mock 层过滤树节点（目录名 / 文件名 / MD5）
+- 其他项目使用通用简化目录 mock
+
+---
+
+## [2026-06-16] 知识库 · 项目目录页统计卡片 API 兜底
+
+- **`KbProjectDirectory.vue`**：无 `history.state.kbProject` 时调用 `getKbProjectDetail(kbProjectId)` 填充顶部 5 项统计卡片；加载中包 `PageLoading`
+- 版本默认 label 同步改用 `projectContext.latestVersion`
+
+---
+
+## [2026-06-16] 知识库 · 项目目录页调整（去掉项目下拉 + 顶部统计卡片）
+
+### 改了什么
+
+- **`KbProjectDirectory.vue`**：顶部 `StatCardRow` 5 项（项目名称 / 最新版本 / 采集方式 / 分类 / 最近更新），数据来自 `history.state.kbProject`；筛选区仅保留版本 + 关键字
+- **`KbProjectDirectoryQueryBar.vue`**：移除项目 `AsyncOptionsSelect`
+- **`KbVersionManage.vue` / `KbVersionTable` / `KbVersionActionCell`**：跳转目录时一并携带 `kbProject`，保证从版本管理进入也有统计卡片数据
+
+### 注意事项
+
+- 统计卡片优先 `history.state.kbProject`；直接刷新 URL 时由 `getKbProjectDetail` API 兜底
+- 项目固定在路由 `:kbProjectId`，不再支持页内切换项目
+
+---
+
+## [2026-06-16] 知识库 · 项目目录页筛选区（M03-S03-P01 · 上部）
+
+### 改了什么
+
+- **`KbProjectDirectory.vue`**：替换占位页，实现顶部筛选区（目录树 / 文件详情区域待后续迭代）
+- **`KbProjectDirectoryQueryBar.vue`**：复用 `ListQueryBar` + 两个 `AsyncOptionsSelect`（项目 / 版本）+ 关键字输入
+- **`api/knowledge.ts`**：新增 `getKbProjectSelectOptions`、`getKbVersionSelectOptions`
+- **`utils/kbProjectDirectoryQuery.ts`**、**`utils/remoteSelectLoaders.ts`**：筛选表单与下拉 loader
+- **`KbProjectActionCell` / `KbVersionActionCell`**：跳转时经 `useRouteWithFrom` 附加 `from`，顶栏 `PageBackButton` 可返回列表
+
+### 怎么实现的
+
+- 项目默认：路由 `:kbProjectId` + 列表经 `history.state.kbProject` 携带；下拉异步拉取全部知识库开源项目（与项目管理 `projectId` 无关）
+- 版本默认：版本管理跳转带 `state.kbVersion` / `query.versionId`；否则取 `getKbVersionOverview` 的当前基线；下拉拉取该项目全部版本
+- 切换项目时 `router.push` 到新 `:kbProjectId` 并保留 `from` query；关键字 placeholder 对齐原型「目录、文件名或哈希」
+- 查询 / 重置已写入 `appliedQuery`（供后续目录树 API 对接）；下方内容区尚未实现
+
+### 注意事项
+
+- 直接刷新 URL 时无 navigation state，项目 / 版本 label 依赖下拉 prefetch + 概览 API
+- 目录树、展开/折叠全部、文件详情等待下一迭代
+
+---
+
 ## [2026-06-15] AI 辅助分析 · AI 解析页
 
 - 路由 `/detect/ai-analysis` → `AiAnalysis.vue`：开始解析弹窗 + 筛选 + 分页历史列表

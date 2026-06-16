@@ -18,6 +18,7 @@
           :versions="versionList"
           :loading="loading"
           :pagination="pagination"
+          :kb-project="projectContext"
         />
       </PageLoading>
     </a-card>
@@ -27,7 +28,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getKbVersionList, getKbVersionOverview } from '@/api/knowledge'
+import { getKbProjectDetail, getKbVersionList, getKbVersionOverview } from '@/api/knowledge'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import StatCardRow from '@/components/common/StatCardRow.vue'
@@ -42,6 +43,7 @@ const route = useRoute()
 
 const overviewLoading = ref(false)
 const overview = ref<KbVersionOverview | null>(null)
+const projectContext = ref<KbProject | null>(null)
 
 /** 路由参数中的知识库项目 ID */
 const kbProjectId = computed(() => String(route.params.kbProjectId ?? ''))
@@ -116,14 +118,31 @@ async function fetchOverview() {
   }
 }
 
+/** 解析当前项目上下文，供操作列跳转目录时携带完整 kbProject */
+async function resolveProjectContext() {
+  const nav = navigationProject.value
+  if (nav) {
+    projectContext.value = nav
+    return
+  }
+
+  try {
+    const res = await getKbProjectDetail(kbProjectId.value)
+    projectContext.value = res.data
+  } catch {
+    projectContext.value = null
+  }
+}
+
 /** 项目 ID 变化时重新拉取概览与版本列表 */
 watch(
   kbProjectId,
   async (id) => {
     if (!id) return
     overview.value = null
+    projectContext.value = null
     applyNavigationPlaceholder()
-    await Promise.all([fetchOverview(), refresh()])
+    await Promise.all([fetchOverview(), refresh(), resolveProjectContext()])
   },
   { immediate: true },
 )

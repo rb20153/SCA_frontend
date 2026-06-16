@@ -15,6 +15,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import type { KbProject } from '@/types/knowledge'
 
 const props = defineProps<{
@@ -26,19 +27,25 @@ const emit = defineEmits<{
   delete: [project: KbProject]
 }>()
 
-/** 项目目录页路由（携带项目信息） */
-const directoryTo = computed(() => ({
-  name: 'KbProjectDirectory',
-  params: { kbProjectId: props.project.kbProjectId },
-  state: { kbProject: props.project },
-}))
+const { withFrom } = useRouteWithFrom()
 
-/** 版本管理页路由（携带项目信息） */
-const versionsTo = computed(() => ({
-  name: 'KbVersionManage',
-  params: { kbProjectId: props.project.kbProjectId },
-  state: { kbProject: props.project },
-}))
+/** 项目目录页路由（携带项目信息 + from 供顶栏返回） */
+const directoryTo = computed(() =>
+  withFrom({
+    name: 'KbProjectDirectory',
+    params: { kbProjectId: props.project.kbProjectId },
+    state: { kbProject: props.project },
+  }),
+)
+
+/** 版本管理页路由（携带项目信息 + from 供顶栏返回） */
+const versionsTo = computed(() =>
+  withFrom({
+    name: 'KbVersionManage',
+    params: { kbProjectId: props.project.kbProjectId },
+    state: { kbProject: props.project },
+  }),
+)
 </script>
 
 <style scoped>

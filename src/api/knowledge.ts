@@ -1,6 +1,8 @@
 import type { ApiResponse, PageResult } from '@/types/common'
+import type { FileTreeData } from '@/types/fileTree'
 import type {
   KbProject,
+  KbProjectDirectoryQueryParams,
   KbProjectQueryParams,
   CategoryCoverageStat,
   CollectionMethodCoverageStat,
@@ -11,9 +13,11 @@ import type {
   CreateKbProjectResult,
   KnowledgeCoverageOverview,
   FetchKbVersionUpdateResult,
+  KbProjectSelectOption,
   KbVersion,
   KbVersionOverview,
   KbVersionQueryParams,
+  KbVersionSelectOption,
   UploadKbVersionPackageParams,
   UploadKbVersionPackageResult,
   UpdateKbProjectParams,
@@ -33,6 +37,7 @@ import type {
   VulnSyncAllPreview,
 } from '@/types/knowledge'
 import { MOCK_ALL_KB_PROJECTS, mockCreateKbProject } from '@/mock/modules/knowledge/knowledgeList'
+import { getMockKbProjectDirectoryTree } from '@/mock/modules/knowledge/projectDirectoryTree'
 import { mockCategoryCoverageStatsRes } from '@/mock/modules/knowledge/coverageCategoryStats'
 import { mockCollectionMethodCoverageStatsRes } from '@/mock/modules/knowledge/coverageCollectionMethodStats'
 import { getMockCoveragePendingListPage } from '@/mock/modules/knowledge/coveragePendingList'
@@ -176,6 +181,61 @@ export function updateKbProject(
 
   // TODO: replace with → return request.put(`/api/knowledge/projects/${kbProjectId}`, data)
   return Promise.resolve({ code: 200, message: 'ok', data: updated })
+}
+
+/**
+ * 获取知识库项目下拉选项（项目目录页切换项目，非项目管理模块）
+ */
+export function getKbProjectSelectOptions(): Promise<ApiResponse<KbProjectSelectOption[]>> {
+  const list = [...MOCK_ALL_KB_PROJECTS]
+    .sort((a, b) => a.projectName.localeCompare(b.projectName, 'zh-CN'))
+    .map((item) => ({
+      kbProjectId: item.kbProjectId,
+      projectName: item.projectName,
+    }))
+
+  // TODO: replace with → return request.get('/api/knowledge/projects/select-options')
+  return Promise.resolve({ code: 200, message: 'ok', data: list })
+}
+
+/**
+ * 获取指定知识库项目的全部版本下拉选项（项目目录页切换版本）
+ * @param kbProjectId - 知识库项目 ID
+ */
+export function getKbVersionSelectOptions(
+  kbProjectId: string,
+): Promise<ApiResponse<KbVersionSelectOption[]>> {
+  const list = getMockKbVersions(kbProjectId).map((item) => ({
+    versionId: item.versionId,
+    versionNo: item.versionNo,
+  }))
+
+  // TODO: replace with → return request.get(`/api/knowledge/projects/${kbProjectId}/version-select-options`)
+  return Promise.resolve({ code: 200, message: 'ok', data: list })
+}
+
+/**
+ * 获取知识库项目目录树（Linux 风格树形结构）
+ * @param params - 项目 ID、版本 ID、关键字筛选
+ */
+export function getKbProjectDirectoryTree(
+  params: KbProjectDirectoryQueryParams,
+): Promise<ApiResponse<FileTreeData>> {
+  if (!params.kbProjectId) {
+    return Promise.reject(new Error('项目 ID 不能为空'))
+  }
+  if (!params.versionId) {
+    return Promise.reject(new Error('版本 ID 不能为空'))
+  }
+
+  const nodes = getMockKbProjectDirectoryTree(params)
+
+  // TODO: replace with → return request.get(`/api/knowledge/projects/${params.kbProjectId}/versions/${params.versionId}/directory`, { params: { keyword: params.keyword } })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: { nodes },
+  })
 }
 
 /**

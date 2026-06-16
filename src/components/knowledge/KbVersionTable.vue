@@ -22,7 +22,7 @@
       </template>
 
       <template v-else-if="column.key === 'action'">
-        <KbVersionActionCell :version="getVersion(row)" />
+        <KbVersionActionCell :version="getVersion(row)" :kb-project="kbProject" />
       </template>
 
       <ListTableCell v-else :column="column" :text="text" />
@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
-import type { KbVersion } from '@/types/knowledge'
+import type { KbProject, KbVersion } from '@/types/knowledge'
 import ListTable from '@/components/common/ListTable.vue'
 import ListTableCell from '@/components/common/ListTableCell.vue'
 import KbVersionActionCell from '@/components/knowledge/KbVersionActionCell.vue'
@@ -47,6 +47,8 @@ defineProps<{
   versions: KbVersion[]
   loading?: boolean
   pagination: TablePaginationConfig
+  /** 当前知识库项目，供操作列跳转目录时携带 */
+  kbProject?: KbProject | null
 }>()
 
 /** a-table bodyCell 的 record 收窄为 KbVersion */

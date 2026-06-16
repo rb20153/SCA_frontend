@@ -78,6 +78,14 @@ function resetOptions() {
   loaded.value = false
 }
 
+/** 写入单项占位选项，避免 prefetch 前 Select 无法展示 label */
+function seedOption(option: SelectOption) {
+  if (options.value.some((item) => item.value === option.value)) {
+    return
+  }
+  options.value = [...options.value, option]
+}
+
 /** 预加载选项（编辑回填 departmentId 等场景） */
 async function prefetchOptions() {
   if (loaded.value) {
@@ -97,5 +105,6 @@ defineExpose({
   getSelectedLabel,
   resetOptions,
   prefetchOptions,
+  seedOption,
 })
 </script>

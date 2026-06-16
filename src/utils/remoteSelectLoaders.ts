@@ -1,5 +1,6 @@
 import type { SelectOption } from '@/types/common'
 import { getDetectTaskProjectOptions } from '@/api/detect'
+import { getKbProjectSelectOptions, getKbVersionSelectOptions } from '@/api/knowledge'
 import { getPolicySelectOptions } from '@/api/policy'
 import { getProfileDepartmentOptions } from '@/api/profile'
 import { getEnabledDepartmentOptions, getEnabledUserOptions } from '@/api/user'
@@ -45,6 +46,29 @@ export async function loadPolicySelectOptions(): Promise<SelectOption[]> {
   return res.data.map((item) => ({
     label: item.policyName,
     value: item.policyId,
+  }))
+}
+
+/**
+ * 加载知识库项目下拉选项（项目目录页，非项目管理）
+ */
+export async function loadKbProjectSelectOptions(): Promise<SelectOption[]> {
+  const res = await getKbProjectSelectOptions()
+  return res.data.map((item) => ({
+    label: item.projectName,
+    value: item.kbProjectId,
+  }))
+}
+
+/**
+ * 加载指定知识库项目的版本下拉选项
+ * @param kbProjectId - 知识库项目 ID
+ */
+export async function loadKbVersionSelectOptions(kbProjectId: string): Promise<SelectOption[]> {
+  const res = await getKbVersionSelectOptions(kbProjectId)
+  return res.data.map((item) => ({
+    label: item.versionNo,
+    value: item.versionId,
   }))
 }
 
