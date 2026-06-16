@@ -1,6 +1,6 @@
 <template>
   <div class="profile-panel">
-    <a-spin :spinning="optionsLoading">
+    <a-spin :spinning="submitting">
       <div class="profile-form-row">
         <label>姓名</label>
         <div class="profile-form-control">
@@ -30,13 +30,12 @@
       <div class="profile-form-row">
         <label>部门</label>
         <div class="profile-form-control">
-          <a-select
-            v-model:value="form.departmentId"
+          <AsyncOptionsSelect
+            ref="departmentSelectRef"
+            v-model="form.departmentId"
             placeholder="请选择部门"
-            :options="departmentSelectOptions"
-            allow-clear
-            show-search
-            option-filter-prop="label"
+            select-class="profile-department-select"
+            :load-options="loadProfileDepartmentSelectOptions"
           />
         </div>
       </div>
@@ -60,10 +59,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { getProfileDepartmentOptions, updateUserProfile } from '@/api/profile'
-import type { ProfileDepartmentOption, UserProfile } from '@/types/profile'
+import { updateUserProfile } from '@/api/profile'
+import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
+import type { UserProfile } from '@/types/profile'
+import { loadProfileDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 import { isValidPhone } from '@/utils/userValidation'
 
 const props = defineProps<{
@@ -75,22 +76,14 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
-const optionsLoading = ref(false)
 const submitting = ref(false)
-const departmentOptions = ref<ProfileDepartmentOption[]>([])
+const departmentSelectRef = ref<InstanceType<typeof AsyncOptionsSelect> | null>(null)
 
 const form = reactive({
   realName: '',
   phone: '',
-  departmentId: '',
+  departmentId: undefined as string | undefined,
 })
-
-const departmentSelectOptions = computed(() =>
-  departmentOptions.value.map((item) => ({
-    label: item.departmentName,
-    value: item.departmentId,
-  })),
-)
 
 /** 将父级 profile 同步到表单 */
 function syncFormFromProfile() {
@@ -99,15 +92,12 @@ function syncFormFromProfile() {
   form.departmentId = props.profile.departmentId
 }
 
-/** 拉取全部部门下拉 */
-async function loadDepartmentOptions() {
-  optionsLoading.value = true
-  try {
-    const res = await getProfileDepartmentOptions()
-    departmentOptions.value = res.data
-  } finally {
-    optionsLoading.value = false
+/** 预加载部门下拉，保证编辑态能正确展示当前部门名称 */
+async function prefetchDepartmentOptions() {
+  if (!form.departmentId) {
+    return
   }
+  await departmentSelectRef.value?.prefetchOptions()
 }
 
 /** 校验并提交基本信息更新 */
@@ -157,12 +147,13 @@ watch(
   () => props.profile,
   () => {
     syncFormFromProfile()
+    prefetchDepartmentOptions()
   },
   { immediate: true, deep: true },
 )
 
 onMounted(() => {
-  loadDepartmentOptions()
+  prefetchDepartmentOptions()
 })
 </script>
 
@@ -191,6 +182,10 @@ onMounted(() => {
   flex: 1;
   min-width: 0;
   max-width: 360px;
+}
+
+.profile-department-select {
+  width: 100%;
 }
 
 .profile-role-readonly {

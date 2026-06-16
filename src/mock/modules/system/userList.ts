@@ -4,6 +4,7 @@ import type {
   SystemUser,
   UserQueryParams,
   UserRecord,
+  UserSearchCandidate,
 } from '@/types/user'
 import { getMockOwnedProjectCount } from '@/mock/modules/system/userProjects'
 import { MOCK_REGISTERED_USERNAMES } from '@/mock/modules/auth/users'
@@ -238,6 +239,31 @@ export function getMockEnabledDepartmentOptions(): DepartmentOption[] {
       departmentName: item.departmentName,
     }))
     .sort((a, b) => a.departmentName.localeCompare(b.departmentName, 'zh-CN'))
+}
+
+/**
+ * 按关键词搜索启用用户（不限项目，供选择负责人等）
+ * @param keyword - 姓名或用户名关键词
+ */
+export function searchMockUsers(keyword: string): UserSearchCandidate[] {
+  const trimmed = keyword.trim()
+  if (!trimmed) {
+    return []
+  }
+
+  return MOCK_ALL_USERS.filter(
+    (item) =>
+      item.status === 'enabled' &&
+      (item.realName.includes(trimmed) || item.username.includes(trimmed)),
+  )
+    .slice(0, 10)
+    .map((item) => ({
+      userId: item.userId,
+      realName: item.realName,
+      username: item.username,
+      departmentName: item.departmentName,
+      roleName: item.roleName,
+    }))
 }
 
 /**

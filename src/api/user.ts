@@ -9,6 +9,7 @@ import type {
   UpdateUserParams,
   UserDetail,
   UserQueryParams,
+  UserSearchCandidate,
 } from '@/types/user'
 import {
   MOCK_DEPARTMENT_MEMBER_COUNTS,
@@ -26,6 +27,7 @@ import {
   getMockRoleFilterOptions,
   isMockUsernameTaken,
   registerMockUsername,
+  searchMockUsers,
 } from '@/mock/modules/system/userList'
 import { MOCK_ALL_DEPARTMENTS } from '@/mock/modules/system/departmentList'
 import { MOCK_ALL_ROLES } from '@/mock/modules/system/roleList'
@@ -75,6 +77,19 @@ export function getEnabledDepartmentOptions(): Promise<ApiResponse<DepartmentOpt
     code: 200,
     message: 'ok',
     data: getMockEnabledDepartmentOptions(),
+  })
+}
+
+/**
+ * 搜索启用用户（姓名/用户名，不限项目）
+ * @param keyword - 搜索关键词
+ */
+export function searchUsers(keyword: string): Promise<ApiResponse<UserSearchCandidate[]>> {
+  // TODO: replace with → return request.get('/api/system/users/search', { params: { keyword } })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: searchMockUsers(keyword),
   })
 }
 

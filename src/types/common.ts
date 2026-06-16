@@ -23,6 +23,12 @@ export interface PageNavTabItem {
   label: string
 }
 
+/** 远程下拉选项（AsyncOptionsSelect 通用） */
+export interface SelectOption {
+  label: string
+  value: string
+}
+
 /** 统计卡片单项（StatCard / StatCardRow 通用） */
 export interface StatCardItem {
   key: string

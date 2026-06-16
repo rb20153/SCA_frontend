@@ -1,5 +1,6 @@
 import type { PageParams } from '@/types/common'
 import type { SourceIngestFormState } from '@/types/sourceIngest'
+import type { UserSearchCandidate } from '@/types/user'
 import type { Dayjs } from 'dayjs'
 
 /** 项目状态（列表展示 3 种） */
@@ -69,13 +70,7 @@ export interface ProjectMember {
 }
 
 /** 添加成员弹窗：用户搜索候选项 */
-export interface ProjectMemberCandidate {
-  userId: string
-  realName: string
-  username: string
-  departmentName: string
-  roleName: string
-}
+export type ProjectMemberCandidate = UserSearchCandidate
 
 export interface ProjectMemberQueryParams extends PageParams {
   projectId: string

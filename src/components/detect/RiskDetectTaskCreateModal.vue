@@ -28,13 +28,11 @@
         </a-form-item>
 
         <a-form-item label="关联项目" required>
-          <a-select
-            v-model:value="form.projectId"
+          <AsyncOptionsSelect
+            v-model="form.projectId"
             placeholder="请选择"
-            show-search
-            option-filter-prop="label"
-            :options="projectOptions"
-            class="risk-select"
+            select-class="risk-select"
+            :load-options="loadDetectTaskProjectSelectOptions"
           />
         </a-form-item>
 
@@ -103,11 +101,12 @@ import { InboxOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import {
   createDetectTask,
-  getDetectTaskProjectOptions,
   getRiskDetectVulnDbVersions,
 } from '@/api/detect'
+import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import { useSingleFileUpload } from '@/composables/useSingleFileUpload'
-import type { DetectTask, DetectTaskProjectOption, VulnDbVersionOption } from '@/types/detect'
+import type { DetectTask, VulnDbVersionOption } from '@/types/detect'
+import { loadDetectTaskProjectSelectOptions } from '@/utils/remoteSelectLoaders'
 import { toAcceptAttribute } from '@/utils/fileUpload'
 import {
   RISK_DATA_SOURCE_OPTIONS,
@@ -127,7 +126,6 @@ const sbomAccept = toAcceptAttribute(SBOM_ALLOWED_EXTENSIONS)
 
 const optionsLoading = ref(false)
 const submitting = ref(false)
-const projects = ref<DetectTaskProjectOption[]>([])
 const vulnDbVersions = ref<VulnDbVersionOption[]>([])
 
 const {
@@ -142,14 +140,6 @@ const {
 })
 
 const form = reactive(createDefaultRiskTaskForm())
-
-/** 项目下拉选项 */
-const projectOptions = computed(() =>
-  projects.value.map((item) => ({
-    value: item.projectId,
-    label: item.projectName,
-  })),
-)
 
 /** 漏洞库版本下拉选项 */
 const vulnDbOptions = computed(() =>
@@ -168,15 +158,11 @@ const canSubmit = computed(() => {
   return hasSbomFile.value
 })
 
-/** 拉取项目与漏洞库版本选项 */
-async function fetchOptions() {
+/** 拉取漏洞库版本选项（项目下拉改为展开时按需加载） */
+async function fetchVulnDbOptions() {
   optionsLoading.value = true
   try {
-    const [projectRes, vulnRes] = await Promise.all([
-      getDetectTaskProjectOptions(),
-      getRiskDetectVulnDbVersions(),
-    ])
-    projects.value = projectRes.data
+    const vulnRes = await getRiskDetectVulnDbVersions()
     vulnDbVersions.value = vulnRes.data
     if (!form.vulnDbVersion && vulnRes.data.length > 0) {
       form.vulnDbVersion = vulnRes.data[0].version
@@ -234,7 +220,7 @@ watch(
   (open) => {
     if (open) {
       resetForm()
-      fetchOptions()
+      fetchVulnDbOptions()
     }
   },
 )

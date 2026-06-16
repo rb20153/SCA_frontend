@@ -7,8 +7,7 @@
     :footer="null"
     @cancel="handleCancel"
   >
-    <a-spin :spinning="optionsLoading">
-      <a-steps :current="currentStep" size="small" class="wizard-steps">
+    <a-steps :current="currentStep" size="small" class="wizard-steps">
         <a-step title="选择项目" />
         <a-step title="扫描模式" />
         <a-step title="执行配置" />
@@ -18,13 +17,11 @@
         <template v-if="currentStep === 0">
           <a-form layout="vertical">
             <a-form-item label="关联项目" required>
-              <a-select
-                v-model:value="form.projectId"
+              <AsyncOptionsSelect
+                v-model="form.projectId"
                 placeholder="请选择"
-                show-search
-                option-filter-prop="label"
-                :options="projectOptions"
-                class="wizard-select"
+                select-class="wizard-select"
+                :load-options="loadDetectTaskProjectSelectOptions"
               />
             </a-form-item>
             <a-form-item label="任务名称" required>
@@ -106,15 +103,16 @@
           </a-button>
         </a-space>
       </div>
-    </a-spin>
-  </a-modal>
+    </a-modal>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { createDetectTask, getDetectTaskProjectOptions } from '@/api/detect'
-import type { DetectTask, DetectTaskProjectOption } from '@/types/detect'
+import { createDetectTask } from '@/api/detect'
+import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
+import type { DetectTask } from '@/types/detect'
+import { loadDetectTaskProjectSelectOptions } from '@/utils/remoteSelectLoaders'
 import {
   AUTONOMY_SCAN_MODE_HINT,
   AUTONOMY_SCAN_MODE_OPTIONS,
@@ -128,20 +126,10 @@ const emit = defineEmits<{
   success: [task: DetectTask]
 }>()
 
-const optionsLoading = ref(false)
 const submitting = ref(false)
 const currentStep = ref(0)
-const projects = ref<DetectTaskProjectOption[]>([])
 
 const form = reactive(createDefaultAutonomyTaskForm())
-
-/** 项目下拉选项 */
-const projectOptions = computed(() =>
-  projects.value.map((item) => ({
-    value: item.projectId,
-    label: item.projectName,
-  })),
-)
 
 /** 第一步：关联项目与任务名称必填 */
 const isStep0Valid = computed(
@@ -169,17 +157,6 @@ const canGoNext = computed(() => {
 
 /** 最后一步是否可提交 */
 const canSubmit = computed(() => isStep0Valid.value && isStep1Valid.value && isStep2Valid.value)
-
-/** 拉取关联项目下拉数据 */
-async function fetchProjectOptions() {
-  optionsLoading.value = true
-  try {
-    const res = await getDetectTaskProjectOptions()
-    projects.value = res.data
-  } finally {
-    optionsLoading.value = false
-  }
-}
 
 /** 重置向导到初始状态 */
 function resetWizard() {
@@ -234,7 +211,6 @@ watch(
   (open) => {
     if (open) {
       resetWizard()
-      fetchProjectOptions()
     }
   },
 )

@@ -85,15 +85,13 @@
         </a-form-item>
 
         <a-form-item name="departmentId" label="部门">
-          <a-select
-            v-model:value="registerForm.departmentId"
+          <AsyncOptionsSelect
+            ref="departmentSelectRef"
+            v-model="registerForm.departmentId"
             size="large"
             placeholder="请选择部门"
-            :options="departmentSelectOptions"
-            :loading="departmentLoading"
-            allow-clear
-            show-search
-            option-filter-prop="label"
+            select-class="login-select-full"
+            :load-options="loadEnabledDepartmentSelectOptions"
           />
         </a-form-item>
 
@@ -138,15 +136,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
 import { login, checkUsernameAvailable, register } from '@/api/auth'
-import { getEnabledDepartmentOptions } from '@/api/user'
-import type { DepartmentOption } from '@/types/user'
+import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import { getRememberMePreference } from '@/utils/tokenStorage'
+import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 
 const router = useRouter()
 const route = useRoute()
@@ -160,15 +158,7 @@ const registerFormRef = ref<FormInstance>()
 const loading = ref(false)
 const rememberMe = ref(getRememberMePreference())
 
-const departmentOptions = ref<DepartmentOption[]>([])
-const departmentLoading = ref(false)
-
-const departmentSelectOptions = computed(() =>
-  departmentOptions.value.map((item) => ({
-    label: item.departmentName,
-    value: item.departmentId,
-  })),
-)
+const departmentSelectRef = ref<InstanceType<typeof AsyncOptionsSelect> | null>(null)
 
 const loginForm = reactive({ username: '', password: '' })
 
@@ -199,24 +189,6 @@ const registerForm = reactive({
   password: '',
   confirmPassword: '',
 })
-
-/** 拉取启用状态的部门下拉（注册页打开时调用，无需登录） */
-async function loadDepartmentOptions() {
-  if (departmentOptions.value.length > 0) return
-  departmentLoading.value = true
-  try {
-    const res = await getEnabledDepartmentOptions()
-    departmentOptions.value = res.data
-  } finally {
-    departmentLoading.value = false
-  }
-}
-
-/** 根据选中的部门 ID 解析部门名称，供注册接口提交 */
-function resolveDepartmentName(departmentId: string): string | null {
-  const matched = departmentOptions.value.find((item) => item.departmentId === departmentId)
-  return matched?.departmentName ?? null
-}
 
 async function checkUsernameExists(_rule: unknown, value: string) {
   if (!value || value.length < 4) return Promise.resolve()
@@ -282,7 +254,7 @@ async function handleRegister() {
     message.warning('请选择部门')
     return
   }
-  const departmentName = resolveDepartmentName(departmentId)
+  const departmentName = departmentSelectRef.value?.getSelectedLabel()
   if (!departmentName) {
     message.warning('所选部门无效，请重新选择')
     return
@@ -306,14 +278,14 @@ async function handleRegister() {
   }
 }
 
-/** 切换登录/注册模式，进入注册时拉取部门下拉 */
+/** 切换登录/注册模式 */
 function switchMode(target: PageMode) {
   mode.value = target
   if (target === 'login') {
     registerFormRef.value?.resetFields()
+    departmentSelectRef.value?.resetOptions()
   } else {
     loginFormRef.value?.resetFields()
-    loadDepartmentOptions()
   }
 }
 </script>
@@ -381,5 +353,9 @@ function switchMode(target: PageMode) {
 
 .switch-link:hover {
   text-decoration: underline;
+}
+
+.login-select-full {
+  width: 100%;
 }
 </style>

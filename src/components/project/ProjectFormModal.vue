@@ -24,17 +24,20 @@
         />
       </a-form-item>
       <a-form-item label="负责人" required>
-        <a-input
-          v-model:value="form.owner"
-          placeholder="请输入负责人"
-          allow-clear
+        <UserSearchInput
+          ref="ownerSearchRef"
+          v-model="selectedOwner"
+          placeholder="请输入用户姓名"
+          :search-users="searchOwnerUsers"
         />
       </a-form-item>
       <a-form-item label="所属部门">
-        <a-input
-          v-model:value="form.department"
-          placeholder="请输入所属部门"
-          allow-clear
+        <AsyncOptionsSelect
+          ref="departmentSelectRef"
+          v-model="departmentId"
+          placeholder="请选择部门"
+          select-class="project-form-select"
+          :load-options="loadEnabledDepartmentSelectOptions"
         />
       </a-form-item>
     </a-form>
@@ -45,7 +48,12 @@
 import { reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { createProject, updateProject } from '@/api/project'
+import { searchUsers } from '@/api/user'
+import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
+import UserSearchInput from '@/components/common/UserSearchInput.vue'
 import type { Project, ProjectFormValues } from '@/types/project'
+import type { UserSearchCandidate } from '@/types/user'
+import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 
 const props = defineProps<{
   /** 弹窗模式：新增或编辑 */
@@ -64,6 +72,11 @@ const emit = defineEmits<{
 }>()
 
 const submitting = ref(false)
+const selectedOwner = ref<UserSearchCandidate | null>(null)
+const departmentId = ref<string | undefined>(undefined)
+
+const ownerSearchRef = ref<InstanceType<typeof UserSearchInput> | null>(null)
+const departmentSelectRef = ref<InstanceType<typeof AsyncOptionsSelect> | null>(null)
 
 const form = reactive<ProjectFormValues>({
   projectName: '',
@@ -72,32 +85,37 @@ const form = reactive<ProjectFormValues>({
   department: '',
 })
 
+/** 搜索负责人（不限项目成员） */
+async function searchOwnerUsers(keyword: string) {
+  const res = await searchUsers(keyword)
+  return res.data
+}
+
 /** 将外部初始值同步到表单 */
-function syncFormFromProps() {
+async function syncFormFromProps() {
   form.projectName = props.initialValues?.projectName ?? ''
   form.description = props.initialValues?.description ?? ''
   form.owner = props.initialValues?.owner ?? ''
   form.department = props.initialValues?.department ?? ''
+
+  selectedOwner.value = null
+  departmentId.value = undefined
+  ownerSearchRef.value?.setDisplayName(form.owner)
+
+  departmentSelectRef.value?.resetOptions()
+  if (props.mode === 'edit' && form.department) {
+    const options = await departmentSelectRef.value?.prefetchOptions()
+    departmentId.value = options?.find((item) => item.label === form.department)?.value
+  }
 }
 
-watch(
-  () => visible.value,
-  (open) => {
-    if (open) {
-      syncFormFromProps()
-    }
-  },
-)
-
-watch(
-  () => props.initialValues,
-  () => {
-    if (visible.value) {
-      syncFormFromProps()
-    }
-  },
-  { deep: true },
-)
+/** 重置弹窗内搜索/下拉状态 */
+function resetSelectors() {
+  ownerSearchRef.value?.reset()
+  departmentSelectRef.value?.resetOptions()
+  selectedOwner.value = null
+  departmentId.value = undefined
+}
 
 /** 校验后调用新增或更新 API */
 async function handleOk() {
@@ -106,16 +124,24 @@ async function handleOk() {
     return Promise.reject()
   }
 
-  if (!form.owner.trim()) {
-    message.warning('请输入负责人')
+  const ownerName = ownerSearchRef.value?.getSubmitDisplayName() ?? ''
+  if (props.mode === 'create' && !ownerSearchRef.value?.hasSelectedUser()) {
+    message.warning('请从列表中选择负责人')
     return Promise.reject()
   }
+  if (!ownerName) {
+    message.warning('请选择负责人')
+    return Promise.reject()
+  }
+
+  const departmentName =
+    departmentSelectRef.value?.getSelectedLabel()?.trim() ?? form.department.trim()
 
   const payload: ProjectFormValues = {
     projectName: form.projectName.trim(),
     description: form.description.trim(),
-    owner: form.owner.trim(),
-    department: form.department.trim(),
+    owner: ownerName,
+    department: departmentName,
   }
 
   submitting.value = true
@@ -139,4 +165,32 @@ async function handleOk() {
     submitting.value = false
   }
 }
+
+watch(
+  () => visible.value,
+  (open) => {
+    if (open) {
+      void syncFormFromProps()
+    } else {
+      resetSelectors()
+    }
+  },
+)
+
+watch(
+  () => props.initialValues,
+  () => {
+    if (visible.value) {
+      void syncFormFromProps()
+    }
+  },
+  { deep: true },
+)
 </script>
+
+<style scoped>
+.project-form-select {
+  width: 100%;
+  max-width: 360px;
+}
+</style>

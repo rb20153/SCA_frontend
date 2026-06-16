@@ -5,6 +5,29 @@
 
 ---
 
+## [2026-06-15] 公共用户搜索 + 远程下拉组件
+
+### 改了什么
+
+- **`UserSearchInput.vue`**：防抖输入搜用户，`v-model` 为 `UserSearchCandidate | null`；搜索逻辑由父组件传入
+- **`AsyncOptionsSelect.vue`**：首次展开下拉时调 `loadOptions()`；支持 `prefetchOptions` / `resetOptions` / `getSelectedLabel`
+- **`remoteSelectLoaders.ts`**：部门（注册/个人设置/用户管理）、检测任务关联项目的统一 loader
+- **`searchUsers()`** API + mock `searchMockUsers`
+- 接入：**`ProjectFormModal`**（负责人 + 部门）、**`ProjectAddMemberModal`**（排除已在项目成员）、**`LoginPage`** 注册部门、**`UserFormModal`** / **`ProfileBasicPanel`** 部门、**`AutonomyDetectTaskCreateModal`** / **`RiskDetectTaskCreateModal`** 关联项目
+
+### 怎么实现的
+
+- 用户搜索：输入停止 300ms 后请求；添加成员由 `searchProjectMemberCandidates` 过滤，新增项目负责人用 `searchUsers` 不过滤
+- 远程下拉：默认懒加载，编辑回填场景在打开弹窗/进入页面时 `prefetchOptions()`
+- 检测任务创建：不再打开弹窗即拉项目列表；开源风险弹窗仍打开时拉漏洞库版本
+
+### 注意事项
+
+- 新增项目负责人必须从搜索结果选中；编辑可保留原姓名（未重选时提交原 `ownerName`）
+- 联调：`GET /api/system/users/search`、`GET /api/system/departments/options`、`GET /api/detect/tasks/project-options`
+
+---
+
 ## [2026-06-15] 知识库 · 版本管理更新（获取更新 / 上传更新包）
 
 ### 改了什么

@@ -4,6 +4,15 @@ import type { Dayjs } from 'dayjs'
 /** 用户账号状态 */
 export type UserStatus = 'enabled' | 'disabled'
 
+/** 用户搜索候选项（添加成员 / 选择负责人等） */
+export interface UserSearchCandidate {
+  userId: string
+  realName: string
+  username: string
+  departmentName: string
+  roleName: string
+}
+
 /** 用户关联项目摘要 */
 export interface UserProjectRef {
   projectId: string

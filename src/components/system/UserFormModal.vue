@@ -47,11 +47,12 @@
 
           <a-col :span="mode === 'create' ? 12 : 12">
             <a-form-item label="部门" required>
-              <a-select
-                v-model:value="form.departmentId"
+              <AsyncOptionsSelect
+                ref="departmentSelectRef"
+                v-model="form.departmentId"
                 placeholder="请选择部门"
-                :options="departmentSelectOptions"
-                allow-clear
+                select-class="user-form-select"
+                :load-options="loadEnabledDepartmentSelectOptions"
               />
             </a-form-item>
           </a-col>
@@ -96,11 +97,12 @@ import { computed, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   createUser,
-  getEnabledDepartmentOptions,
   getEnabledRoleOptions,
   updateUser,
 } from '@/api/user'
-import type { DepartmentOption, RoleOption, UserFormValues } from '@/types/user'
+import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
+import type { RoleOption, UserFormValues } from '@/types/user'
+import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 import { generateInitialPassword } from '@/utils/passwordGenerator'
 import { USER_STATUS_FORM_OPTIONS } from '@/utils/userDisplay'
 import { isValidPhone, isValidUsername } from '@/utils/userValidation'
@@ -122,8 +124,8 @@ const emit = defineEmits<{
 
 const submitting = ref(false)
 const optionsLoading = ref(false)
-const departmentOptions = ref<DepartmentOption[]>([])
 const roleOptions = ref<RoleOption[]>([])
+const departmentSelectRef = ref<InstanceType<typeof AsyncOptionsSelect> | null>(null)
 
 const form = reactive<UserFormValues>({
   username: '',
@@ -134,13 +136,6 @@ const form = reactive<UserFormValues>({
   phone: '',
   status: 'enabled',
 })
-
-const departmentSelectOptions = computed(() =>
-  departmentOptions.value.map((item) => ({
-    label: item.departmentName,
-    value: item.departmentId,
-  })),
-)
 
 const roleSelectOptions = computed(() =>
   roleOptions.value.map((item) => ({
@@ -154,19 +149,23 @@ function regeneratePassword() {
   form.password = generateInitialPassword(8)
 }
 
-/** 拉取启用状态的部门与角色下拉 */
-async function loadFormOptions() {
+/** 拉取启用状态的角色下拉 */
+async function loadRoleOptions() {
   optionsLoading.value = true
   try {
-    const [deptRes, roleRes] = await Promise.all([
-      getEnabledDepartmentOptions(),
-      getEnabledRoleOptions(),
-    ])
-    departmentOptions.value = deptRes.data
+    const roleRes = await getEnabledRoleOptions()
     roleOptions.value = roleRes.data
   } finally {
     optionsLoading.value = false
   }
+}
+
+/** 编辑模式下预加载部门下拉，保证回填显示正确 */
+async function prefetchDepartmentOptions() {
+  if (!form.departmentId) {
+    return
+  }
+  await departmentSelectRef.value?.prefetchOptions()
 }
 
 /** 将外部初始值同步到表单 */
@@ -193,10 +192,12 @@ function syncFormFromProps() {
 
 watch(
   () => visible.value,
-  (open) => {
+  async (open) => {
     if (open) {
       syncFormFromProps()
-      loadFormOptions()
+      departmentSelectRef.value?.resetOptions()
+      await loadRoleOptions()
+      await prefetchDepartmentOptions()
     }
   },
 )
@@ -289,5 +290,9 @@ async function handleOk() {
 
 .password-input {
   flex: 1;
+}
+
+.user-form-select {
+  width: 100%;
 }
 </style>
