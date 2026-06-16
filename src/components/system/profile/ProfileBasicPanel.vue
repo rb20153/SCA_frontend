@@ -48,12 +48,11 @@
         </div>
       </div>
 
-      <div class="profile-actions">
-        <a-button type="primary" :loading="submitting" @click="handleSubmit">
-          更新基本信息
-        </a-button>
-        <a-button :disabled="submitting" @click="handleCancel">取消修改</a-button>
-      </div>
+      <ProfileFormActions
+        :submitting="submitting"
+        @submit="handleSubmit"
+        @cancel="handleCancel"
+      />
     </a-spin>
   </div>
 </template>
@@ -63,6 +62,7 @@ import { onMounted, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { updateUserProfile } from '@/api/profile'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
+import ProfileFormActions from '@/components/common/ProfileFormActions.vue'
 import type { UserProfile } from '@/types/profile'
 import { loadProfileDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 import { isValidPhone } from '@/utils/userValidation'
@@ -199,12 +199,5 @@ onMounted(() => {
 .role-hint {
   font-size: 13px;
   color: rgba(0, 0, 0, 0.45);
-}
-
-.profile-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
-  padding-left: 88px;
 }
 </style>

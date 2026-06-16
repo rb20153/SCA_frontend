@@ -2,6 +2,7 @@ import type {
   DepartmentOption,
   RoleOption,
   SystemUser,
+  UserOption,
   UserQueryParams,
   UserRecord,
   UserSearchCandidate,
@@ -239,6 +240,36 @@ export function getMockEnabledDepartmentOptions(): DepartmentOption[] {
       departmentName: item.departmentName,
     }))
     .sort((a, b) => a.departmentName.localeCompare(b.departmentName, 'zh-CN'))
+}
+
+/**
+ * 获取启用用户下拉选项（负责人选择等）
+ */
+export function getMockEnabledUserOptions(): UserOption[] {
+  return MOCK_ALL_USERS.filter((item) => item.status === 'enabled')
+    .map((item) => ({
+      userId: item.userId,
+      realName: item.realName,
+      departmentName: item.departmentName,
+      roleName: item.roleName,
+    }))
+    .sort((a, b) => a.realName.localeCompare(b.realName, 'zh-CN'))
+}
+
+/**
+ * 按用户 ID 查找 mock 用户
+ * @param userId - 用户 ID
+ */
+export function findMockUserById(userId: string): UserRecord | undefined {
+  return MOCK_ALL_USERS.find((item) => item.userId === userId)
+}
+
+/**
+ * 按真实姓名查找启用用户（项目 mock 种子解析负责人 ID）
+ * @param realName - 用户真实姓名
+ */
+export function findMockEnabledUserByRealName(realName: string): UserRecord | undefined {
+  return MOCK_ALL_USERS.find((item) => item.status === 'enabled' && item.realName === realName)
 }
 
 /**

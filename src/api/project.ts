@@ -16,10 +16,13 @@ import type {
   ProjectMemberQueryParams,
   ProjectQueryParams,
   TransferProjectOwnerParams,
+  UpdateProjectBasicInfoParams,
   UpdateProjectParams,
 } from '@/types/project'
 import { getTaskList } from '@/api/detect'
 import { MOCK_ALL_PROJECTS } from '@/mock/modules/project/projectList'
+import { MOCK_ALL_DEPARTMENTS } from '@/mock/modules/system/departmentList'
+import { findMockEnabledUserByRealName, findMockUserById } from '@/mock/modules/system/userList'
 import {
   createMockDeliverableDownload,
   getMockProjectDeliverablePage,
@@ -319,12 +322,18 @@ export function createProject(data: CreateProjectParams): Promise<ApiResponse<Pr
     return Promise.reject(new Error('负责人不能为空'))
   }
 
+  const departmentName = data.department.trim()
+  const ownerUser = findMockEnabledUserByRealName(owner)
+  const department = MOCK_ALL_DEPARTMENTS.find((item) => item.departmentName === departmentName)
+
   const project: Project = {
     projectId: `proj-${String(MOCK_ALL_PROJECTS.length + 1).padStart(3, '0')}`,
     projectName,
     description: data.description.trim(),
     owner,
-    department: data.department.trim(),
+    ownerUserId: ownerUser?.userId ?? '',
+    department: departmentName,
+    departmentId: department?.departmentId ?? '',
     status: 'in_progress',
     taskCount: 0,
     lastScanAt: null,
@@ -361,17 +370,63 @@ export function updateProject(
     return Promise.reject(new Error('负责人不能为空'))
   }
 
+  const departmentName = data.department.trim()
+  const ownerUser = findMockEnabledUserByRealName(owner)
+  const department = MOCK_ALL_DEPARTMENTS.find((item) => item.departmentName === departmentName)
+
   const updated: Project = {
     ...MOCK_ALL_PROJECTS[index],
     projectName,
     description: data.description.trim(),
     owner,
-    department: data.department.trim(),
+    ownerUserId: ownerUser?.userId ?? MOCK_ALL_PROJECTS[index].ownerUserId,
+    department: departmentName,
+    departmentId: department?.departmentId ?? MOCK_ALL_PROJECTS[index].departmentId,
   }
 
   MOCK_ALL_PROJECTS[index] = updated
 
   // TODO: replace with → return request.put(`/api/projects/${projectId}`, data)
+  return Promise.resolve({ code: 200, message: 'ok', data: updated })
+}
+
+/**
+ * 更新项目详情 · 基本信息 Tab（不含项目名称）
+ * @param projectId - 项目 ID
+ * @param data - 说明、负责人、部门、状态
+ */
+export function updateProjectBasicInfo(
+  projectId: string,
+  data: UpdateProjectBasicInfoParams,
+): Promise<ApiResponse<Project>> {
+  const index = MOCK_ALL_PROJECTS.findIndex((item) => item.projectId === projectId)
+  if (index < 0) {
+    return Promise.reject(new Error('项目不存在'))
+  }
+
+  const ownerUser = findMockUserById(data.ownerUserId)
+  if (!ownerUser || ownerUser.status !== 'enabled') {
+    return Promise.reject(new Error('请选择有效的负责人'))
+  }
+
+  const department = MOCK_ALL_DEPARTMENTS.find((item) => item.departmentId === data.departmentId)
+  if (!department || department.status !== 'enabled') {
+    return Promise.reject(new Error('请选择有效的所属部门'))
+  }
+
+  const updated: Project = {
+    ...MOCK_ALL_PROJECTS[index],
+    description: data.description.trim(),
+    owner: ownerUser.realName,
+    ownerUserId: ownerUser.userId,
+    department: department.departmentName,
+    departmentId: department.departmentId,
+    status: data.status,
+  }
+
+  MOCK_ALL_PROJECTS[index] = updated
+
+  // TODO: replace with → return request.put(`/api/projects/${projectId}/basic-info`, data)
   return Promise.resolve({ code: 200, message: 'ok', data: updated })
 }
 

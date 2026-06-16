@@ -14,7 +14,11 @@ export interface Project {
   projectName: string
   description: string
   owner: string
+  /** 负责人用户 ID，下拉绑定与提交用 */
+  ownerUserId: string
   department: string
+  /** 所属部门 ID，下拉绑定与提交用 */
+  departmentId: string
   status: ProjectStatus
   taskCount: number
   /** 最近扫描时间，ISO 8601；未扫描时为 null */
@@ -45,6 +49,14 @@ export interface CreateProjectParams {
 }
 
 export type UpdateProjectParams = CreateProjectParams
+
+/** 项目详情 · 基本信息 Tab 可编辑字段 */
+export interface UpdateProjectBasicInfoParams {
+  description: string
+  ownerUserId: string
+  departmentId: string
+  status: ProjectStatus
+}
 
 export interface ProjectFormValues {
   projectName: string

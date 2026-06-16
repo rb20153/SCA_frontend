@@ -8,6 +8,7 @@ import type {
   SystemUser,
   UpdateUserParams,
   UserDetail,
+  UserOption,
   UserQueryParams,
   UserSearchCandidate,
 } from '@/types/user'
@@ -24,6 +25,7 @@ import {
   filterMockUserList,
   getMockEnabledDepartmentOptions,
   getMockEnabledRoleOptions,
+  getMockEnabledUserOptions,
   getMockRoleFilterOptions,
   isMockUsernameTaken,
   registerMockUsername,
@@ -90,6 +92,18 @@ export function searchUsers(keyword: string): Promise<ApiResponse<UserSearchCand
     code: 200,
     message: 'ok',
     data: searchMockUsers(keyword),
+  })
+}
+
+/**
+ * 获取启用用户下拉选项（项目负责人选择等）
+ */
+export function getEnabledUserOptions(): Promise<ApiResponse<UserOption[]>> {
+  // TODO: replace with → return request.get('/api/system/users/options', { params: { status: 'enabled' } })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockEnabledUserOptions(),
   })
 }
 

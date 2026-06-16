@@ -1,4 +1,9 @@
 import type { Project, ProjectStatus } from '@/types/project'
+import { MOCK_ALL_DEPARTMENTS } from '@/mock/modules/system/departmentList'
+import {
+  MOCK_ALL_USERS,
+  findMockEnabledUserByRealName,
+} from '@/mock/modules/system/userList'
 
 interface ProjectSeed {
   projectName: string
@@ -14,9 +19,9 @@ interface ProjectSeed {
 const PROJECT_SEEDS: ProjectSeed[] = [
   {
     projectName: '飞控仿真V2',
-    description: '动力学仿真飞控模块自主率检测',
+    description: '动力学仿真飞控模块自主率检测，覆盖主控律、传感器融合与仿真接口层代码。',
     owner: '张三',
-    department: '研发一部',
+    department: '仿真研发部',
     status: 'in_progress',
     taskCount: 6,
     lastScanAt: '2026-05-18T14:00:00+08:00',
@@ -24,9 +29,9 @@ const PROJECT_SEEDS: ProjectSeed[] = [
   },
   {
     projectName: '结构分析平台',
-    description: '结构力学仿真与开源组件分析',
+    description: '结构力学仿真与开源组件分析，含网格划分、求解器与后处理链路。',
     owner: '李四',
-    department: '研发二部',
+    department: '合规部',
     status: 'completed',
     taskCount: 3,
     lastScanAt: '2026-05-10T09:30:00+08:00',
@@ -34,9 +39,9 @@ const PROJECT_SEEDS: ProjectSeed[] = [
   },
   {
     projectName: '柔性机构仿真链路',
-    description: '柔性机构多体动力学仿真',
+    description: '柔性机构多体动力学仿真，关注约束求解与接触算法模块自主率。',
     owner: '王五',
-    department: '仿真中心',
+    department: '业务部',
     status: 'failed',
     taskCount: 2,
     lastScanAt: '2026-05-26T21:15:00+08:00',
@@ -44,9 +49,9 @@ const PROJECT_SEEDS: ProjectSeed[] = [
   },
   {
     projectName: '控制验证系统',
-    description: '飞控律验证与回归测试',
+    description: '飞控律验证与回归测试，集成 HIL 仿真与自动化用例管理。',
     owner: '赵六',
-    department: '测试部',
+    department: '研发一部',
     status: 'in_progress',
     taskCount: 4,
     lastScanAt: '2026-05-22T11:20:00+08:00',
@@ -54,9 +59,9 @@ const PROJECT_SEEDS: ProjectSeed[] = [
   },
   {
     projectName: '仿真工具链',
-    description: '仿真前后处理工具集成',
-    owner: '钱七',
-    department: '研发一部',
+    description: '仿真前后处理工具集成，统一脚本化批处理与结果归档流程。',
+    owner: '林二',
+    department: '仿真研发部',
     status: 'completed',
     taskCount: 5,
     lastScanAt: '2026-05-15T16:45:00+08:00',
@@ -64,8 +69,8 @@ const PROJECT_SEEDS: ProjectSeed[] = [
   },
   {
     projectName: '气动热仿真库',
-    description: '气动加热与热防护分析',
-    owner: '孙八',
+    description: '气动加热与热防护分析，覆盖对流换热与辐射模型实现。',
+    owner: '吴九',
     department: '气动室',
     status: 'in_progress',
     taskCount: 1,
@@ -74,8 +79,8 @@ const PROJECT_SEEDS: ProjectSeed[] = [
   },
   {
     projectName: '轨道动力学平台',
-    description: '卫星轨道仿真与自主率评估',
-    owner: '周九',
+    description: '卫星轨道仿真与自主率评估，含摄动力模型与姿态耦合模块。',
+    owner: '郑十',
     department: '航天部',
     status: 'completed',
     taskCount: 7,
@@ -84,8 +89,8 @@ const PROJECT_SEEDS: ProjectSeed[] = [
   },
   {
     projectName: '多物理场耦合引擎',
-    description: '流固热耦合仿真核心库',
-    owner: '吴十',
+    description: '流固热耦合仿真核心库，重点审查耦合迭代与数据交换层代码。',
+    owner: '陈一',
     department: '研发二部',
     status: 'failed',
     taskCount: 2,
@@ -95,6 +100,26 @@ const PROJECT_SEEDS: ProjectSeed[] = [
 ]
 
 const MOCK_PROJECT_TOTAL = 28
+
+/** 按部门名称解析部门 ID（优先启用部门） */
+function resolveDepartmentId(departmentName: string): string {
+  const enabled = MOCK_ALL_DEPARTMENTS.find(
+    (item) => item.departmentName === departmentName && item.status === 'enabled',
+  )
+  if (enabled) {
+    return enabled.departmentId
+  }
+  const matched = MOCK_ALL_DEPARTMENTS.find((item) => item.departmentName === departmentName)
+  return matched?.departmentId ?? MOCK_ALL_DEPARTMENTS[0].departmentId
+}
+
+/** 按负责人姓名解析用户 ID，找不到时按序号回退 */
+function resolveOwnerUserId(ownerName: string, index: number): string {
+  return (
+    findMockEnabledUserByRealName(ownerName)?.userId ??
+    MOCK_ALL_USERS[index % MOCK_ALL_USERS.length].userId
+  )
+}
 
 function buildMockProjects(count: number): Project[] {
   return Array.from({ length: count }, (_, index) => {
@@ -107,7 +132,9 @@ function buildMockProjects(count: number): Project[] {
       projectName: suffix ? `${seed.projectName}${suffix}` : seed.projectName,
       description: seed.description,
       owner: seed.owner,
+      ownerUserId: resolveOwnerUserId(seed.owner, index),
       department: seed.department,
+      departmentId: resolveDepartmentId(seed.department),
       status: seed.status,
       taskCount: seed.taskCount,
       lastScanAt: seed.lastScanAt,

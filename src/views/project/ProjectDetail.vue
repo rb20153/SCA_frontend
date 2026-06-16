@@ -11,6 +11,11 @@
         />
 
         <a-card :bordered="false" class="tab-content-card">
+          <ProjectBasicInfoPanel
+            v-show="activeTab === 'basic'"
+            :project="project"
+            @updated="onProjectBasicUpdated"
+          />
           <ProjectDeliverablesPanel
             v-show="activeTab === 'deliverables'"
             :project="project"
@@ -39,6 +44,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getProjectDetail } from '@/api/project'
 import PageLoading from '@/components/common/PageLoading.vue'
 import PageNavTabs from '@/components/common/PageNavTabs.vue'
+import ProjectBasicInfoPanel from '@/components/project/ProjectBasicInfoPanel.vue'
 import ProjectDeliverablesPanel from '@/components/project/ProjectDeliverablesPanel.vue'
 import ProjectDetailSummary from '@/components/project/ProjectDetailSummary.vue'
 import ProjectMembersPanel from '@/components/project/ProjectMembersPanel.vue'
@@ -121,7 +127,12 @@ async function loadProject() {
   }
 }
 
-/** 负责人变更后同步顶部摘要卡片 */
+/** 基本信息更新后同步页面项目数据与顶部摘要 */
+function onProjectBasicUpdated(updated: Project) {
+  project.value = updated
+}
+
+/** 负责人变更后同步顶部摘要卡片（成员 Tab 移交负责人） */
 function onOwnerUpdated(ownerName: string) {
   if (project.value) {
     project.value = { ...project.value, owner: ownerName }

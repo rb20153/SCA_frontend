@@ -14,6 +14,14 @@ export const PROJECT_STATUS_COLOR: Record<ProjectStatus, string> = {
   failed: 'error',
 }
 
+/** 项目详情基本信息 · 状态下拉选项 */
+export const PROJECT_STATUS_FORM_OPTIONS = (
+  ['in_progress', 'completed', 'failed'] as const satisfies readonly ProjectStatus[]
+).map((status) => ({
+  value: status,
+  label: PROJECT_STATUS_LABEL[status],
+}))
+
 /** 项目详情页 5 个 Tab 配置 */
 export const PROJECT_DETAIL_TABS: { key: ProjectDetailTabKey; label: string }[] = [
   { key: 'basic', label: '基本信息' },

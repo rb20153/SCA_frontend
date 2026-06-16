@@ -5,6 +5,28 @@
 
 ---
 
+## [2026-06-15] 项目详情 · 基本信息 Tab（可编辑表单）
+
+### 改了什么
+
+- **`ProjectBasicInfoPanel.vue`**：项目名称只读；负责人/部门 `AsyncOptionsSelect` 懒加载；说明 textarea；状态下拉（进行中/已完成/失败）；提交 `updateProjectBasicInfo`
+- **`ProfileFormActions.vue`**：从个人设置抽出「更新基本信息 / 取消修改」按钮，`ProfileBasicPanel` 已复用
+- **`Project` 类型**：新增 `ownerUserId`、`departmentId`；mock 种子补全说明并与人/部门 ID 对齐
+- **`getEnabledUserOptions`** + `loadEnabledUserSelectOptions`：负责人下拉数据源
+
+### 怎么实现的
+
+- 详情页优先用列表 `history.state.project` 填充，无需单独请求基本信息
+- 进入 Tab 时 `prefetchOptions` 保证当前负责人/部门显示正确
+- 更新成功后 `emit('updated')` 同步顶部 StatCard 摘要
+
+### 注意事项
+
+- 联调：`PUT /api/projects/:projectId/basic-info`
+- 检测策略 Tab 仍为占位
+
+---
+
 ## [2026-06-15] 公共用户搜索 + 远程下拉组件
 
 ### 改了什么
