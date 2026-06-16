@@ -1,5 +1,7 @@
+import type { Router } from 'vue-router'
 import type { TaskSourceMode, TaskStatus, TaskType } from '@/types/common'
 import type { DetectTask } from '@/types/detect'
+import { appendFromQuery } from '@/utils/navigation'
 import { QUEUED_TASK_DISPLAY_PROGRESS } from '@/utils/taskCreate'
 
 /** 检测类型中文文案 */
@@ -61,6 +63,23 @@ export function getTaskResultRoute(task: DetectTask) {
     return { name: 'AutonomyDetectResult', params: { taskId: task.taskId } }
   }
   return { name: 'OpenSourceRiskDetail', params: { taskId: task.taskId } }
+}
+
+/**
+ * 跳转检测结果页，并通过 history.state 携带任务数据
+ * @param router - Vue Router 实例
+ * @param task - 当前任务
+ * @param fromFullPath - 来源页 fullPath，用于顶栏返回
+ */
+export function navigateToTaskResult(
+  router: Router,
+  task: DetectTask,
+  fromFullPath: string,
+): void {
+  void router.push({
+    ...appendFromQuery(getTaskResultRoute(task), fromFullPath),
+    state: { task },
+  })
 }
 
 /** 列表展示的进度百分比（排队中固定 10%） */

@@ -3,6 +3,13 @@ import type {
   DetectTask,
   CreateDetectTaskParams,
   DetectTaskProjectOption,
+  OpenSourceRiskDetailSummary,
+  OpenSourceRiskComponent,
+  OpenSourceRiskComponentDetail,
+  OpenSourceRiskComponentQueryParams,
+  IgnoreOpenSourceRiskComponentParams,
+  OpenSourceRiskVulnerability,
+  OpenSourceRiskVulnerabilityQueryParams,
   TaskQueryParams,
   UpdateDetectTaskParams,
   TerminateTaskParams,
@@ -14,6 +21,14 @@ import {
   getMockVulnDbVersionOptions,
   mockCreateDetectTask,
 } from '@/mock/modules/detect/taskCreateOptions'
+import { getMockOpenSourceRiskDetailSummary } from '@/mock/modules/detect/openSourceRiskDetail'
+import {
+  getMockOpenSourceRiskComponentPage,
+  getMockOpenSourceRiskComponentDetail,
+  mockIgnoreOpenSourceRiskComponent,
+  mockRevokeOpenSourceRiskComponentIgnore,
+} from '@/mock/modules/detect/openSourceRiskComponents'
+import { getMockOpenSourceRiskVulnerabilityPage, countMockOpenSourceRiskVulnerabilitiesByComponent } from '@/mock/modules/detect/openSourceRiskVulnerabilities'
 
 // TODO: replace with: import request from '@/utils/request'
 
@@ -121,8 +136,135 @@ export function createDetectTask(data: CreateDetectTaskParams): Promise<ApiRespo
 /** 获取任务详情 */
 export function getTaskDetail(taskId: string): Promise<ApiResponse<DetectTask>> {
   // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}`)
-  const task = findMockTask(taskId) ?? MOCK_ALL_DETECT_TASKS[0]
+  const task = findMockTask(taskId)
+  if (!task) {
+    return Promise.reject(new Error('任务不存在'))
+  }
   return Promise.resolve({ code: 200, message: 'ok', data: task })
+}
+
+/**
+ * 获取开源风险检测详情统计摘要
+ * @param taskId - 检测任务 ID
+ */
+export function getOpenSourceRiskDetailSummary(
+  taskId: string,
+): Promise<ApiResponse<OpenSourceRiskDetailSummary>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/summary`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockOpenSourceRiskDetailSummary(taskId),
+  })
+}
+
+/**
+ * 获取开源风险检测 · 组件清单（分页）
+ * @param taskId - 任务 ID
+ * @param params - 筛选与分页
+ */
+export function getOpenSourceRiskComponentList(
+  taskId: string,
+  params: OpenSourceRiskComponentQueryParams,
+): Promise<ApiResponse<PageResult<OpenSourceRiskComponent>>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/components`, { params })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockOpenSourceRiskComponentPage(taskId, params),
+  })
+}
+
+/**
+ * 获取开源风险检测 · 组件详情（抽屉）
+ * @param taskId - 任务 ID
+ * @param componentId - 组件 ID
+ */
+export function getOpenSourceRiskComponentDetail(
+  taskId: string,
+  componentId: string,
+): Promise<ApiResponse<OpenSourceRiskComponentDetail>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  const detail = getMockOpenSourceRiskComponentDetail(taskId, componentId)
+  if (!detail) {
+    return Promise.reject(new Error('组件不存在'))
+  }
+  detail.relatedVulnerabilityCount = countMockOpenSourceRiskVulnerabilitiesByComponent(
+    taskId,
+    detail.componentName,
+  )
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/components/${componentId}`)
+  return Promise.resolve({ code: 200, message: 'ok', data: detail })
+}
+
+/**
+ * 忽略开源风险组件（项目级，不再纳入统计与报告）
+ * @param taskId - 任务 ID
+ * @param componentId - 组件 ID
+ * @param data - 忽略原因
+ */
+export function ignoreOpenSourceRiskComponent(
+  taskId: string,
+  componentId: string,
+  data: IgnoreOpenSourceRiskComponentParams,
+): Promise<ApiResponse<null>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  const ok = mockIgnoreOpenSourceRiskComponent(taskId, componentId, data.reason)
+  if (!ok) {
+    return Promise.reject(new Error('组件不存在'))
+  }
+  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/risk/components/${componentId}/ignore`, data)
+  return Promise.resolve({ code: 200, message: 'ok', data: null })
+}
+
+/**
+ * 撤销忽略开源风险组件
+ * @param taskId - 任务 ID
+ * @param componentId - 组件 ID
+ */
+export function revokeOpenSourceRiskComponentIgnore(
+  taskId: string,
+  componentId: string,
+): Promise<ApiResponse<null>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  const ok = mockRevokeOpenSourceRiskComponentIgnore(taskId, componentId)
+  if (!ok) {
+    return Promise.reject(new Error('组件未忽略或不存在'))
+  }
+  // TODO: replace with → return request.delete(`/api/detect/tasks/${taskId}/risk/components/${componentId}/ignore`)
+  return Promise.resolve({ code: 200, message: 'ok', data: null })
+}
+
+/**
+ * 获取开源风险检测 · 漏洞风险清单（分页）
+ * @param taskId - 任务 ID
+ * @param params - 筛选与分页
+ */
+export function getOpenSourceRiskVulnerabilityList(
+  taskId: string,
+  params: OpenSourceRiskVulnerabilityQueryParams,
+): Promise<ApiResponse<PageResult<OpenSourceRiskVulnerability>>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/vulnerabilities`, { params })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockOpenSourceRiskVulnerabilityPage(taskId, params),
+  })
 }
 
 /** 编辑检测任务（排队中 / 运行中的自主率任务） */

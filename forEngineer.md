@@ -5,6 +5,45 @@
 
 ---
 
+## [2026-06-15] 开源风险详情 · 组件忽略 / 撤销忽略
+
+- 操作「忽略」→ `RiskComponentIgnoreModal`：原型文案 + 必选忽略原因 → `ignoreOpenSourceRiskComponent`
+- 已忽略行：整行灰色、组件名后「（已忽略）」、操作改为「撤销忽略」→ `RiskComponentRevokeIgnoreModal` → `revokeOpenSourceRiskComponentIgnore`
+- 筛选新增勾选框「显示已忽略组件」（默认不勾选，列表不含已忽略项；勾选后 `includeIgnored=true`）
+- 忽略后顶部「识别组件」统计 -1（mock 与 `getOpenSourceRiskDetailSummary` 联动）；「待处理」卡片文案改为「待处理漏洞」
+- mock 忽略状态存于 `openSourceRiskComponents.ts` 内存 Map，刷新页面会重置
+
+---
+
+## [2026-06-16] 开源风险详情 · 漏洞风险 Tab
+
+- `OpenSourceRiskVulnerabilityPanel`：`ListQueryBar` + 分页 `ListTable`
+- 筛选：CVE 编号、风险等级（低/中/高）、组件、处理状态（待处理/需复核/已验证）
+- 列：CVE、组件、版本、风险等级、CVSS、状态、识别来源、操作（详情/跟踪/忽略占位）
+- API：`getOpenSourceRiskVulnerabilityList`
+
+---
+
+## [2026-06-16] 开源风险详情 · 组件清单 Tab
+
+- 顶部 6 项摘要改为一行 6 列，窄屏逐级折行
+- 组件清单：依赖关系图占位（后续 ECharts）+ `ListQueryBar` 筛选 + `ListTable` 分页
+- 筛选：组件名、来源（项目扫描/导入 SBOM）、风险等级（低/中/高）
+- API：`getOpenSourceRiskComponentList`
+- 组件详情抽屉：`getOpenSourceRiskComponentDetail`；「查看漏洞」跳转漏洞 Tab 并筛选组件名
+
+---
+
+## [2026-06-16] 开源风险检测详情页（骨架）
+
+- 路由 `/detect/tasks/:taskId/risk` → `OpenSourceRiskDetail.vue`
+- 顶部 6 项摘要（4 列 × 2 行）：数据优先来自列表 `history.state.task`
+- 统计卡片：`getOpenSourceRiskDetailSummary`（识别组件/高危漏洞/待处理/许可证风险）
+- Tab：组件清单 / 漏洞风险 / SBOM 导出与对比（内容占位）
+- 顶栏返回：`PageBackButton`（面包屑 ≥3 级自动显示）；列表跳转带 `from` query
+
+---
+
 ## [2026-06-15] 项目详情 · 检测策略 Tab + 创建成功留列表
 
 - **创建项目成功**：刷新列表，不再跳转详情页

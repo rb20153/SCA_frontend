@@ -1,13 +1,14 @@
 <template>
   <span class="action-cell">
     <template v-for="action in actions" :key="action.key">
-      <router-link
+      <a
         v-if="action.key === 'viewResult'"
-        :to="getTaskResultRoute(task)"
+        href="#"
         class="list-table-link"
+        @click.prevent="handleViewResult"
       >
         {{ action.label }}
-      </router-link>
+      </a>
       <router-link
         v-else-if="action.key === 'viewLog'"
         :to="withFrom(getTaskLogListRoute(task))"
@@ -111,6 +112,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { AutonomySourceMode } from '@/types/common'
 import type { DetectTask } from '@/types/detect'
@@ -125,7 +127,7 @@ import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import {
   TASK_SOURCE_MODE_LABEL,
   getTaskLogListRoute,
-  getTaskResultRoute,
+  navigateToTaskResult,
 } from '@/utils/taskDisplay'
 import { getTaskActions, type TaskActionKey } from '@/utils/taskActions'
 
@@ -133,7 +135,8 @@ const props = defineProps<{
   task: DetectTask
 }>()
 
-const { withFrom } = useRouteWithFrom()
+const router = useRouter()
+const { withFrom, currentFullPath } = useRouteWithFrom()
 
 const emit = defineEmits<{
   'task-updated': [task: DetectTask]
@@ -155,6 +158,11 @@ const editForm = reactive({
 })
 
 const actions = computed(() => getTaskActions(props.task))
+
+/** 跳转检测结果页并携带任务 state */
+function handleViewResult() {
+  navigateToTaskResult(router, props.task, currentFullPath.value)
+}
 
 const autonomySourceOptions = (
   ['full-scan', 'incremental-scan', 'quick-scan'] as AutonomySourceMode[]

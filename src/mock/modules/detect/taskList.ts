@@ -76,6 +76,10 @@ function buildMockDetectTasks(count: number): DetectTask[] {
       task.finishedAt = new Date(new Date(createdAt).getTime() + (seed.elapsedMs ?? 600_000)).toISOString()
     }
 
+    if (seed.taskType === 'open-source-risk') {
+      task.vulnDbVersion = `2026.${String((index % 6) + 1).padStart(2, '0')}`
+    }
+
     return task
   })
 }
