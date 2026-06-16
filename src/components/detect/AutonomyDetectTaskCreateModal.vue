@@ -1,109 +1,83 @@
 <template>
-  <a-modal
+  <FormStepWizardModal
     v-model:open="visible"
+    v-model:current-step="currentStep"
     title="创建自主率检测任务"
-    width="720px"
-    destroy-on-close
-    :footer="null"
+    :steps="WIZARD_STEPS"
+    :can-go-next="canGoNext"
+    :can-submit="canSubmit"
+    :submitting="submitting"
+    submit-text="确认创建"
     @cancel="handleCancel"
+    @prev="goPrev"
+    @next="goNext"
+    @submit="handleSubmit"
   >
-    <a-steps :current="currentStep" size="small" class="wizard-steps">
-        <a-step title="选择项目" />
-        <a-step title="扫描模式" />
-        <a-step title="执行配置" />
-      </a-steps>
+    <template #step-0>
+      <a-form layout="vertical">
+        <a-form-item label="关联项目" required>
+          <AsyncOptionsSelect
+            v-model="form.projectId"
+            placeholder="请选择"
+            select-class="wizard-select"
+            :load-options="loadDetectTaskProjectSelectOptions"
+          />
+        </a-form-item>
+        <a-form-item label="任务名称" required>
+          <a-input
+            v-model:value="form.taskName"
+            placeholder="请输入任务名称"
+            allow-clear
+          />
+        </a-form-item>
+      </a-form>
+    </template>
 
-      <div class="wizard-panel">
-        <template v-if="currentStep === 0">
-          <a-form layout="vertical">
-            <a-form-item label="关联项目" required>
-              <AsyncOptionsSelect
-                v-model="form.projectId"
-                placeholder="请选择"
-                select-class="wizard-select"
-                :load-options="loadDetectTaskProjectSelectOptions"
-              />
-            </a-form-item>
-            <a-form-item label="任务名称" required>
-              <a-input
-                v-model:value="form.taskName"
-                placeholder="请输入任务名称"
-                allow-clear
-              />
-            </a-form-item>
-          </a-form>
-        </template>
+    <template #step-1>
+      <a-form layout="vertical">
+        <a-form-item label="扫描模式" required>
+          <a-select
+            v-model:value="form.scanMode"
+            :options="AUTONOMY_SCAN_MODE_OPTIONS"
+            class="wizard-select"
+          />
+        </a-form-item>
+        <a-alert
+          type="info"
+          show-icon
+          :message="AUTONOMY_SCAN_MODE_HINT[form.scanMode]"
+          class="scan-mode-hint"
+        />
+      </a-form>
+    </template>
 
-        <template v-else-if="currentStep === 1">
-          <a-form layout="vertical">
-            <a-form-item label="扫描模式" required>
-              <a-select
-                v-model:value="form.scanMode"
-                :options="AUTONOMY_SCAN_MODE_OPTIONS"
-                class="wizard-select"
-              />
-            </a-form-item>
-            <a-alert
-              type="info"
-              show-icon
-              :message="AUTONOMY_SCAN_MODE_HINT[form.scanMode]"
-              class="scan-mode-hint"
-            />
-          </a-form>
-        </template>
-
-        <template v-else>
-          <a-form layout="vertical">
-            <a-form-item label="执行方式">
-              <a-radio-group v-model:value="form.executionMode" :options="TASK_EXECUTION_MODE_OPTIONS" />
-            </a-form-item>
-            <a-form-item label="Worker 数量">
-              <a-input-number
-                v-model:value="form.workerCount"
-                :min="1"
-                :max="64"
-                class="wizard-number"
-              />
-            </a-form-item>
-            <a-form-item label="失败自动重试">
-              <a-switch v-model:checked="form.autoRetryEnabled" />
-            </a-form-item>
-            <a-form-item v-if="form.autoRetryEnabled" label="重试次数">
-              <a-input-number
-                v-model:value="form.retryCount"
-                :min="1"
-                :max="10"
-                class="wizard-number"
-              />
-            </a-form-item>
-          </a-form>
-        </template>
-      </div>
-
-      <div class="wizard-footer">
-        <a-space>
-          <a-button @click="handleCancel">取消</a-button>
-          <a-button v-if="currentStep > 0" @click="goPrev">上一步</a-button>
-          <a-button
-            v-if="currentStep < 2"
-            type="primary"
-            :disabled="!canGoNext"
-            @click="goNext"
-          >
-            下一步
-          </a-button>
-          <a-button
-            v-else
-            type="primary"
-            :loading="submitting"
-            :disabled="!canSubmit"
-            @click="handleSubmit"
-          >
-            确认创建
-          </a-button>
-        </a-space>
-      </div>
-    </a-modal>
+    <template #step-2>
+      <a-form layout="vertical">
+        <a-form-item label="执行方式">
+          <a-radio-group v-model:value="form.executionMode" :options="TASK_EXECUTION_MODE_OPTIONS" />
+        </a-form-item>
+        <a-form-item label="Worker 数量">
+          <a-input-number
+            v-model:value="form.workerCount"
+            :min="1"
+            :max="64"
+            class="wizard-number"
+          />
+        </a-form-item>
+        <a-form-item label="失败自动重试">
+          <a-switch v-model:checked="form.autoRetryEnabled" />
+        </a-form-item>
+        <a-form-item v-if="form.autoRetryEnabled" label="重试次数">
+          <a-input-number
+            v-model:value="form.retryCount"
+            :min="1"
+            :max="10"
+            class="wizard-number"
+          />
+        </a-form-item>
+      </a-form>
+    </template>
+  </FormStepWizardModal>
 </template>
 
 <script setup lang="ts">
@@ -111,6 +85,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { createDetectTask } from '@/api/detect'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
+import FormStepWizardModal from '@/components/common/FormStepWizardModal.vue'
 import type { DetectTask } from '@/types/detect'
 import { loadDetectTaskProjectSelectOptions } from '@/utils/remoteSelectLoaders'
 import {
@@ -119,6 +94,8 @@ import {
   TASK_EXECUTION_MODE_OPTIONS,
   createDefaultAutonomyTaskForm,
 } from '@/utils/taskCreate'
+
+const WIZARD_STEPS = ['选择项目', '扫描模式', '执行配置'] as const
 
 const visible = defineModel<boolean>('open', { required: true })
 
@@ -217,14 +194,6 @@ watch(
 </script>
 
 <style scoped>
-.wizard-steps {
-  margin-bottom: 24px;
-}
-
-.wizard-panel {
-  min-height: 220px;
-}
-
 .wizard-select {
   width: 100%;
   max-width: 360px;
@@ -236,13 +205,5 @@ watch(
 
 .scan-mode-hint {
   margin-top: 8px;
-}
-
-.wizard-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
 }
 </style>

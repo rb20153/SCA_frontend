@@ -34,10 +34,22 @@ import { useSingleFileUpload } from '@/composables/useSingleFileUpload'
 import { toAcceptAttribute } from '@/utils/fileUpload'
 import { BINARY_DELIVERABLE_EXTENSIONS } from '@/utils/projectDeliverableDisplay'
 
+import type { UploadProjectBinaryDeliverableParams } from '@/types/project'
+
 const visible = defineModel<boolean>('open', { required: true })
 
-const props = defineProps<{
-  projectId: string
+const props = withDefaults(
+  defineProps<{
+    projectId?: string
+    collectOnly?: boolean
+  }>(),
+  {
+    collectOnly: false,
+  },
+)
+
+const emit = defineEmits<{
+  collected: [payload: UploadProjectBinaryDeliverableParams]
 }>()
 
 const submitting = ref(false)
@@ -60,6 +72,17 @@ async function handleOk() {
 
   submitting.value = true
   try {
+    if (props.collectOnly) {
+      emit('collected', { file })
+      visible.value = false
+      return
+    }
+
+    if (!props.projectId) {
+      message.error('缺少项目 ID')
+      return Promise.reject()
+    }
+
     await uploadProjectBinaryDeliverable(props.projectId, { file })
     message.success('二进制文件已提交，后台解析中')
     visible.value = false

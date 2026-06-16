@@ -1,5 +1,5 @@
 <template>
-  <div class="create-bar">
+  <div class="deliverable-add-bar">
     <a-button type="primary" @click="typeModalVisible = true">
       <template #icon>
         <PlusOutlined />
@@ -31,11 +31,15 @@
     <ProjectBinaryDeliverableUploadModal
       v-model:open="binaryUploadVisible"
       :project-id="projectId"
+      :collect-only="collectOnly"
+      @collected="emit('binary-collected', $event)"
     />
 
     <ProjectSourceDeliverableAddModal
       v-model:open="sourceAddVisible"
       :project-id="projectId"
+      :collect-only="collectOnly"
+      @collected="emit('source-collected', $event)"
     />
   </div>
 </template>
@@ -45,9 +49,25 @@ import { ref } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import ProjectBinaryDeliverableUploadModal from '@/components/project/ProjectBinaryDeliverableUploadModal.vue'
 import ProjectSourceDeliverableAddModal from '@/components/project/ProjectSourceDeliverableAddModal.vue'
+import type {
+  AddProjectSourceDeliverableParams,
+  UploadProjectBinaryDeliverableParams,
+} from '@/types/project'
 
-defineProps<{
-  projectId: string
+withDefaults(
+  defineProps<{
+    projectId?: string
+    /** 仅收集数据，创建项目向导中使用 */
+    collectOnly?: boolean
+  }>(),
+  {
+    collectOnly: false,
+  },
+)
+
+const emit = defineEmits<{
+  'source-collected': [payload: AddProjectSourceDeliverableParams]
+  'binary-collected': [payload: UploadProjectBinaryDeliverableParams]
 }>()
 
 const typeModalVisible = ref(false)
@@ -68,7 +88,7 @@ function handleSelectBinary() {
 </script>
 
 <style scoped>
-.create-bar {
+.deliverable-add-bar {
   margin-bottom: 16px;
 }
 

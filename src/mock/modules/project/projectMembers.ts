@@ -159,6 +159,32 @@ function syncProjectOwnerName(projectId: string, ownerName: string): void {
 }
 
 /**
+ * mock：初始化项目负责人成员（创建项目时调用）
+ * @param projectId - 项目 ID
+ * @param userId - 负责人用户 ID
+ */
+export function mockInitProjectOwnerMember(projectId: string, userId: string): ProjectMember {
+  const user = MOCK_ALL_USERS.find((item) => item.userId === userId)
+  if (!user) {
+    throw new Error('负责人不存在')
+  }
+
+  if (getMockProjectMembers(projectId).some((item) => item.userId === userId)) {
+    const existing = getMockProjectMembers(projectId).find((item) => item.userId === userId)!
+    return existing
+  }
+
+  const member = createMemberFromUser(
+    projectId,
+    user,
+    'owner',
+    new Date().toISOString(),
+  )
+  MOCK_PROJECT_MEMBERS.push(member)
+  return member
+}
+
+/**
  * mock：添加项目成员
  * @param projectId - 项目 ID
  * @param userId - 用户 ID

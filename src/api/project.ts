@@ -4,7 +4,7 @@ import type {
   AddProjectMemberParams,
   AddProjectSourceDeliverableParams,
   AddProjectSourceDeliverableResult,
-  CreateProjectParams,
+  CreateProjectWizardParams,
   Project,
   ProjectDeliverable,
   ProjectDeliverableDownloadResult,
@@ -14,6 +14,8 @@ import type {
   ProjectMember,
   ProjectMemberCandidate,
   ProjectMemberQueryParams,
+  ProjectPolicyBinding,
+  ProjectPolicyBindingInput,
   ProjectQueryParams,
   TransferProjectOwnerParams,
   UpdateProjectBasicInfoParams,
@@ -26,6 +28,7 @@ import { findMockEnabledUserByRealName, findMockUserById } from '@/mock/modules/
 import {
   createMockDeliverableDownload,
   getMockProjectDeliverablePage,
+  mockAppendProjectDeliverablesFromCreate,
   mockDeleteProjectDeliverable,
   mockUploadProjectBinaryDeliverable,
   mockAddProjectSourceDeliverable,
@@ -33,10 +36,12 @@ import {
 import {
   getMockProjectMemberPage,
   mockAddProjectMember,
+  mockInitProjectOwnerMember,
   mockRemoveProjectMember,
   mockTransferProjectOwner,
   searchMockProjectMemberCandidates,
 } from '@/mock/modules/project/projectMembers'
+import { mockSetProjectPolicyBinding, getMockProjectPolicyBinding } from '@/mock/modules/project/projectPolicyBindings'
 
 // TODO: replace with: import request from '@/utils/request'
 
@@ -308,32 +313,41 @@ export function getProjectList(
 }
 
 /**
- * 新增项目
- * @param data - 项目名称、说明、负责人、所属部门
+ * 创建项目（向导：基本信息 + 策略绑定 + 交付物）
+ * @param data - 完整创建参数
  */
-export function createProject(data: CreateProjectParams): Promise<ApiResponse<Project>> {
+export function createProject(data: CreateProjectWizardParams): Promise<ApiResponse<Project>> {
   const projectName = data.projectName.trim()
   const owner = data.owner.trim()
 
   if (!projectName) {
     return Promise.reject(new Error('项目名称不能为空'))
   }
-  if (!owner) {
+  if (!owner || !data.ownerUserId) {
     return Promise.reject(new Error('负责人不能为空'))
   }
+  if (!data.policy.policyId) {
+    return Promise.reject(new Error('请选择检测策略'))
+  }
 
-  const departmentName = data.department.trim()
-  const ownerUser = findMockEnabledUserByRealName(owner)
-  const department = MOCK_ALL_DEPARTMENTS.find((item) => item.departmentName === departmentName)
+  const ownerUser = findMockUserById(data.ownerUserId)
+  if (!ownerUser || ownerUser.status !== 'enabled') {
+    return Promise.reject(new Error('请选择有效的负责人'))
+  }
+
+  const department = MOCK_ALL_DEPARTMENTS.find((item) => item.departmentId === data.departmentId)
+  if (!department || department.status !== 'enabled') {
+    return Promise.reject(new Error('请选择有效的所属部门'))
+  }
 
   const project: Project = {
     projectId: `proj-${String(MOCK_ALL_PROJECTS.length + 1).padStart(3, '0')}`,
     projectName,
     description: data.description.trim(),
-    owner,
-    ownerUserId: ownerUser?.userId ?? '',
-    department: departmentName,
-    departmentId: department?.departmentId ?? '',
+    owner: ownerUser.realName,
+    ownerUserId: ownerUser.userId,
+    department: department.departmentName,
+    departmentId: department.departmentId,
     status: 'in_progress',
     taskCount: 0,
     lastScanAt: null,
@@ -341,6 +355,9 @@ export function createProject(data: CreateProjectParams): Promise<ApiResponse<Pr
   }
 
   MOCK_ALL_PROJECTS.unshift(project)
+  mockSetProjectPolicyBinding(project.projectId, data.policy)
+  mockInitProjectOwnerMember(project.projectId, ownerUser.userId)
+  mockAppendProjectDeliverablesFromCreate(project.projectId, ownerUser.realName, data.deliverables)
 
   // TODO: replace with → return request.post('/api/projects', data)
   return Promise.resolve({ code: 200, message: 'ok', data: project })
@@ -428,6 +445,46 @@ export function updateProjectBasicInfo(
 
   // TODO: replace with → return request.put(`/api/projects/${projectId}/basic-info`, data)
   return Promise.resolve({ code: 200, message: 'ok', data: updated })
+}
+
+/**
+ * 获取项目已绑定的检测策略
+ * @param projectId - 项目 ID
+ */
+export function getProjectPolicyBinding(
+  projectId: string,
+): Promise<ApiResponse<ProjectPolicyBinding | null>> {
+  const binding = getMockProjectPolicyBinding(projectId) ?? null
+  // TODO: replace with → return request.get(`/api/projects/${projectId}/policy-binding`)
+  return Promise.resolve({ code: 200, message: 'ok', data: binding })
+}
+
+/**
+ * 更新项目检测策略绑定
+ * @param projectId - 项目 ID
+ * @param data - 策略 ID 与阈值等参数
+ */
+export function updateProjectPolicyBinding(
+  projectId: string,
+  data: ProjectPolicyBindingInput,
+): Promise<ApiResponse<ProjectPolicyBinding>> {
+  const project = MOCK_ALL_PROJECTS.find((item) => item.projectId === projectId)
+  if (!project) {
+    return Promise.reject(new Error('项目不存在'))
+  }
+  if (!data.policyId) {
+    return Promise.reject(new Error('请选择检测策略'))
+  }
+
+  const binding = mockSetProjectPolicyBinding(projectId, {
+    policyId: data.policyId,
+    similarityThreshold: data.similarityThreshold,
+    minMatchLength: data.minMatchLength,
+    excludeDirectories: [...data.excludeDirectories],
+  })
+
+  // TODO: replace with → return request.put(`/api/projects/${projectId}/policy-binding`, data)
+  return Promise.resolve({ code: 200, message: 'ok', data: binding })
 }
 
 /**

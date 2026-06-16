@@ -1,10 +1,12 @@
 import type {
   AddProjectSourceDeliverableParams,
+  CollectedProjectDeliverable,
   ProjectDeliverable,
   ProjectDeliverableDownloadResult,
   ProjectDeliverableQueryParams,
   DeliverableSourceMode,
   DeliverableType,
+  UploadProjectBinaryDeliverableParams,
 } from '@/types/project'
 
 interface ProjectDeliverableRecord extends ProjectDeliverable {
@@ -240,6 +242,72 @@ export function mockDeleteProjectDeliverable(projectId: string, deliverableId: s
 
   MOCK_PROJECT_DELIVERABLES.splice(index, 1)
   return null
+}
+
+/**
+ * mock：创建项目时批量写入交付物记录
+ * @param projectId - 项目 ID
+ * @param uploaderName - 上传人姓名
+ * @param deliverables - 向导收集的交付物
+ */
+export function mockAppendProjectDeliverablesFromCreate(
+  projectId: string,
+  uploaderName: string,
+  deliverables: CollectedProjectDeliverable[],
+): void {
+  const now = new Date().toISOString()
+
+  for (const item of deliverables) {
+    const deliverableId = `dlv-${String(MOCK_PROJECT_DELIVERABLES.length + 1).padStart(3, '0')}`
+
+    if (item.type === 'binary') {
+      const file = item.data.file
+      MOCK_PROJECT_DELIVERABLES.push({
+        deliverableId,
+        projectId,
+        name: file.name,
+        sourceMode: 'upload-file',
+        deliverableType: 'binary',
+        sizeBytes: file.size,
+        md5: '—',
+        uploaderName,
+        uploadedAt: now,
+        fileName: file.name,
+      })
+      continue
+    }
+
+    const params = item.data
+    if (params.sourceMode === 'repo-pull') {
+      MOCK_PROJECT_DELIVERABLES.push({
+        deliverableId,
+        projectId,
+        name: params.repositoryUrl.trim() || '源码仓库',
+        sourceMode: 'repo-pull',
+        deliverableType: 'source',
+        sizeBytes: 0,
+        md5: '—',
+        uploaderName,
+        uploadedAt: now,
+        repositoryUrl: params.repositoryUrl.trim(),
+      })
+      continue
+    }
+
+    const packageFile = params.packageFile
+    MOCK_PROJECT_DELIVERABLES.push({
+      deliverableId,
+      projectId,
+      name: packageFile?.name ?? '源码包',
+      sourceMode: 'upload-source-package',
+      deliverableType: 'source',
+      sizeBytes: packageFile?.size ?? 0,
+      md5: '—',
+      uploaderName,
+      uploadedAt: now,
+      fileName: packageFile?.name,
+    })
+  }
 }
 
 /**

@@ -45,10 +45,54 @@ export interface CreateProjectParams {
   projectName: string
   description: string
   owner: string
+  ownerUserId: string
   department: string
+  departmentId: string
 }
 
-export type UpdateProjectParams = CreateProjectParams
+/** 列表弹窗编辑项目（不含策略/交付物） */
+export interface UpdateProjectParams {
+  projectName: string
+  description: string
+  owner: string
+  department: string
+}
+export interface ProjectPolicyBindingInput {
+  policyId: string
+  /** 相似度阈值 0–100 */
+  similarityThreshold: number
+  /** 最小匹配长度 */
+  minMatchLength: number
+  /** 排除目录列表 */
+  excludeDirectories: string[]
+}
+
+/** 创建项目向导 · 待提交的源码交付物 */
+export interface CollectedSourceDeliverable {
+  type: 'source'
+  data: AddProjectSourceDeliverableParams
+}
+
+/** 创建项目向导 · 待提交的二进制交付物 */
+export interface CollectedBinaryDeliverable {
+  type: 'binary'
+  data: UploadProjectBinaryDeliverableParams
+}
+
+export type CollectedProjectDeliverable =
+  | CollectedSourceDeliverable
+  | CollectedBinaryDeliverable
+
+/** 创建项目向导完整提交体 */
+export interface CreateProjectWizardParams extends CreateProjectParams {
+  policy: ProjectPolicyBindingInput
+  deliverables: CollectedProjectDeliverable[]
+}
+
+/** 项目已绑定的检测策略（详情展示） */
+export interface ProjectPolicyBinding extends ProjectPolicyBindingInput {
+  policyName: string
+}
 
 /** 项目详情 · 基本信息 Tab 可编辑字段 */
 export interface UpdateProjectBasicInfoParams {

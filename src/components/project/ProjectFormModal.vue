@@ -1,7 +1,7 @@
 <template>
   <a-modal
     v-model:open="visible"
-    :title="mode === 'create' ? '新增项目' : '编辑项目'"
+    title="编辑项目"
     :confirm-loading="submitting"
     ok-text="确定"
     cancel-text="取消"
@@ -47,28 +47,25 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { createProject, updateProject } from '@/api/project'
+import { updateProject } from '@/api/project'
 import { searchUsers } from '@/api/user'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import UserSearchInput from '@/components/common/UserSearchInput.vue'
-import type { Project, ProjectFormValues } from '@/types/project'
+import type { ProjectFormValues } from '@/types/project'
 import type { UserSearchCandidate } from '@/types/user'
 import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 
 const props = defineProps<{
-  /** 弹窗模式：新增或编辑 */
-  mode: 'create' | 'edit'
   /** 编辑时的项目 ID */
-  projectId?: string
+  projectId: string
   /** 编辑时传入的初始表单值 */
-  initialValues?: ProjectFormValues
+  initialValues: ProjectFormValues
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{
-  /** 创建成功时携带新项目；编辑成功时不传参 */
-  success: [project?: Project]
+  success: []
 }>()
 
 const submitting = ref(false)
@@ -103,7 +100,7 @@ async function syncFormFromProps() {
   ownerSearchRef.value?.setDisplayName(form.owner)
 
   departmentSelectRef.value?.resetOptions()
-  if (props.mode === 'edit' && form.department) {
+  if (props.initialValues?.department) {
     const options = await departmentSelectRef.value?.prefetchOptions()
     departmentId.value = options?.find((item) => item.label === form.department)?.value
   }
@@ -125,10 +122,6 @@ async function handleOk() {
   }
 
   const ownerName = ownerSearchRef.value?.getSubmitDisplayName() ?? ''
-  if (props.mode === 'create' && !ownerSearchRef.value?.hasSelectedUser()) {
-    message.warning('请从列表中选择负责人')
-    return Promise.reject()
-  }
   if (!ownerName) {
     message.warning('请选择负责人')
     return Promise.reject()
@@ -146,21 +139,10 @@ async function handleOk() {
 
   submitting.value = true
   try {
-    if (props.mode === 'create') {
-      const res = await createProject(payload)
-      message.success('创建成功')
-      visible.value = false
-      emit('success', res.data)
-    } else {
-      if (!props.projectId) {
-        message.error('缺少项目 ID')
-        return Promise.reject()
-      }
-      await updateProject(props.projectId, payload)
-      message.success('保存成功')
-      visible.value = false
-      emit('success')
-    }
+    await updateProject(props.projectId, payload)
+    message.success('保存成功')
+    visible.value = false
+    emit('success')
   } finally {
     submitting.value = false
   }

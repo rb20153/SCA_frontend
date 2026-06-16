@@ -1,116 +1,93 @@
 <template>
-  <a-modal
+  <FormStepWizardModal
     v-model:open="visible"
+    v-model:current-step="currentStep"
     title="添加开源项目"
-    width="720px"
-    destroy-on-close
-    :footer="null"
+    :steps="WIZARD_STEPS"
+    :can-go-next="canGoNext"
+    :can-submit="canSubmit"
+    :submitting="submitting"
+    :scrollable-panel="currentStep === 1"
     @cancel="handleCancel"
+    @prev="goPrev"
+    @next="goNext"
+    @submit="handleSubmit"
   >
-    <a-steps :current="currentStep" size="small" class="wizard-steps">
-      <a-step title="基本信息" />
-      <a-step title="入库配置" />
-      <a-step title="补充信息" />
-    </a-steps>
+    <template #step-0>
+      <a-form layout="vertical">
+        <a-form-item label="项目名称" required>
+          <a-input
+            v-model:value="projectName"
+            placeholder="请输入项目名称"
+            allow-clear
+          />
+        </a-form-item>
 
-    <div class="wizard-panel">
-      <template v-if="currentStep === 0">
-        <a-form layout="vertical">
-          <a-form-item label="项目名称" required>
-            <a-input
-              v-model:value="projectName"
-              placeholder="请输入项目名称"
-              allow-clear
-            />
-          </a-form-item>
+        <a-form-item label="分类" required>
+          <a-select
+            v-model:value="category"
+            placeholder="请选择分类"
+            :options="KB_PROJECT_CATEGORY_OPTIONS"
+            class="wizard-select"
+          />
+        </a-form-item>
+      </a-form>
+    </template>
 
-          <a-form-item label="分类" required>
-            <a-select
-              v-model:value="category"
-              placeholder="请选择分类"
-              :options="KB_PROJECT_CATEGORY_OPTIONS"
-              class="wizard-select"
-            />
-          </a-form-item>
-        </a-form>
-      </template>
+    <template #step-1>
+      <SourceIngestForm
+        ref="ingestFormRef"
+        v-model="ingestForm"
+        source-mode-label="入库方式"
+      />
 
-      <template v-else-if="currentStep === 1">
-        <SourceIngestForm
-          ref="ingestFormRef"
-          v-model="ingestForm"
-          source-mode-label="入库方式"
-        />
-
-        <a-form layout="vertical" class="version-form">
-          <a-form-item
-            v-if="ingestForm.sourceMode === 'upload-source-package'"
-            label="版本号"
-            required
-          >
-            <a-input
-              v-model:value="packageVersion"
-              placeholder="例如：v2312"
-              allow-clear
-            />
-          </a-form-item>
-        </a-form>
-      </template>
-
-      <template v-else>
-        <a-form layout="vertical">
-          <a-form-item label="标签">
-            <TagInput ref="tagInputRef" v-model="tags" />
-          </a-form-item>
-
-          <a-form-item label="备注">
-            <a-textarea
-              v-model:value="remark"
-              :rows="4"
-              placeholder="可选备注"
-              allow-clear
-            />
-          </a-form-item>
-        </a-form>
-      </template>
-    </div>
-
-    <div class="wizard-footer">
-      <a-space>
-        <a-button @click="handleCancel">取消</a-button>
-        <a-button v-if="currentStep > 0" @click="goPrev">上一步</a-button>
-        <a-button
-          v-if="currentStep < 2"
-          type="primary"
-          :disabled="!canGoNext"
-          @click="goNext"
+      <a-form layout="vertical" class="version-form">
+        <a-form-item
+          v-if="ingestForm.sourceMode === 'upload-source-package'"
+          label="版本号"
+          required
         >
-          下一步
-        </a-button>
-        <a-button
-          v-else
-          type="primary"
-          :loading="submitting"
-          :disabled="!canSubmit"
-          @click="handleSubmit"
-        >
-          确定
-        </a-button>
-      </a-space>
-    </div>
-  </a-modal>
+          <a-input
+            v-model:value="packageVersion"
+            placeholder="例如：v2312"
+            allow-clear
+          />
+        </a-form-item>
+      </a-form>
+    </template>
+
+    <template #step-2>
+      <a-form layout="vertical">
+        <a-form-item label="标签">
+          <TagInput ref="tagInputRef" v-model="tags" />
+        </a-form-item>
+
+        <a-form-item label="备注">
+          <a-textarea
+            v-model:value="remark"
+            :rows="4"
+            placeholder="可选备注"
+            allow-clear
+          />
+        </a-form-item>
+      </a-form>
+    </template>
+  </FormStepWizardModal>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { createKbProject } from '@/api/knowledge'
+import FormStepWizardModal from '@/components/common/FormStepWizardModal.vue'
 import SourceIngestForm from '@/components/common/SourceIngestForm.vue'
 import TagInput from '@/components/common/TagInput.vue'
 import type { KbProjectCategory } from '@/types/knowledge'
 import type { SourceIngestFormState } from '@/types/sourceIngest'
 import { KB_PROJECT_CATEGORY_OPTIONS } from '@/utils/knowledgeQuery'
 import { createDefaultSourceIngestForm, validateSourceIngestForm } from '@/utils/sourceIngest'
+
+const WIZARD_STEPS = ['基本信息', '入库配置', '补充信息'] as const
 
 const visible = defineModel<boolean>('open', { required: true })
 
@@ -267,17 +244,6 @@ watch(
 </script>
 
 <style scoped>
-.wizard-steps {
-  margin-bottom: 24px;
-}
-
-.wizard-panel {
-  min-height: 200px;
-  max-height: min(52vh, 420px);
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
 .wizard-select {
   width: 100%;
   max-width: 360px;
@@ -285,13 +251,5 @@ watch(
 
 .version-form {
   margin-top: 0;
-}
-
-.wizard-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
 }
 </style>

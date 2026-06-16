@@ -1,5 +1,6 @@
 import type { SelectOption } from '@/types/common'
 import { getDetectTaskProjectOptions } from '@/api/detect'
+import { getPolicySelectOptions } from '@/api/policy'
 import { getProfileDepartmentOptions } from '@/api/profile'
 import { getEnabledDepartmentOptions, getEnabledUserOptions } from '@/api/user'
 
@@ -33,6 +34,17 @@ export async function loadEnabledUserSelectOptions(): Promise<SelectOption[]> {
   return res.data.map((item) => ({
     label: `${item.realName}（${item.departmentName} · ${item.roleName}）`,
     value: item.userId,
+  }))
+}
+
+/**
+ * 加载检测策略下拉选项
+ */
+export async function loadPolicySelectOptions(): Promise<SelectOption[]> {
+  const res = await getPolicySelectOptions()
+  return res.data.map((item) => ({
+    label: item.policyName,
+    value: item.policyId,
   }))
 }
 

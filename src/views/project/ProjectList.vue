@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-container">
     <ProjectCreateBar @create="formVisible = true" />
 
@@ -25,9 +25,8 @@
       </PageLoading>
     </a-card>
 
-    <ProjectFormModal
+    <ProjectCreateWizardModal
       v-model:open="formVisible"
-      mode="create"
       @success="onCreateSuccess"
     />
 
@@ -43,13 +42,12 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { getProjectList } from '@/api/project'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import ProjectCreateBar from '@/components/project/ProjectCreateBar.vue'
 import ProjectDeleteModal from '@/components/project/ProjectDeleteModal.vue'
-import ProjectFormModal from '@/components/project/ProjectFormModal.vue'
+import ProjectCreateWizardModal from '@/components/project/ProjectCreateWizardModal.vue'
 import ProjectQueryBar from '@/components/project/ProjectQueryBar.vue'
 import ProjectTable from '@/components/project/ProjectTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
@@ -58,8 +56,6 @@ import {
   createEmptyProjectListFilters,
   projectListFiltersToQuery,
 } from '@/utils/projectQuery'
-
-const router = useRouter()
 
 const formVisible = ref(false)
 const deleteVisible = ref(false)
@@ -82,17 +78,9 @@ const {
   },
 )
 
-/** 创建成功后跳转项目详情页，便于继续上传交付物与配置策略 */
-function onCreateSuccess(project?: Project) {
-  if (project) {
-    router.push({
-      name: 'ProjectDetail',
-      params: { projectId: project.projectId },
-      state: { project },
-    })
-    return
-  }
-  loadPage()
+/** 创建成功后刷新列表，留在当前页 */
+async function onCreateSuccess() {
+  await loadPage()
 }
 
 /** 打开删除确认弹窗 */

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-container">
     <PageLoading :loading="loading && !project">
       <a-empty v-if="!loading && !project" description="项目不存在或已删除" />
@@ -20,6 +20,11 @@
             v-show="activeTab === 'deliverables'"
             :project="project"
             :visible="activeTab === 'deliverables'"
+          />
+          <ProjectPolicyPanel
+            v-show="activeTab === 'policy'"
+            :project-id="project.projectId"
+            :visible="activeTab === 'policy'"
           />
           <ProjectMembersPanel
             v-show="activeTab === 'members'"
@@ -48,6 +53,7 @@ import ProjectBasicInfoPanel from '@/components/project/ProjectBasicInfoPanel.vu
 import ProjectDeliverablesPanel from '@/components/project/ProjectDeliverablesPanel.vue'
 import ProjectDetailSummary from '@/components/project/ProjectDetailSummary.vue'
 import ProjectMembersPanel from '@/components/project/ProjectMembersPanel.vue'
+import ProjectPolicyPanel from '@/components/project/ProjectPolicyPanel.vue'
 import ProjectRelatedTasksPanel from '@/components/project/ProjectRelatedTasksPanel.vue'
 import type { Project, ProjectDetailTabKey } from '@/types/project'
 import { PROJECT_DETAIL_TABS } from '@/utils/projectDisplay'

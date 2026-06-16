@@ -52,6 +52,20 @@ export function getPolicyList(
 }
 
 /**
+ * 获取策略下拉选项（创建项目绑定策略等）
+ */
+export function getPolicySelectOptions(): Promise<ApiResponse<Policy[]>> {
+  // TODO: replace with → return request.get('/api/policies/options')
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: [...MOCK_ALL_POLICIES].sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    ),
+  })
+}
+
+/**
  * 删除策略
  * @param policyId - 要删除的策略 ID
  */

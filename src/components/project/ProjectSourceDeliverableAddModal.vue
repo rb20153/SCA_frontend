@@ -29,13 +29,26 @@ import { computed, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { addProjectSourceDeliverable } from '@/api/project'
 import SourceIngestForm from '@/components/common/SourceIngestForm.vue'
+import type { AddProjectSourceDeliverableParams } from '@/types/project'
 import type { SourceIngestFormState } from '@/types/sourceIngest'
 import { createDefaultSourceIngestForm, validateSourceIngestForm } from '@/utils/sourceIngest'
 
 const visible = defineModel<boolean>('open', { required: true })
 
-const props = defineProps<{
-  projectId: string
+const props = withDefaults(
+  defineProps<{
+    /** 项目 ID；collectOnly 模式下可不传 */
+    projectId?: string
+    /** 仅收集表单数据，不调用 API（创建项目向导用） */
+    collectOnly?: boolean
+  }>(),
+  {
+    collectOnly: false,
+  },
+)
+
+const emit = defineEmits<{
+  collected: [payload: AddProjectSourceDeliverableParams]
 }>()
 
 const submitting = ref(false)
@@ -75,11 +88,24 @@ async function handleOk() {
 
   submitting.value = true
   try {
-    await addProjectSourceDeliverable(props.projectId, {
+    const payload: AddProjectSourceDeliverableParams = {
       ...form,
       scanPathPrefix: scanPathPrefix.value.trim() || undefined,
       packageFile,
-    })
+    }
+
+    if (props.collectOnly) {
+      emit('collected', payload)
+      visible.value = false
+      return
+    }
+
+    if (!props.projectId) {
+      message.error('缺少项目 ID')
+      return Promise.reject()
+    }
+
+    await addProjectSourceDeliverable(props.projectId, payload)
     message.success('源码交付物已提交，后台解析中')
     visible.value = false
   } finally {

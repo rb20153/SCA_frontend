@@ -1,67 +1,64 @@
 <template>
   <div class="project-basic-panel">
     <a-spin :spinning="submitting">
-      <div class="profile-form-row">
-        <label>项目名称</label>
-        <div class="profile-form-control">
-          <a-input :value="project.projectName" disabled />
-        </div>
-      </div>
+      <a-form layout="vertical" class="project-basic-form">
+        <a-row :gutter="24">
+          <a-col :xs="24" :md="12">
+            <a-form-item label="项目名称">
+              <a-input :value="project.projectName" disabled />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :md="12">
+            <a-form-item label="负责人" required>
+              <UserSearchInput
+                ref="ownerSearchRef"
+                v-model="selectedOwner"
+                placeholder="请输入用户姓名"
+                :search-users="searchOwnerUsers"
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-      <div class="profile-form-row">
-        <label>负责人</label>
-        <div class="profile-form-control">
-          <AsyncOptionsSelect
-            ref="ownerSelectRef"
-            v-model="form.ownerUserId"
-            placeholder="请选择负责人"
-            select-class="project-basic-select"
-            :load-options="loadEnabledUserSelectOptions"
-          />
-        </div>
-      </div>
+        <a-row :gutter="24" class="project-basic-main-row">
+          <a-col :xs="24" :md="12">
+            <a-form-item label="项目说明">
+              <a-textarea
+                v-model:value="form.description"
+                placeholder="请输入项目说明"
+                :rows="8"
+                allow-clear
+                class="project-basic-textarea"
+              />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :md="12">
+            <a-form-item label="所属部门" required>
+              <AsyncOptionsSelect
+                ref="departmentSelectRef"
+                v-model="form.departmentId"
+                placeholder="请选择部门"
+                select-class="project-basic-select"
+                :load-options="loadEnabledDepartmentSelectOptions"
+              />
+            </a-form-item>
+            <a-form-item label="项目状态" required>
+              <a-select
+                v-model:value="form.status"
+                :options="PROJECT_STATUS_FORM_OPTIONS"
+                class="project-basic-select"
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-      <div class="profile-form-row">
-        <label>项目说明</label>
-        <div class="profile-form-control">
-          <a-textarea
-            v-model:value="form.description"
-            placeholder="请输入项目说明"
-            :rows="4"
-            allow-clear
-          />
-        </div>
-      </div>
-
-      <div class="profile-form-row">
-        <label>所属部门</label>
-        <div class="profile-form-control">
-          <AsyncOptionsSelect
-            ref="departmentSelectRef"
-            v-model="form.departmentId"
-            placeholder="请选择部门"
-            select-class="project-basic-select"
-            :load-options="loadEnabledDepartmentSelectOptions"
-          />
-        </div>
-      </div>
-
-      <div class="profile-form-row">
-        <label>项目状态</label>
-        <div class="profile-form-control">
-          <a-select
-            v-model:value="form.status"
-            :options="PROJECT_STATUS_FORM_OPTIONS"
-            class="project-basic-select"
-          />
-        </div>
-      </div>
-
-      <ProfileFormActions
-        :submitting="submitting"
-        @submit="handleSubmit"
-        @cancel="handleCancel"
-      />
+        <ProfileFormActions
+          :submitting="submitting"
+          label-offset="0"
+          @submit="handleSubmit"
+          @cancel="handleCancel"
+        />
+      </a-form>
     </a-spin>
   </div>
 </template>
@@ -70,14 +67,14 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { updateProjectBasicInfo } from '@/api/project'
+import { searchUsers } from '@/api/user'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import ProfileFormActions from '@/components/common/ProfileFormActions.vue'
+import UserSearchInput from '@/components/common/UserSearchInput.vue'
 import type { Project, UpdateProjectBasicInfoParams } from '@/types/project'
+import type { UserSearchCandidate } from '@/types/user'
 import { PROJECT_STATUS_FORM_OPTIONS } from '@/utils/projectDisplay'
-import {
-  loadEnabledDepartmentSelectOptions,
-  loadEnabledUserSelectOptions,
-} from '@/utils/remoteSelectLoaders'
+import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 
 const props = defineProps<{
   /** 当前项目（来自列表跳转或详情 API） */
@@ -89,36 +86,53 @@ const emit = defineEmits<{
 }>()
 
 const submitting = ref(false)
-const ownerSelectRef = ref<InstanceType<typeof AsyncOptionsSelect> | null>(null)
+const selectedOwner = ref<UserSearchCandidate | null>(null)
+const ownerSearchRef = ref<InstanceType<typeof UserSearchInput> | null>(null)
 const departmentSelectRef = ref<InstanceType<typeof AsyncOptionsSelect> | null>(null)
 
-const form = reactive<UpdateProjectBasicInfoParams>({
+const form = reactive<Omit<UpdateProjectBasicInfoParams, 'ownerUserId'>>({
   description: '',
-  ownerUserId: '',
   departmentId: '',
   status: 'in_progress',
 })
 
-/** 将项目数据同步到表单 */
-function syncFormFromProject() {
-  form.description = props.project.description
-  form.ownerUserId = props.project.ownerUserId
-  form.departmentId = props.project.departmentId
-  form.status = props.project.status
+/** 搜索负责人（不限项目成员） */
+async function searchOwnerUsers(keyword: string) {
+  const res = await searchUsers(keyword)
+  return res.data
 }
 
-/** 预加载下拉选项，保证当前负责人/部门能正确展示 */
-async function prefetchSelectOptions() {
-  await Promise.all([
-    ownerSelectRef.value?.prefetchOptions(),
-    departmentSelectRef.value?.prefetchOptions(),
-  ])
+/** 将项目数据同步到表单与负责人输入框 */
+function syncFormFromProject() {
+  form.description = props.project.description
+  form.departmentId = props.project.departmentId
+  form.status = props.project.status
+  selectedOwner.value = null
+  ownerSearchRef.value?.setDisplayName(props.project.owner)
+}
+
+/** 预加载部门下拉，保证当前部门名称正确展示 */
+async function prefetchDepartmentOptions() {
+  await departmentSelectRef.value?.prefetchOptions()
+}
+
+/** 解析提交用的负责人 ID：新选用户优先，未改负责人时保留原 ID */
+function resolveOwnerUserId(): string | undefined {
+  if (selectedOwner.value?.userId) {
+    return selectedOwner.value.userId
+  }
+  const displayName = ownerSearchRef.value?.getSubmitDisplayName() ?? ''
+  if (displayName === props.project.owner) {
+    return props.project.ownerUserId
+  }
+  return undefined
 }
 
 /** 校验并提交基本信息更新 */
 async function handleSubmit() {
-  if (!form.ownerUserId) {
-    message.warning('请选择负责人')
+  const ownerUserId = resolveOwnerUserId()
+  if (!ownerUserId) {
+    message.warning('请从列表中选择负责人')
     return
   }
   if (!form.departmentId) {
@@ -130,7 +144,7 @@ async function handleSubmit() {
   try {
     const res = await updateProjectBasicInfo(props.project.projectId, {
       description: form.description.trim(),
-      ownerUserId: form.ownerUserId,
+      ownerUserId,
       departmentId: form.departmentId,
       status: form.status,
     })
@@ -150,42 +164,32 @@ watch(
   () => props.project,
   () => {
     syncFormFromProject()
-    void prefetchSelectOptions()
+    void prefetchDepartmentOptions()
   },
   { deep: true },
 )
 
 onMounted(() => {
   syncFormFromProject()
-  void prefetchSelectOptions()
+  void prefetchDepartmentOptions()
 })
 </script>
 
 <style scoped>
 .project-basic-panel {
-  max-width: 560px;
+  max-width: 960px;
 }
 
-.profile-form-row {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 24px;
+.project-basic-form :deep(.ant-form-item) {
+  margin-bottom: 20px;
 }
 
-.profile-form-row > label {
-  width: 88px;
-  flex-shrink: 0;
-  text-align: right;
-  padding-right: 16px;
-  padding-top: 6px;
-  color: rgba(0, 0, 0, 0.88);
-  font-size: 14px;
+.project-basic-main-row {
+  align-items: stretch;
 }
 
-.profile-form-control {
-  flex: 1;
-  min-width: 0;
-  max-width: 360px;
+.project-basic-textarea {
+  min-height: 180px;
 }
 
 .project-basic-select {

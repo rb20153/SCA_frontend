@@ -5,11 +5,53 @@
 
 ---
 
+## [2026-06-15] 项目详情 · 检测策略 Tab + 创建成功留列表
+
+- **创建项目成功**：刷新列表，不再跳转详情页
+- **检测策略 Tab**（`ProjectPolicyPanel`）：字段与创建向导「绑定策略」一致；默认回显已绑策略、阈值、排除目录
+- 底部复用 `ProfileFormActions`：「更新检测策略」/「取消修改」
+- API：`getProjectPolicyBinding`、`updateProjectPolicyBinding`；种子项目 mock 自动初始化绑定
+
+---
+
+## [2026-06-15] 新增项目 · 交付物「稍后上传」
+
+- 第三步类型选择新增 **稍后上传**：选中后直接可确认创建，`deliverables` 传空数组
+- 交付物可在项目详情 · 交付物 Tab 后续补传
+
+---
+
+## [2026-06-15] 新增项目向导 · 内联交付物 + 部门必填
+
+- 基本信息：**所属部门改为必填**
+- 第三步：进入即显示**交付物类型选择**，选中后在向导内展示对应表单（源码 / 二进制），无「添加交付物」按钮、无独立弹窗
+- 新组件 `ProjectDeliverableInlineForm`；项目详情页仍用 `ProjectDeliverableAddBar` + 弹窗
+
+---
+
+## [2026-06-15] 新增项目三步向导 + FormStepWizardModal 公共组件
+
+### 改了什么
+
+- **`FormStepWizardModal`**：抽离步骤条 / 内容区 / 底部按钮，供自主率任务、知识库添加、**新增项目**复用
+- **`ProjectCreateWizardModal`**：① 基本信息 ② 绑定策略（`AsyncOptionsSelect` + 阈值/匹配长度/`TagInput` 排除目录）③ 上传交付物（`ProjectDeliverableAddBar` collectOnly）
+- **`createProject`** 改为接收 `CreateProjectWizardParams`（含 policy + deliverables），mock 写入策略绑定、负责人成员、交付物
+- 交付物弹窗支持 **`collectOnly`**，向导内只收集数据、最后统一提交
+- **`AutonomyDetectTaskCreateModal`** / **`KbProjectAddModal`** 已改用 `FormStepWizardModal`
+
+### 注意事项
+
+- 创建项目必须：选策略 + 至少 1 项交付物；无「默认策略」
+- 联调：`POST /api/projects` 需接收完整 wizard body
+
+---
+
 ## [2026-06-15] 项目详情 · 基本信息 Tab（可编辑表单）
 
 ### 改了什么
 
-- **`ProjectBasicInfoPanel.vue`**：项目名称只读；负责人/部门 `AsyncOptionsSelect` 懒加载；说明 textarea；状态下拉（进行中/已完成/失败）；提交 `updateProjectBasicInfo`
+- **`ProjectBasicInfoPanel.vue`**：项目名称只读；负责人 `UserSearchInput` + `searchUsers`；说明 textarea；状态下拉（进行中/已完成/失败）；提交 `updateProjectBasicInfo`
+- 布局：第一行项目名称 + 负责人并排；第二行左侧项目说明、右侧所属部门 + 状态
 - **`ProfileFormActions.vue`**：从个人设置抽出「更新基本信息 / 取消修改」按钮，`ProfileBasicPanel` 已复用
 - **`Project` 类型**：新增 `ownerUserId`、`departmentId`；mock 种子补全说明并与人/部门 ID 对齐
 - **`getEnabledUserOptions`** + `loadEnabledUserSelectOptions`：负责人下拉数据源
