@@ -10,6 +10,11 @@ import type {
   IgnoreOpenSourceRiskComponentParams,
   OpenSourceRiskVulnerability,
   OpenSourceRiskVulnerabilityQueryParams,
+  AiParseTask,
+  AiParseTaskQueryParams,
+  AiParseFallbackCompareItem,
+  CreateAiParseTaskParams,
+  SubmitAiParseFallbackParams,
   TaskQueryParams,
   UpdateDetectTaskParams,
   TerminateTaskParams,
@@ -29,6 +34,12 @@ import {
   mockRevokeOpenSourceRiskComponentIgnore,
 } from '@/mock/modules/detect/openSourceRiskComponents'
 import { getMockOpenSourceRiskVulnerabilityPage, countMockOpenSourceRiskVulnerabilitiesByComponent } from '@/mock/modules/detect/openSourceRiskVulnerabilities'
+import {
+  getMockAiParseTaskPage,
+  mockCreateAiParseTask,
+  getMockAiParseFallbackCompare,
+  mockSubmitAiParseFallback,
+} from '@/mock/modules/detect/aiParseTasks'
 
 // TODO: replace with: import request from '@/utils/request'
 
@@ -265,6 +276,65 @@ export function getOpenSourceRiskVulnerabilityList(
     message: 'ok',
     data: getMockOpenSourceRiskVulnerabilityPage(taskId, params),
   })
+}
+
+/**
+ * 获取 AI 解析历史列表（分页）
+ * @param params - 筛选与分页
+ */
+export function getAiParseTaskList(
+  params: AiParseTaskQueryParams,
+): Promise<ApiResponse<PageResult<AiParseTask>>> {
+  // TODO: replace with → return request.get('/api/detect/ai-parse/tasks', { params })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockAiParseTaskPage(params),
+  })
+}
+
+/**
+ * 创建 AI 解析任务
+ * @param data - 项目、来源与扫描深度
+ */
+export function createAiParseTask(
+  data: CreateAiParseTaskParams,
+): Promise<ApiResponse<AiParseTask>> {
+  // TODO: replace with → return request.post('/api/detect/ai-parse/tasks', data)
+  const task = mockCreateAiParseTask(data)
+  return Promise.resolve({ code: 200, message: 'ok', data: task })
+}
+
+/**
+ * 获取 AI 解析规则回退对比项
+ * @param parseTaskId - 解析任务 ID
+ */
+export function getAiParseFallbackCompare(
+  parseTaskId: string,
+): Promise<ApiResponse<AiParseFallbackCompareItem[]>> {
+  // TODO: replace with → return request.get(`/api/detect/ai-parse/tasks/${parseTaskId}/fallback-compare`)
+  const list = getMockAiParseFallbackCompare(parseTaskId)
+  if (list.length === 0) {
+    return Promise.reject(new Error('解析任务不存在或无回退数据'))
+  }
+  return Promise.resolve({ code: 200, message: 'ok', data: list })
+}
+
+/**
+ * 确认规则回退并重新提交解析
+ * @param parseTaskId - 解析任务 ID
+ * @param data - 回退原因
+ */
+export function submitAiParseFallback(
+  parseTaskId: string,
+  data: SubmitAiParseFallbackParams,
+): Promise<ApiResponse<AiParseTask>> {
+  // TODO: replace with → return request.post(`/api/detect/ai-parse/tasks/${parseTaskId}/fallback`, data)
+  const task = mockSubmitAiParseFallback(parseTaskId, data.reason)
+  if (!task) {
+    return Promise.reject(new Error('仅失败状态的解析任务可规则回退'))
+  }
+  return Promise.resolve({ code: 200, message: 'ok', data: task })
 }
 
 /** 编辑检测任务（排队中 / 运行中的自主率任务） */

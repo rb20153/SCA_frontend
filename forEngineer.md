@@ -5,6 +5,15 @@
 
 ---
 
+## [2026-06-15] AI 辅助分析 · AI 解析页
+
+- 路由 `/detect/ai-analysis` → `AiAnalysis.vue`：开始解析弹窗 + 筛选 + 分页历史列表
+- 弹窗：`AsyncOptionsSelect` 关联项目 + `SourceIngestForm` + 扫描深度；`createAiParseTask` 提交后列表新增「进行中」
+- 筛选：来源 / 状态；操作：已完成→结果抽屉（占位）、失败→规则回退弹窗（蓝色 info 提示 + 无分页对比表 + 必选回退原因）
+- mock：`mock/modules/detect/aiParseTasks.ts`
+
+---
+
 ## [2026-06-15] 开源风险详情 · 组件忽略 / 撤销忽略
 
 - 操作「忽略」→ `RiskComponentIgnoreModal`：原型文案 + 必选忽略原因 → `ignoreOpenSourceRiskComponent`

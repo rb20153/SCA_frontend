@@ -9,6 +9,7 @@ import type {
   RiskSourceMode,
   PageParams,
 } from './common'
+import type { RepoAuthType, SourceIngestMode } from './sourceIngest'
 
 export interface DetectTask {
   taskId: string
@@ -227,4 +228,72 @@ export interface OpenSourceRiskVulnerabilityQueryParams extends Partial<PagePara
   riskLevel?: OpenSourceRiskComponentRiskLevel
   componentName?: string
   processingStatus?: OpenSourceRiskVulnerabilityProcessingStatus
+}
+
+/** AI 解析 · 任务状态 */
+export type AiParseTaskStatus = 'running' | 'failed' | 'success'
+
+/** AI 解析 · 扫描深度（依赖层数） */
+export type AiParseScanDepth = 1 | 2 | 3
+
+/** AI 解析 · 规则回退原因 */
+export type AiParseFallbackReason = 'incomplete-license' | 'ai-unavailable' | 'low-confidence'
+
+/** AI 解析 · 历史任务项 */
+export interface AiParseTask {
+  parseTaskId: string
+  /** 解析对象展示名（仓库名或压缩包文件名） */
+  parseObjectName: string
+  projectId: string
+  projectName: string
+  /** 创建/提交时间 ISO 8601 */
+  createdAt: string
+  /** 来源方式：三方仓库拉取 / 上传压缩包 */
+  sourceMode: SourceIngestMode
+  status: AiParseTaskStatus
+  scanDepth: AiParseScanDepth
+  /** 已完成时的结果摘要 */
+  resultSummary: string | null
+  /** 已完成时的冲突数 */
+  conflictCount: number | null
+}
+
+/** AI 解析 · 规则回退对比行 */
+export interface AiParseFallbackCompareItem {
+  targetPath: string
+  aiResult: string
+  ruleResult: string
+}
+
+/** 创建 AI 解析任务参数 */
+export interface CreateAiParseTaskParams {
+  projectId: string
+  scanDepth: AiParseScanDepth
+  sourceMode: SourceIngestMode
+  repositoryUrl?: string
+  authType?: RepoAuthType
+  accessToken?: string
+  username?: string
+  password?: string
+  sshPrivateKey?: string
+  sshPassphrase?: string
+  /** 上传模式下的压缩包文件名（mock 阶段） */
+  packageFileName?: string
+}
+
+/** 提交 AI 解析规则回退参数 */
+export interface SubmitAiParseFallbackParams {
+  reason: AiParseFallbackReason
+}
+
+/** AI 解析 · 列表筛选表单 */
+export interface AiParseTaskListFilters {
+  sourceMode: SourceIngestMode | ''
+  status: AiParseTaskStatus | ''
+}
+
+/** AI 解析 · 列表查询参数 */
+export interface AiParseTaskQueryParams extends Partial<PageParams> {
+  sourceMode?: SourceIngestMode
+  status?: AiParseTaskStatus
 }
