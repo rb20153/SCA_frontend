@@ -8,6 +8,13 @@
     >
       <span class="tree-node-label">{{ nodeLabel }}</span>
       <span v-if="issueRateLabel" class="tree-issue-rate">{{ issueRateLabel }}</span>
+      <a-tag
+        v-if="node.licenseLabel"
+        :color="node.licenseTagColor ?? 'default'"
+        class="tree-license-tag"
+      >
+        {{ node.licenseLabel }}
+      </a-tag>
     </button>
     <ul v-if="isDirectory && node.children?.length">
       <LinuxStyleFileTreeNode
@@ -41,7 +48,10 @@ const isDirectory = computed(() => props.node.type === 'directory')
 const isExpanded = computed(() => treeContext.isExpanded(props.node.nodeId))
 
 const isSelectedFile = computed(
-  () => props.node.type === 'file' && treeContext.selectedFileId.value === props.node.nodeId,
+  () =>
+    treeContext.selectable &&
+    props.node.type === 'file' &&
+    treeContext.selectedFileId.value === props.node.nodeId,
 )
 
 /** 目录显示 name/，文件显示文件名 */
@@ -58,10 +68,13 @@ const nodeButtonClass = computed(() => ({
   active: isSelectedFile.value,
 }))
 
-/** 目录点击切换展开；文件点击切换选中 */
+/** 目录点击切换展开；文件点击切换选中（selectable 为 false 时文件不可选） */
 function handleNodeClick() {
   if (isDirectory.value) {
     treeContext.toggleFolder(props.node.nodeId)
+    return
+  }
+  if (!treeContext.selectable) {
     return
   }
   treeContext.selectFile(props.node.nodeId)
@@ -98,6 +111,11 @@ function handleNodeClick() {
   color: #d48806;
   font-size: 12px;
   line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.tree-license-tag {
+  margin-left: auto;
   flex-shrink: 0;
 }
 

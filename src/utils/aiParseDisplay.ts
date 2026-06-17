@@ -19,3 +19,16 @@ export function deriveAiParseObjectName(params: CreateAiParseTaskParams): string
   const last = segments[segments.length - 1]
   return last || url
 }
+
+/**
+ * 格式化 AI 解析完成时间（抽屉顶栏展示）
+ * @param iso - ISO 8601 时间字符串
+ */
+export function formatAiParseFinishedAt(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    return iso
+  }
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}

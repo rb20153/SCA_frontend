@@ -36,6 +36,7 @@ declare module 'vue' {
     AInputGroup: typeof import('ant-design-vue/es')['InputGroup']
     AInputNumber: typeof import('ant-design-vue/es')['InputNumber']
     AInputPassword: typeof import('ant-design-vue/es')['InputPassword']
+    AiParseCoverageBar: typeof import('./components/detect/AiParseCoverageBar.vue')['default']
     AiParseFallbackModal: typeof import('./components/detect/AiParseFallbackModal.vue')['default']
     AiParseQueryBar: typeof import('./components/detect/AiParseQueryBar.vue')['default']
     AiParseResultDrawer: typeof import('./components/detect/AiParseResultDrawer.vue')['default']

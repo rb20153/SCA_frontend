@@ -5,6 +5,29 @@
 
 ---
 
+## [2026-06-17] AI 解析结果抽屉 · 覆盖率条、License 树与冲突列表
+
+### 改了什么
+
+- `AiParseResultDrawer.vue`：抽屉打开时请求 `getAiParseResultDetail`；顶栏 AI 解析完成/扫描深度/完成时间；ECharts 覆盖率条；License 树；潜在冲突列表
+- `AiParseCoverageBar.vue`：左侧「AI解析覆盖率 xx%」+ 右侧 ECharts 水平进度条（`useECharts`，抽屉 `destroy-on-close` 自动 dispose）
+- `LinuxStyleFileTree`：新增 `initialExpandMode="all"`、`selectable=false`；节点支持 `licenseLabel` / `licenseTagColor` Tag
+- `types/detect.ts`：`AiParseResultDetail`；`types/fileTree.ts`：License Tag 字段
+- `api/detect.ts`：`getAiParseResultDetail`；`mock/.../aiParseResultDetail.ts`
+
+### 怎么实现的
+
+- 点击「查看结果」打开抽屉 → `watch(open + taskId)` 拉取详情
+- License 树复用 `LinuxStyleFileTree`，默认全部展开、不可选中；每行（含目录）右侧 `a-tag` 展示许可证
+- 覆盖率 93% 等为结果字段 `aiParseCoverage`，非任务执行进度
+
+### 注意事项
+
+- mock 目前仅 `ai-parse-001`、`ai-parse-004` 有完整结果；其余 completed 任务需补 mock 或会空态
+- 真实 API 规划 `GET /api/detect/ai-parse/tasks/:parseTaskId/result`
+
+---
+
 ## [2026-06-17] 证据文件树 · 节点问题率 Tag（对齐原型）
 
 ### 改了什么

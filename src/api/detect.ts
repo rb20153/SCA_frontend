@@ -14,6 +14,7 @@ import type {
   AiParseTask,
   AiParseTaskQueryParams,
   AiParseFallbackCompareItem,
+  AiParseResultDetail,
   CreateAiParseTaskParams,
   SubmitAiParseFallbackParams,
   TaskQueryParams,
@@ -47,6 +48,7 @@ import {
   getMockAiParseFallbackCompare,
   mockSubmitAiParseFallback,
 } from '@/mock/modules/detect/aiParseTasks'
+import { getMockAiParseResultDetail } from '@/mock/modules/detect/aiParseResultDetail'
 
 // TODO: replace with: import request from '@/utils/request'
 
@@ -369,6 +371,21 @@ export function createAiParseTask(
   // TODO: replace with → return request.post('/api/detect/ai-parse/tasks', data)
   const task = mockCreateAiParseTask(data)
   return Promise.resolve({ code: 200, message: 'ok', data: task })
+}
+
+/**
+ * 获取 AI 解析结果详情（抽屉打开时拉取）
+ * @param parseTaskId - 解析任务 ID
+ */
+export function getAiParseResultDetail(
+  parseTaskId: string,
+): Promise<ApiResponse<AiParseResultDetail>> {
+  const detail = getMockAiParseResultDetail(parseTaskId)
+  if (!detail) {
+    return Promise.reject(new Error('解析结果不存在或任务未完成'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/ai-parse/tasks/${parseTaskId}/result`)
+  return Promise.resolve({ code: 200, message: 'ok', data: detail })
 }
 
 /**

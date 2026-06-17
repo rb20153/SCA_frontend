@@ -1,6 +1,15 @@
 /** 文件树节点类型：目录 / 文件 */
 export type FileTreeNodeType = 'directory' | 'file'
 
+/** License 树节点 Tag 颜色（Ant Design Vue a-tag color） */
+export type FileTreeLicenseTagColor =
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'default'
+  | 'processing'
+  | 'blue'
+
 /** Linux 风格文件树节点（目录可含 children，文件为叶子） */
 export interface FileTreeNode {
   nodeId: string
@@ -16,6 +25,10 @@ export interface FileTreeNode {
    * - 文件：展示「xx%」
    */
   issueRate?: number
+  /** License 展示文案（AI 解析 License 树等场景） */
+  licenseLabel?: string
+  /** License Tag 颜色，缺省为 default */
+  licenseTagColor?: FileTreeLicenseTagColor
   children?: FileTreeNode[]
 }
 

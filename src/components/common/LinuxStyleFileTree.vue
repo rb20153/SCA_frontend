@@ -25,9 +25,15 @@ const props = withDefaults(
     /** 树根节点列表 */
     nodes: FileTreeNode[]
     loading?: boolean
+    /** 初始展开策略：首个文件路径 / 全部展开 */
+    initialExpandMode?: 'first-file' | 'all'
+    /** 是否允许选中文件并高亮 */
+    selectable?: boolean
   }>(),
   {
     loading: false,
+    initialExpandMode: 'first-file',
+    selectable: true,
   },
 )
 
@@ -53,10 +59,16 @@ function selectFile(nodeId: string) {
   selectedFileId.value = nodeId
 }
 
-/** 应用默认展开路径并选中首个文件 */
-function applyDefaultTreeState(nodes: FileTreeNode[]) {
+/** 按 initialExpandMode 应用初始展开与选中态 */
+function applyInitialTreeState(nodes: FileTreeNode[]) {
   if (nodes.length === 0) {
     expandedMap.value = {}
+    selectedFileId.value = undefined
+    return
+  }
+
+  if (props.initialExpandMode === 'all') {
+    expandedMap.value = buildExpandAllDirectoryMap(nodes)
     selectedFileId.value = undefined
     return
   }
@@ -67,11 +79,12 @@ function applyDefaultTreeState(nodes: FileTreeNode[]) {
     nextExpanded[nodeId] = true
   }
   expandedMap.value = nextExpanded
-  selectedFileId.value = firstFileId ?? undefined
+  selectedFileId.value = props.selectable ? (firstFileId ?? undefined) : undefined
 }
 
 const treeContext: LinuxStyleFileTreeContext = {
   selectedFileId,
+  selectable: props.selectable,
   isExpanded,
   toggleFolder,
   selectFile,
@@ -82,7 +95,7 @@ provide('linuxStyleFileTreeContext', treeContext)
 watch(
   () => props.nodes,
   (nodes) => {
-    applyDefaultTreeState(nodes)
+    applyInitialTreeState(nodes)
   },
   { immediate: true, deep: true },
 )

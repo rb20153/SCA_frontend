@@ -10,6 +10,7 @@ import type {
   PageParams,
 } from './common'
 import type { RepoAuthType, SourceIngestMode } from './sourceIngest'
+import type { FileTreeNode } from './fileTree'
 
 export interface DetectTask {
   taskId: string
@@ -307,6 +308,21 @@ export interface AiParseTask {
   resultSummary: string | null
   /** 已完成时的冲突数 */
   conflictCount: number | null
+}
+
+/** AI 解析 · 解析结果详情（抽屉打开时拉取） */
+export interface AiParseResultDetail {
+  parseTaskId: string
+  parseObjectName: string
+  scanDepth: AiParseScanDepth
+  /** 完成时间 ISO 8601 */
+  finishedAt: string
+  /** AI 解析覆盖率 0–100 */
+  aiParseCoverage: number
+  /** License 树节点（含 licenseLabel / licenseTagColor） */
+  licenseTreeNodes: FileTreeNode[]
+  /** 潜在许可证冲突说明列表 */
+  licenseConflicts: string[]
 }
 
 /** AI 解析 · 规则回退对比行 */
