@@ -48,6 +48,11 @@ function buildOption(rate: number): EChartsOption {
   const color = getAutonomyRateColor(safeRate)
   const rateText = `${formatRateText(safeRate)}%`
   return {
+    animation: true,
+    animationDuration: 800,
+    animationEasing: 'cubicOut',
+    animationDurationUpdate: 500,
+    animationEasingUpdate: 'cubicOut',
     graphic: {
       type: 'group',
       left: 'center',
@@ -60,8 +65,8 @@ function buildOption(rate: number): EChartsOption {
             text: rateText,
             x: 0,
             y: -8,
-            textAlign: 'center',
-            textVerticalAlign: 'middle',
+            align: 'center',
+            verticalAlign: 'middle',
             fill: color,
             fontSize: 20,
             fontWeight: 700,
@@ -73,8 +78,8 @@ function buildOption(rate: number): EChartsOption {
             text: props.subLabel,
             x: 0,
             y: 10,
-            textAlign: 'center',
-            textVerticalAlign: 'middle',
+            align: 'center',
+            verticalAlign: 'middle',
             fill: 'rgba(0, 0, 0, 0.45)',
             fontSize: 11,
           },
@@ -88,6 +93,8 @@ function buildOption(rate: number): EChartsOption {
         center: ['50%', '50%'],
         startAngle: 90,
         silent: true,
+        animationType: 'expansion',
+        animationTypeUpdate: 'transition',
         label: { show: false },
         labelLine: { show: false },
         data: [
@@ -101,14 +108,14 @@ function buildOption(rate: number): EChartsOption {
 
 // useECharts 的 onMounted 先注册（init 实例），本组件 onMounted 后执行，此时实例已就绪
 onMounted(() => {
-  setOption(buildOption(props.rate), true)
+  setOption(buildOption(props.rate))
 })
 
 // rate 变化后重绘；首帧由上方 onMounted 负责，避免在实例 init 前 setOption 丢失
 watch(
   () => props.rate,
   (rate) => {
-    setOption(buildOption(rate), true)
+    setOption(buildOption(rate))
   },
 )
 </script>

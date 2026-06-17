@@ -17,3 +17,32 @@ export interface DashboardStatItem {
 export interface DashboardOverview {
   stats: DashboardStatItem[]
 }
+
+/** 首页漏洞风险分布等级（三档，与开源风险任务口径一致） */
+export type DashboardVulnRiskLevel = 'high' | 'medium' | 'low'
+
+/** 近 N 日自主率趋势单点 */
+export interface DashboardAutonomyTrendPoint {
+  /** 日期，ISO 8601 日期部分 YYYY-MM-DD */
+  date: string
+  /** 平台平均自主率，0–100 */
+  avgRate: number
+}
+
+/** 首页自主率趋势（默认近 30 天） */
+export interface DashboardAutonomyTrend {
+  periodDays: number
+  points: DashboardAutonomyTrendPoint[]
+}
+
+/** 漏洞风险分布单项 */
+export interface DashboardVulnRiskDistributionItem {
+  level: DashboardVulnRiskLevel
+  count: number
+}
+
+/** 首页漏洞风险等级分布 */
+export interface DashboardVulnRiskDistribution {
+  total: number
+  items: DashboardVulnRiskDistributionItem[]
+}

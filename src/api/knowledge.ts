@@ -32,6 +32,7 @@ import type {
   VulnItemOverviewQueryParams,
   VulnItemQuickSearchSuggestion,
   VulnKnowledgeOverview,
+  VulnRiskSummary,
   VulnSource,
   VulnSourceQueryParams,
   VulnSyncAllPreview,
@@ -48,6 +49,7 @@ import { getMockVulnItemExportResult } from '@/mock/modules/knowledge/vulnItemEx
 import { getMockVulnItemDetail, getMockVulnItemListPage } from '@/mock/modules/knowledge/vulnItemList'
 import { getMockVulnItemOverview } from '@/mock/modules/knowledge/vulnItemOverview'
 import { getMockVulnItemQuickSearchSuggestions } from '@/mock/modules/knowledge/vulnItemQuickSearch'
+import { mockVulnRiskSummaryRes } from '@/mock/modules/knowledge/vulnRiskSummary'
 import {
   filterMockVulnSourceList,
   getMockVulnSyncAllPreview,
@@ -386,6 +388,12 @@ export function getCoverageUpdateTrendWeeks(): Promise<ApiResponse<CoverageUpdat
 export function getVulnKnowledgeOverview(): Promise<ApiResponse<VulnKnowledgeOverview>> {
   // TODO: replace with → return request.get('/api/knowledge/vulnerabilities/overview')
   return Promise.resolve(mockVulnKnowledgeOverviewRes)
+}
+
+/** 获取漏洞知识库风险摘要图表数据 */
+export function getVulnRiskSummary(): Promise<ApiResponse<VulnRiskSummary>> {
+  // TODO: replace with → return request.get('/api/knowledge/vulnerabilities/risk-summary')
+  return Promise.resolve(mockVulnRiskSummaryRes)
 }
 
 /**

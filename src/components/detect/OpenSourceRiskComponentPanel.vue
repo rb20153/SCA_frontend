@@ -1,6 +1,6 @@
 <template>
   <div class="risk-component-panel">
-    <RiskComponentGraphPlaceholder />
+    <RiskComponentGraph :graph="graphData" @select="handleGraphSelect" />
 
     <RiskComponentQueryBar
       v-model="filterForm"
@@ -52,17 +52,17 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { getOpenSourceRiskComponentList } from '@/api/detect'
+import { getOpenSourceRiskComponentList, getRiskComponentGraph } from '@/api/detect'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import RiskComponentDetailDrawer from '@/components/detect/RiskComponentDetailDrawer.vue'
-import RiskComponentGraphPlaceholder from '@/components/detect/RiskComponentGraphPlaceholder.vue'
+import RiskComponentGraph from '@/components/detect/RiskComponentGraph.vue'
 import RiskComponentIgnoreModal from '@/components/detect/RiskComponentIgnoreModal.vue'
 import RiskComponentQueryBar from '@/components/detect/RiskComponentQueryBar.vue'
 import RiskComponentRevokeIgnoreModal from '@/components/detect/RiskComponentRevokeIgnoreModal.vue'
 import RiskComponentTable from '@/components/detect/RiskComponentTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
-import type { OpenSourceRiskComponent } from '@/types/detect'
+import type { OpenSourceRiskComponent, RiskComponentGraph as RiskComponentGraphData } from '@/types/detect'
 import {
   createEmptyRiskComponentListFilters,
   riskComponentListFiltersToQuery,
@@ -87,11 +87,23 @@ const ignoreModalVisible = ref(false)
 const revokeIgnoreModalVisible = ref(false)
 const selectedComponentId = ref<string | null>(null)
 const actionComponent = ref<OpenSourceRiskComponent | null>(null)
+const graphData = ref<RiskComponentGraphData | null>(null)
 
 /** 打开组件详情抽屉 */
 function openDetailDrawer(component: OpenSourceRiskComponent) {
   selectedComponentId.value = component.componentId
   detailDrawerVisible.value = true
+}
+
+/** 点击依赖图节点：按 componentId 打开详情抽屉 */
+function handleGraphSelect(componentId: string) {
+  selectedComponentId.value = componentId
+  detailDrawerVisible.value = true
+}
+
+/** 拉取组件依赖关系图数据（错误由 axios 拦截器统一处理） */
+async function fetchGraph() {
+  graphData.value = (await getRiskComponentGraph(props.taskId)).data
 }
 
 /** 打开忽略确认弹窗 */
@@ -145,6 +157,7 @@ watch(
   ([visible, taskId]) => {
     if (visible && taskId) {
       void loadPage()
+      void fetchGraph()
     }
   },
   { immediate: true },

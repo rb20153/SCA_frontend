@@ -25,9 +25,11 @@
           </a-descriptions-item>
         </a-descriptions>
 
-        <div class="report-preview">
-          <span class="report-preview-placeholder">报告预览占位（PDF / HTML Viewer）</span>
-        </div>
+        <ReportPreviewViewer
+          :report-id="props.reportId"
+          :active="visible"
+          class="report-preview"
+        />
       </div>
     </PageLoading>
   </a-drawer>
@@ -38,6 +40,7 @@ import { ref, watch } from 'vue'
 import { getReportDetail } from '@/api/report'
 import DetailText from '@/components/common/DetailText.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
+import ReportPreviewViewer from '@/components/report/ReportPreviewViewer.vue'
 import type { ReportDetail } from '@/types/report'
 import { formatReportDateTime } from '@/utils/reportDisplay'
 
@@ -52,7 +55,7 @@ const drawerBodyStyle = {
   overflow: 'hidden',
   display: 'flex',
   flexDirection: 'column',
-  height: 'calc(100% - 55px)',
+  height: '100%',
 } as const
 
 const loading = ref(false)
@@ -117,19 +120,10 @@ watch(
 }
 
 .report-preview {
-  flex: 1;
-  min-height: 200px;
+  flex: 1 1 auto;
+  min-height: calc(100vh - 220px);
   margin-top: 16px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fafafa;
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
-}
-
-.report-preview-placeholder {
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 14px;
+  flex-direction: column;
 }
 </style>

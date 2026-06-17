@@ -30,6 +30,24 @@ export interface Report {
 /** 报告详情（查看抽屉；后续可扩展预览 URL 等字段） */
 export type ReportDetail = Report
 
+/** 报告在线预览的内容格式 */
+export type ReportPreviewFormat = 'pdf' | 'html'
+
+/** 报告在线预览信息（供详情抽屉内嵌 viewer 使用） */
+export interface ReportPreview {
+  reportId: string
+  /** 预览内容格式，决定前端 iframe 内嵌 HTML 还是 PDF */
+  format: ReportPreviewFormat
+  /**
+   * 预览文件地址。
+   * - mock 阶段指向 public 下的静态示例文件
+   * - 真实接入时建议后端返回带签名的临时预览 URL；若需鉴权可改为前端 axios 拉 blob 后 objectURL
+   */
+  url: string
+  /** 文件名（下载/标题展示用） */
+  fileName: string
+}
+
 export interface ReportListFilters {
   reportName: string
   projectName: string

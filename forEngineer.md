@@ -5,6 +5,417 @@
 
 ---
 
+## [2026-06-17] 报告查看 · PDF/HTML 在线预览 viewer
+
+### 改了什么
+
+- 新增 `ReportPreviewViewer.vue`,替换 `ReportDetailDrawer.vue` 里的"报告预览占位",支持内嵌浏览 PDF / HTML 报告
+- 新增类型 `ReportPreviewFormat` / `ReportPreview`(`types/report.ts`)、mock `report/reportPreview.ts`、api `getReportPreview(reportId)`
+- PDF/HTML 都采用零依赖 iframe 内嵌预览，避免 Vite 对 PDF 依赖包的解析问题
+- `public/mock-reports/` 放 `sample-report.html`(完整样式示例)与 `sample-report.pdf`(纯文本最小 PDF)作为 mock 预览源
+
+### 怎么实现的
+
+- **HTML 报告**:`<iframe sandbox="allow-same-origin">` 内嵌,样式隔离、禁脚本
+- **PDF 报告**:`<iframe>` 交给浏览器内置 PDF viewer 渲染,零依赖、不会触发额外 npm 包解析
+- **鉴权**:当前 mock 直接用 `public/` 同源静态文件,无需 token。真实接入两条路(见 `getReportPreview` 注释):①后端返回带签名临时 URL,前端直接塞 iframe(推荐);②前端 `request.get(url,{responseType:'blob'})` 拉带 token 的 blob → `URL.createObjectURL` → 渲染,**关闭时务必 `revokeObjectURL`**
+- **三态**:`PageLoading` 加载态、`a-result` 失败可重试、按 `format` 渲染;viewer 仅在抽屉打开(`active`)且有 `reportId` 时拉取
+- mock 按 reportId 序号规则返回 pdf/html（`001/005...` 为 PDF，`003/009...` 为 HTML），确保 completed 报告也能覆盖两种预览形态
+
+### 注意事项
+
+- 当前方案不需要安装额外 PDF 预览依赖；浏览器内置 PDF viewer 能满足查看场景
+- `sample-report.pdf` 是手写最小 PDF,仅用于演示,真实报告由后端产出
+- 预览区最小高度改为 `calc(100vh - 220px)`，按视口高度撑满抽屉元信息下方区域；后续如果改成全屏预览，可在 drawer 外层新增独立预览页
+
+---
+
+## [2026-06-17] 开源风险详情 · G6 v5 组件依赖关系图
+
+### 改了什么
+
+- 新增 `RiskComponentGraph.vue`:用 G6 v5 画组件依赖有向图,替换原 `RiskComponentGraphPlaceholder.vue`(已删除)
+- `OpenSourceRiskComponentPanel.vue`:接入依赖图,点击节点打开现有组件详情抽屉
+- 新增类型 `RiskComponentGraphNode` / `RiskComponentGraphEdge` / `RiskComponentGraph`(`types/detect.ts`)
+- 新增 mock `detect/riskComponentGraph.ts` + api `getRiskComponentGraph(taskId)`
+- `useG6Graph` 增加可选 `onReady(graph)` 回调,用于实例创建后绑定事件
+
+### 怎么实现的
+
+- **图形态**:`antv-dagre` 自上而下分层,根节点=被测项目,下挂直接依赖(depth1)与传递依赖(depth2/3);边为 `cubic-vertical` 带箭头
+- **配色**:节点底色按风险等级走低饱和度(高 #e89a9a / 中 #e8c79a / 低 #a7cfa0 / 无 #c9ccd1),根节点蓝 #7aa7e0;卡片右上角自带 HTML 图例
+- **交互**:`drag-canvas` / `zoom-canvas` / `drag-element` / `hover-activate`;tooltip 插件 hover 显示风险等级+漏洞数;minimap 插件;点击节点经 `node:click` 上抛 `componentId`
+- **数据一致性**:mock 节点复用组件清单前 9 条(`getMockOpenSourceRiskComponentPage`)+ 漏洞计数(`countMockOpenSourceRiskVulnerabilitiesByComponent`),节点 ID 即 componentId,所以点击能直接命中详情抽屉的按 ID 查询
+- **空态**:画布容器常驻 DOM,无数据时用绝对定位 `a-empty` 覆盖(遵守图表生命周期规范)
+
+### 注意事项
+
+- 类型名 `RiskComponentGraph` 与组件名同名,在 Panel 里用 `import type { RiskComponentGraph as RiskComponentGraphData }` 避免 "different imports aliased to same local name"
+- 依赖父子关系目前是 mock 里写死的树形(`DIRECT_DEPENDENCY_INDEXES` + `TRANSITIVE_DEPENDENCY_EDGES`);真实接口接入时后端需返回 nodes/edges,depth 由前端 BFS 兜底计算
+- G6 v5 内置扩展(antv-dagre / tooltip / minimap / hover-activate)随 `@antv/g6` 主包默认注册,无需手动 register
+
+---
+
+## [2026-06-17] 图表 composable 代码评审修复（Bug 1 & 2）
+
+### 改了什么
+
+- `useECharts.ts`：修复数据更新时每次 `clear()` + `notMerge` 重放进场动画导致的闪烁（Bug 1）
+- `useECharts.ts`：`setOption()` 去掉 `notMerge` 参数，调用方不再需要关心合并策略
+- 7 个图表组件同步去掉 `setOption(..., true)` 的第二个实参（环形率、AI 解析覆盖、漏洞来源排行、采集方式分布、分类覆盖、风险玫瑰饼、趋势折线）
+- `useG6Graph.ts`：补齐与 `useECharts` 一致的生命周期（Bug 2）
+
+### 怎么实现的
+
+- `useECharts` 用 `hasRenderedSinceInit` 标记当前实例是否已渲染首帧：
+  - 首帧 `setOption(option, { notMerge: true })` → 从 0 播放进场动画
+  - 后续更新 `setOption(option, { notMerge: false, replaceMerge: ['series'] })` → 复用 ECharts 内置补间动画做平滑过渡，`replaceMerge` 同时清掉数量变化后残留的旧 series（避免幽灵 series）
+  - `initChart` 重置 `hasRenderedSinceInit = false`，切回页面重建实例时进场动画会重新播放
+- `useG6Graph` 改造：`nextTick(initGraph)`、`onActivated`/`onDeactivated`/`onUnmounted` 统一销毁、`ResizeObserver → graph.resize()` 容器自适应、缓存 `lastData` 在重建时重放（G6 v5 已确认存在 `resize()` / `setData` / `render` / `destroy`）
+
+### 注意事项
+
+- 轮询/动态数据刷新场景下，现在更新走 merge，不会再整图重绘闪烁；如确需强制整图重置，应 dispose 后重建实例
+- `replaceMerge: ['series']` 只替换 series 组件，grid / axis / legend 保持稳定；轴的 `data` 数组本身是整体替换，分类变化可正常更新
+- G6 目前仍只有占位组件，本次仅统一 composable，未接入真实图
+
+---
+
+## [2026-06-17] ECharts 生命周期 · 首帧动画重放
+
+### 改了什么
+
+- `useECharts.ts`：缓存最近一次 `setOption`，即使组件先调用 `setOption`、ECharts 实例后初始化，也不会丢配置
+- `useECharts.ts`：在浏览器下一帧写入 option，并在 `notMerge` 时先 `clear()`，让首次绘制动画能重新触发
+- `useECharts.ts`：补充 `onActivated` / `onDeactivated`，兼容后续页面使用 KeepAlive 时的切出销毁、切回重建
+
+### 怎么实现的
+
+- `setOption()` 先保存 `lastOption` 和 `lastNotMerge`，如果实例未就绪就等待 `initChart()` 后重放
+- `onUnmounted` 和 `onDeactivated` 都会断开 `ResizeObserver` 并 `dispose()` 图表实例
+- 本地运行验证：覆盖统计页进入时有 3 个 ECharts 实例，切到首页后覆盖统计实例消失，切回覆盖统计后生成新的 3 个实例 ID
+
+### 注意事项
+
+- 当前布局没有使用 `KeepAlive`，但 composable 已兼容该场景；图表占位组件仍不涉及 ECharts 生命周期
+
+---
+
+## [2026-06-17] ECharts 全局绘制动画
+
+### 改了什么
+
+- `LineAreaTrendChart.vue`：折线 / 面积趋势图增加从左到右的绘制动画
+- `RiskRosePieChart.vue`、`AutonomyRateRing.vue`：饼图 / 环形图增加扇区展开动画
+- `CoverageCategoryRateChart.vue`、`CoverageCollectionMethodChart.vue`、`VulnKnowledgeRiskSummary.vue`、`AiParseCoverageBar.vue`：柱状图、堆叠柱、水平进度条增加从 0 增长的动画
+- `CoverageCategoryRateChart.vue`、`CoverageCollectionMethodChart.vue`：右侧 legend 改为垂直居中显示
+
+### 怎么实现的
+
+- 在 ECharts option 顶层统一启用 `animation`、`animationDuration`、`animationEasing`，让初次绘制有过渡
+- 饼图 series 使用 `animationType: 'expansion'`；柱图和堆叠柱通过默认 bar 动画从 0 增长，并对部分 series 做轻微 `animationDelay`
+- 自主率环心文字的 ECharts graphic 文本对齐属性改为 `align` / `verticalAlign`，避免旧属性带来类型问题
+
+### 注意事项
+
+- 本次只调整前端图表表现，无 API / mock 变更；占位图组件未处理动画
+
+---
+
+## [2026-06-17] 覆盖统计图表 · Legend 右置与采集方式散点
+
+### 改了什么
+
+- `CoverageCollectionMethodChart.vue`：采集方式图表画布高度从 280 调到 336，让下方表格更贴近模块底部
+- `CoverageCollectionMethodChart.vue`：成功率从折线改为散点，只用点表达每种采集方式的成功率
+- `CoverageCollectionMethodChart.vue` / `CoverageCategoryRateChart.vue`：legend 改为右侧纵向展示，避免和图表主体挤在一起
+
+### 怎么实现的
+
+- 通过 ECharts `grid.right` 给右侧 legend 预留空间，`legend.orient = 'vertical'` 控制纵向布局
+- 成功率 series 从 `line` 改为 `scatter`，继续绑定右侧 0–100% 成功率 Y 轴
+
+### 注意事项
+
+- 本次只调整图表视觉表现，无 API / mock 字段变更
+
+---
+
+## [2026-06-17] 覆盖统计采集方式分布 · 堆叠柱与成功率折线
+
+### 改了什么
+
+- `CoverageCollectionMethodChart.vue`：新增采集方式分布组合图，替换原占位图
+- `KnowledgeCoverage.vue`：接入采集方式图表，表格保留原来的项目数 / 成功率 / 平均耗时
+- `CollectionMethodCoverageStat`：增加 `categoryCounts`，用于展示每种采集方式下的分类构成
+- `coverageCollectionMethodStats.ts`：mock 补充仿真框架 / 数值计算 / 工具链的项目数分布
+
+### 怎么实现的
+
+- 图表左 Y 轴展示项目数，按分类做堆叠柱；右 Y 轴展示成功率，用折线叠加在同一张图里
+- 图表实例仍通过 `useECharts` 管理初始化、ResizeObserver 和卸载销毁，避免图表页内存泄漏
+- 页面只调用 `getCollectionMethodCoverageStats()`，mock 数据仍只放在 `src/mock/modules/knowledge/`
+
+### 注意事项
+
+- 真实接口需要返回 `categoryCounts: { category, projectCount }[]`，并保证分类项目数合计与 `projectCount` 对齐
+
+---
+
+## [2026-06-17] 覆盖统计分类覆盖 · 恢复竖向分组柱
+
+### 改了什么
+
+- `CoverageCategoryRateChart.vue`：分类覆盖从横向条形图恢复为竖向分组柱状图
+
+### 怎么实现的
+
+- X 轴恢复为分类名称，Y 轴恢复为 0–100% 百分比
+- 保留此前确认的视觉设置：柱宽 26、同组两柱间距 55%、不显示柱顶数值、顶部 legend 区分两个率
+
+### 注意事项
+
+- 本次只调整图表方向，无 API / mock 变更
+
+---
+
+## [2026-06-17] 覆盖统计 · 分类横向条与周列表滚动
+
+### 改了什么
+
+- `CoverageCategoryRateChart.vue`：分类覆盖从竖向分组柱改为横向分组条，Y 轴显示分类，X 轴显示 0–100%
+- `KnowledgeCoverage.vue`：待补全清单分页从 8 条恢复为 6 条
+- `CoverageUpdateWeekList.vue`：更新趋势摘要列表一次性接收 6 周数据，但容器只显示约 3 行，剩余内容通过内部滚动查看
+
+### 怎么实现的
+
+- 横向条形图切换 `xAxis: value`、`yAxis: category`，保留两个百分比指标和顶部 legend
+- 周列表通过 `max-height` + `overflow-y: auto` 实现前端内部滚动，不触发二次请求
+
+### 注意事项
+
+- 本次无 mock 数据结构变更；`API.md` 已恢复待补全清单为 6 条/页
+
+---
+
+## [2026-06-17] 覆盖统计分类覆盖 · 柱宽与标签微调
+
+### 改了什么
+
+- `CoverageCategoryRateChart.vue`：柱宽从 18 调整为 26，圆角同步加大
+- `CoverageCategoryRateChart.vue`：同一分类下两根柱子的间距加大
+- `CoverageCategoryRateChart.vue`：移除柱顶百分比数值，只保留 tooltip 查看详情
+
+### 怎么实现的
+
+- 通过 ECharts `barWidth` / `barGap` 控制柱宽和分组间距，删除 series 的 label 配置
+
+### 注意事项
+
+- 本次只调整图表视觉参数，无 API / mock 变更
+
+---
+
+## [2026-06-17] 覆盖统计分类覆盖 · 百分比分组柱状图
+
+### 改了什么
+
+- `CoverageCategoryRateChart.vue`：新增分类覆盖图，使用竖向分组柱状图展示目录覆盖率 / 漏洞映射率
+- `KnowledgeCoverage.vue`：将「分类覆盖」占位替换为 `CoverageCategoryRateChart`
+
+### 怎么实现的
+
+- X 轴展示分类（仿真框架 / 数值计算 / 工具链），Y 轴固定 0–100%
+- 顶部 legend 区分「目录覆盖率」和「漏洞映射率」，不在图里展示项目数和版本数
+- 图表通过 `useECharts` 管理生命周期，数据来自已有 `getCategoryCoverageStats()`
+
+### 注意事项
+
+- 本次只替换分类覆盖图展示形式，无 API / mock 变更；采集方式分布仍保持占位
+
+---
+
+## [2026-06-17] 覆盖统计更新趋势 · 纯折线、全周标签和右侧图例
+
+### 改了什么
+
+- `LineAreaTrendChart.vue`：新增 `showArea` / `showLegend` / `showAllXAxisLabels` 配置
+- `CoverageUpdateTrendChart.vue`：更新趋势改为纯折线，X 轴显示 W15–W20 全部周标签，右侧显示三条线的 legend
+- `KnowledgeCoverage.vue`：待补全清单分页从 6 条改为 8 条
+
+### 怎么实现的
+
+- 首页继续使用默认面积图；覆盖统计通过 props 关闭面积、开启右侧 legend 和全量 X 轴标签
+- 待补全清单只调整 `usePaginatedList` 的 `pageSize`
+
+### 注意事项
+
+- 本次无 mock 结构变更；`API.md` 已把待补全清单备注更新为 8 条/页
+
+---
+
+## [2026-06-17] 覆盖统计更新趋势 · 复用通用折线面积图
+
+### 改了什么
+
+- `LineAreaTrendChart.vue`：从首页自主率趋势抽出通用低饱和折线面积图，支持多序列、首尾 X 轴强制显示和空态
+- `AutonomyTrendChart.vue`：改为复用 `LineAreaTrendChart`，自身只负责标题和自主率数据映射
+- `CoverageUpdateTrendChart.vue`：新增覆盖统计更新趋势图，展示近 6 周「新增项目 / 目录补全 / 漏洞映射更新」三条趋势线
+- `KnowledgeCoverage.vue`：将更新趋势占位替换为 `CoverageUpdateTrendChart`，分类覆盖和采集方式占位保持不动
+- `types/knowledge.ts` / `coverageUpdateTrend.ts`：为 `CoverageUpdateTrendWeek` 增加三项数值字段，并补齐 6 周 mock
+
+### 怎么实现的
+
+- 通用组件内部统一使用 `useECharts` 管理 init / resize / dispose
+- 更新趋势 API 仍沿用 `getCoverageUpdateTrendWeeks()`，只是 mock 和类型补充了可画图的结构化数值
+
+### 注意事项
+
+- 分类覆盖和采集方式分布图本次未实现，等后续确认样式后再接入
+
+---
+
+## [2026-06-17] 首页自主率趋势图 · 坐标轴与视觉降噪
+
+### 改了什么
+
+- `AutonomyTrendChart.vue`：标题改为「近30日自主率趋势」
+- `AutonomyTrendChart.vue`：X 轴强制展示首日、末日和少量中间日期，避免今日日期被隐藏
+- `AutonomyTrendChart.vue`：加大 grid 留白和坐标轴 label 间距，缓解 X / Y 轴文字重叠
+- `AutonomyTrendChart.vue`：折线颜色改为低饱和蓝，并移除 80% 绿色参考线
+
+### 怎么实现的
+
+- X 轴 `axisLabel.interval` 改为函数：首尾必显，中间每 6 个点显示一次
+- 折线保留轻微面积填充，用更浅的蓝色降低视觉噪声
+
+### 注意事项
+
+- 本次只调整首页趋势图展示，无 API / mock 变更
+
+---
+
+## [2026-06-17] 漏洞知识库风险摘要 · 左右图表补充小标题
+
+### 改了什么
+
+- `VulnKnowledgeRiskSummary.vue`：左侧玫瑰图新增「风险等级分布」小标题
+- `VulnKnowledgeRiskSummary.vue`：右侧条形图新增「高危来源排行」小标题
+
+### 怎么实现的
+
+- 在左右 `a-col` 顶部增加轻量标题行，并同步把两侧图表高度调整为 252px，避免标题挤压图表区域
+
+### 注意事项
+
+- 本次仅调整展示文案和布局，无 API / mock 变更
+
+---
+
+## [2026-06-17] 漏洞知识库风险摘要 · 右侧条形图容器常驻
+
+### 改了什么
+
+- `VulnKnowledgeRiskSummary.vue`：右侧高危来源排行的 ECharts 容器不再被 `v-if="hasData"` 包住
+- 空态改为在无数据时额外显示，不影响左右图表容器挂载
+
+### 怎么实现的
+
+- 原因是 `useECharts` 在组件 `onMounted` 阶段初始化实例；之前整行图表在数据返回前不渲染，`barChartRef` 为空，导致右侧条形图没有实例
+- 修复后 `a-row` 和 `barChartRef` 常驻，数据返回后 `renderBarChart()` 能正常 `setOption`
+
+### 注意事项
+
+- 本次只修复图表生命周期，无 API / mock 变更
+
+---
+
+## [2026-06-17] 漏洞知识库风险摘要 · 玫瑰饼图 + 高危来源排行
+
+### 改了什么
+
+- `RiskRosePieChart.vue`：从首页漏洞分布抽出通用低饱和玫瑰饼图，统一使用 `useECharts`
+- `VulnRiskDistributionChart.vue`：首页右侧图改为复用 `RiskRosePieChart`
+- `VulnKnowledgeRiskSummary.vue`：替换占位，左侧展示高/中/低风险总量玫瑰饼图，右侧展示各来源高危漏洞数量横向条形图
+- `api/knowledge.ts`：新增 `getVulnRiskSummary`
+- `types/knowledge.ts`：新增 `VulnRiskSummary` 等图表类型
+- `mock/modules/knowledge/vulnRiskSummary.ts`：新增风险摘要 mock，数据与顶部总数 8,420 / 高危 312 对齐
+- `utils/vulnRiskLevel.ts`：抽出高/中/低风险低饱和配色、标签与排序
+
+### 怎么实现的
+
+- 风险摘要组件挂载后调用 `getVulnRiskSummary()`，页面不直接读 mock
+- 左侧玫瑰图展示全库高危 / 中危 / 低危数量；右侧条形图按来源 `high` 倒序展示，tooltip 展示来源总数、高危占比和最近同步时间
+- 通用玫瑰饼图内部保持图表容器常驻，数据到达后 `setOption`，避免异步数据导致 ECharts 初始化失败
+
+### 注意事项
+
+- 真实接口规划：`GET /api/knowledge/vulnerabilities/risk-summary`
+- 当前右侧条形图只做高危排行；如果后续要展示中/低危构成，可改为堆叠条形图
+
+---
+
+## [2026-06-17] 首页漏洞风险分布 · 改为玫瑰饼图与低饱和配色
+
+### 改了什么
+
+- `VulnRiskDistributionChart.vue`：从环形图改为 `roseType: 'radius'` 的玫瑰饼图，数量越多扇区半径越大
+- `VulnRiskDistributionChart.vue`：总数从环心挪到卡片标题右侧，hover 时用 tooltip 展示风险等级、数量和占比
+- `dashboardVulnRisk.ts`：高危 / 中危 / 低危颜色改为更低饱和度的红、黄、绿
+
+### 怎么实现的
+
+- 饼图开启外侧标签和引导线，保留三档风险等级排序
+- `useECharts` 生命周期不变，只调整 option 配置与标题 slot
+
+### 注意事项
+
+- 本次只调整展示形式和颜色，无 API / mock 数据变更
+
+---
+
+## [2026-06-17] 首页图表空白修复 · 保持 ECharts 容器常驻
+
+### 改了什么
+
+- `AutonomyTrendChart.vue`：图表 DOM 改为始终渲染，空态只做覆盖层
+- `VulnRiskDistributionChart.vue`：同样保持环图容器常驻，避免初始化时 `ref` 为空
+
+### 怎么实现的
+
+- 原因是页面首次渲染时图表数据还没返回，组件里的 `v-if/v-else` 把 `ref` 容器移除了；`useECharts` 在 `onMounted` 时拿不到 DOM，就不会初始化实例
+- 修复后图表容器先挂载，数据回来后 `watch` 正常 `setOption`
+
+### 注意事项
+
+- 本次只改图表生命周期和空态覆盖层，无 API / mock 变更
+
+---
+
+## [2026-06-17] 首页仪表盘 · 自主率趋势折线与漏洞风险环形图
+
+### 改了什么
+
+- `AutonomyTrendChart.vue`：近 30 天平台平均自主率折线（`useECharts`，80% 参考虚线）
+- `VulnRiskDistributionChart.vue`：高危 / 中危 / 低危三档环形图，环心展示漏洞总数
+- `Dashboard.vue`：替换 `ChartPlaceholder`，并行拉取两个图表接口
+- `api/dashboard.ts`：`getAutonomyTrend`、`getVulnerabilityDistribution`
+- `types/dashboard.ts`：趋势与分布类型；`utils/dashboardVulnRisk.ts`：三档颜色/标签
+- mock：`dashboard/autonomyTrend.ts`、`dashboard/vulnerabilityDistribution.ts`
+
+### 怎么实现的
+
+- 折线：X 轴 MM-DD（30 点），Y 轴自主率 %，单系列平滑折线 + 圆点
+- 环图：`radius ['48%','72%']`，右侧图例，环心 graphic 显示 total（与 overview 漏洞数 23 一致）
+- mock 趋势末点 87.6% 与统计卡「平均自主率」对齐
+
+### 注意事项
+
+- 风险等级采用三档（high / medium / low），与开源风险任务口径一致
+- 真实 API：`GET /api/dashboard/autonomy-trend?days=30`、`GET /api/dashboard/vulnerability-distribution`
+
+---
+
 ## [2026-06-17] AI 解析结果抽屉 · 覆盖率条、License 树与冲突列表
 
 ### 改了什么

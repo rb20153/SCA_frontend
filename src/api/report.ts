@@ -7,6 +7,7 @@ import type {
   ReportDownloadInfo,
   ReportDownloadStatus,
   ReportFailureReason,
+  ReportPreview,
   ReportQueryParams,
 } from '@/types/report'
 import {
@@ -22,6 +23,7 @@ import {
   getMockReportFailureReason,
 } from '@/mock/modules/report/reportList'
 import { MOCK_ALL_REPORT_TEMPLATES } from '@/mock/modules/report/templateList'
+import { getMockReportPreview } from '@/mock/modules/report/reportPreview'
 
 // TODO: replace with: import request from '@/utils/request'
 
@@ -135,6 +137,21 @@ export function getReportDetail(reportId: string): Promise<ApiResponse<ReportDet
 
   // TODO: replace with → return request.get(`/api/reports/${reportId}`)
   return Promise.resolve({ code: 200, message: 'ok', data: detail })
+}
+
+/**
+ * 获取报告在线预览信息（详情抽屉内嵌 viewer 用）
+ * @param reportId - 报告 ID
+ * @returns 预览格式（pdf/html）与文件地址
+ */
+export function getReportPreview(reportId: string): Promise<ApiResponse<ReportPreview>> {
+  const detail = getMockReportDetail(reportId)
+  if (!detail) {
+    return Promise.reject(new Error('报告不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/reports/${reportId}/preview`)
+  // 真实接入：后端返回带签名的临时预览 URL；若需鉴权可改为 request.get(url, { responseType: 'blob' }) 后生成 objectURL
+  return Promise.resolve({ code: 200, message: 'ok', data: getMockReportPreview(reportId) })
 }
 
 /**

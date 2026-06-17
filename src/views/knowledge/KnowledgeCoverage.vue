@@ -9,10 +9,7 @@
         <div class="coverage-panel coverage-panel--fill">
           <h3 class="coverage-panel-title">分类覆盖</h3>
           <div class="coverage-panel-stack coverage-panel-stack--fill">
-            <ChartPlaceholder
-              flat-bottom
-              description="仿真框架 / 数值计算 / 工具链（占位，待接入 ECharts）"
-            />
+            <CoverageCategoryRateChart :stats="categoryStats" />
             <CoverageStatTable
               :columns="categoryColumns"
               :data-source="categoryStats"
@@ -27,11 +24,7 @@
         <div class="coverage-panel coverage-panel--fill">
           <h3 class="coverage-panel-title">采集方式分布</h3>
           <div class="coverage-panel-stack coverage-panel-stack--fill">
-            <ChartPlaceholder
-              flat-bottom
-              flex-body
-              description="云端仓库拉取 / 上传源码包（占位，待接入 ECharts）"
-            />
+            <CoverageCollectionMethodChart :stats="collectionMethodStats" />
             <CoverageStatTable
               :columns="collectionMethodColumns"
               :data-source="collectionMethodStats"
@@ -69,11 +62,7 @@
         <div class="coverage-panel coverage-panel--fill">
           <h3 class="coverage-panel-title">更新趋势</h3>
           <div class="coverage-panel-stack coverage-panel-stack--fill">
-            <ChartPlaceholder
-              flat-bottom
-              flex-body
-              description="近 6 周更新趋势图（占位，待接入 ECharts）"
-            />
+            <CoverageUpdateTrendChart :weeks="updateWeeks" />
             <CoverageUpdateWeekList :weeks="updateWeeks" :loading="updateTrendLoading" />
           </div>
         </div>
@@ -95,9 +84,11 @@ import {
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import StatCardRow from '@/components/common/StatCardRow.vue'
-import ChartPlaceholder from '@/components/dashboard/ChartPlaceholder.vue'
+import CoverageCategoryRateChart from '@/components/knowledge/CoverageCategoryRateChart.vue'
+import CoverageCollectionMethodChart from '@/components/knowledge/CoverageCollectionMethodChart.vue'
 import CoveragePendingTable from '@/components/knowledge/CoveragePendingTable.vue'
 import CoverageStatTable from '@/components/knowledge/CoverageStatTable.vue'
+import CoverageUpdateTrendChart from '@/components/knowledge/CoverageUpdateTrendChart.vue'
 import CoverageUpdateWeekList from '@/components/knowledge/CoverageUpdateWeekList.vue'
 import { usePaginatedList } from '@/composables/usePaginatedList'
 import type { StatCardItem } from '@/types/common'
@@ -200,7 +191,7 @@ async function fetchCollectionMethodStats() {
   }
 }
 
-/** 拉取最近三周更新趋势列表 */
+/** 拉取最近六周更新趋势列表 */
 async function fetchUpdateTrendWeeks() {
   updateTrendLoading.value = true
   try {

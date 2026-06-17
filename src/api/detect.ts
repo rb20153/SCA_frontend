@@ -8,6 +8,7 @@ import type {
   OpenSourceRiskComponent,
   OpenSourceRiskComponentDetail,
   OpenSourceRiskComponentQueryParams,
+  RiskComponentGraph,
   IgnoreOpenSourceRiskComponentParams,
   OpenSourceRiskVulnerability,
   OpenSourceRiskVulnerabilityQueryParams,
@@ -41,6 +42,7 @@ import {
   mockIgnoreOpenSourceRiskComponent,
   mockRevokeOpenSourceRiskComponentIgnore,
 } from '@/mock/modules/detect/openSourceRiskComponents'
+import { getMockRiskComponentGraph } from '@/mock/modules/detect/riskComponentGraph'
 import { getMockOpenSourceRiskVulnerabilityPage, countMockOpenSourceRiskVulnerabilitiesByComponent } from '@/mock/modules/detect/openSourceRiskVulnerabilities'
 import {
   getMockAiParseTaskPage,
@@ -257,6 +259,23 @@ export function getOpenSourceRiskComponentList(
     code: 200,
     message: 'ok',
     data: getMockOpenSourceRiskComponentPage(taskId, params),
+  })
+}
+
+/**
+ * 获取开源风险检测 · 组件依赖关系图（G6 渲染用，节点 + 边）
+ * @param taskId - 任务 ID
+ * @returns 依赖图数据，节点复用组件清单 ID，便于点击打开详情抽屉
+ */
+export function getRiskComponentGraph(taskId: string): Promise<ApiResponse<RiskComponentGraph>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/component-graph`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockRiskComponentGraph(taskId),
   })
 }
 

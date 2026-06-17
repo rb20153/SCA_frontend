@@ -11,12 +11,22 @@ export const mockCollectionMethodCoverageStatsRes: ApiResponse<
     {
       method: '云端仓库拉取',
       projectCount: 61,
+      categoryCounts: [
+        { category: '仿真框架', projectCount: 27 },
+        { category: '数值计算', projectCount: 16 },
+        { category: '工具链', projectCount: 18 },
+      ],
       successRate: 94,
       avgDurationMinutes: 16,
     },
     {
       method: '上传源码包',
       projectCount: 41,
+      categoryCounts: [
+        { category: '仿真框架', projectCount: 15 },
+        { category: '数值计算', projectCount: 12 },
+        { category: '工具链', projectCount: 14 },
+      ],
       successRate: 98,
       avgDurationMinutes: 9,
     },

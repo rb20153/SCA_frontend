@@ -16,6 +16,9 @@
           <a-descriptions-item label="许可证">
             <DetailText :text="detail.license" />
           </a-descriptions-item>
+          <a-descriptions-item label="来源">
+            {{ TASK_SOURCE_MODE_LABEL[detail.sourceMode] }}
+          </a-descriptions-item>
           <a-descriptions-item label="识别依据">
             <DetailText :text="detail.identifyBasisDetail" />
           </a-descriptions-item>
@@ -40,6 +43,7 @@ import { getOpenSourceRiskComponentDetail } from '@/api/detect'
 import DetailText from '@/components/common/DetailText.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import type { OpenSourceRiskComponentDetail } from '@/types/detect'
+import { TASK_SOURCE_MODE_LABEL } from '@/utils/taskDisplay'
 
 const props = defineProps<{
   /** 当前任务 ID */

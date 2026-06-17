@@ -30,6 +30,11 @@ const coverageText = computed(() => formatFileTreeIssueRateValue(props.coverage)
 function buildOption(rate: number): EChartsOption {
   const safeRate = Math.min(100, Math.max(0, rate))
   return {
+    animation: true,
+    animationDuration: 700,
+    animationEasing: 'cubicOut',
+    animationDurationUpdate: 450,
+    animationEasingUpdate: 'cubicOut',
     grid: { left: 0, right: 0, top: 0, bottom: 0, containLabel: false },
     xAxis: {
       type: 'value',
@@ -55,20 +60,19 @@ function buildOption(rate: number): EChartsOption {
           color: '#1677ff',
           borderRadius: 4,
         },
-        animation: false,
       },
     ],
   }
 }
 
 onMounted(() => {
-  setOption(buildOption(props.coverage), true)
+  setOption(buildOption(props.coverage))
 })
 
 watch(
   () => props.coverage,
   (rate) => {
-    setOption(buildOption(rate), true)
+    setOption(buildOption(rate))
   },
 )
 </script>

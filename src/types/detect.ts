@@ -228,6 +228,38 @@ export interface OpenSourceRiskComponentDetail extends OpenSourceRiskComponent {
   relatedVulnerabilityCount: number
 }
 
+/** 开源风险 · 依赖图节点风险等级（含无风险，根节点用 none） */
+export type RiskComponentGraphRiskLevel = OpenSourceRiskComponentRiskLevel | 'none'
+
+/** 开源风险 · 组件依赖图节点（领域数据，非 G6 原生结构） */
+export interface RiskComponentGraphNode {
+  /** 节点 ID；组件节点复用 componentId，便于点击直接打开详情抽屉 */
+  id: string
+  /** 组件名（根节点为被测项目名） */
+  componentName: string
+  /** 版本号；根节点为空串 */
+  version: string
+  /** 是否为根节点（被测项目本身） */
+  isRoot: boolean
+  riskLevel: RiskComponentGraphRiskLevel
+  /** 关联漏洞数，用于 tooltip 与节点标注 */
+  vulnerabilityCount: number
+  /** 依赖深度：0=根，1=直接依赖，≥2=间接（传递）依赖 */
+  depth: number
+}
+
+/** 开源风险 · 组件依赖图边（source 依赖 target） */
+export interface RiskComponentGraphEdge {
+  source: string
+  target: string
+}
+
+/** 开源风险 · 组件依赖关系图数据（节点 + 边） */
+export interface RiskComponentGraph {
+  nodes: RiskComponentGraphNode[]
+  edges: RiskComponentGraphEdge[]
+}
+
 /** 开源风险 · 组件清单筛选表单 */
 export interface OpenSourceRiskComponentListFilters {
   /** 组件名称关键词 */

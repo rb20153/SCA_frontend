@@ -160,9 +160,16 @@ export interface CategoryCoverageStat {
 }
 
 /** 采集方式覆盖统计行 */
+export interface CollectionMethodCategoryCount {
+  category: string
+  projectCount: number
+}
+
 export interface CollectionMethodCoverageStat {
   method: string
   projectCount: number
+  /** 各分类在该采集方式下的项目数，用于堆叠柱状图 */
+  categoryCounts: CollectionMethodCategoryCount[]
   /** 成功率，0–100 */
   successRate: number
   /** 平均耗时（分钟） */
@@ -187,6 +194,12 @@ export interface CoveragePendingQueryParams extends PageParams {}
 export interface CoverageUpdateTrendWeek {
   /** 周次标签，如 W20 */
   weekLabel: string
+  /** 新增开源项目数 */
+  addedProjectCount: number
+  /** 完成目录补全数量 */
+  completedDirectoryCount: number
+  /** 漏洞映射更新数量 */
+  vulnMappingUpdateCount: number
   summary: string
 }
 
@@ -197,6 +210,29 @@ export interface VulnKnowledgeOverview {
   highRiskCount: number
   /** 最近同步时间，ISO 8601 */
   lastSyncedAt: string
+}
+
+/** 漏洞风险摘要三档数量 */
+export interface VulnRiskLevelCount {
+  high: number
+  medium: number
+  low: number
+}
+
+/** 漏洞风险摘要 · 来源维度 */
+export interface VulnRiskSummarySource extends VulnRiskLevelCount {
+  sourceName: string
+  total: number
+  /** 最近同步时间，ISO 8601 */
+  lastSyncedAt: string
+}
+
+/** 漏洞知识库风险摘要 */
+export interface VulnRiskSummary {
+  total: number
+  highRiskCount: number
+  levelCounts: VulnRiskLevelCount
+  sources: VulnRiskSummarySource[]
 }
 
 /** 漏洞来源编码 */

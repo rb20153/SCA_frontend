@@ -23,6 +23,8 @@ defineProps<{
 .coverage-week-list {
   margin: 0;
   padding: 12px 16px 16px;
+  max-height: 150px;
+  overflow-y: auto;
   list-style: none;
 }
 
