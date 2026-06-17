@@ -1,4 +1,5 @@
 import type { ApiResponse, PageResult } from '@/types/common'
+import type { FileTreeData } from '@/types/fileTree'
 import type {
   DetectTask,
   CreateDetectTaskParams,
@@ -19,6 +20,9 @@ import type {
   UpdateDetectTaskParams,
   TerminateTaskParams,
   VulnDbVersionOption,
+  AutonomyDetectResultOverview,
+  AutonomySourceHitItem,
+  AutonomySourceHitQueryParams,
 } from '@/types/detect'
 import { MOCK_ALL_DETECT_TASKS } from '@/mock/modules/detect/taskList'
 import {
@@ -27,6 +31,9 @@ import {
   mockCreateDetectTask,
 } from '@/mock/modules/detect/taskCreateOptions'
 import { getMockOpenSourceRiskDetailSummary } from '@/mock/modules/detect/openSourceRiskDetail'
+import { getMockAutonomyDetectResultOverview } from '@/mock/modules/detect/autonomyResult'
+import { getMockAutonomyDetectEvidenceTree } from '@/mock/modules/detect/autonomyEvidenceTree'
+import { getMockAutonomySourceHitPage } from '@/mock/modules/detect/autonomySourceHits'
 import {
   getMockOpenSourceRiskComponentPage,
   getMockOpenSourceRiskComponentDetail,
@@ -152,6 +159,65 @@ export function getTaskDetail(taskId: string): Promise<ApiResponse<DetectTask>> 
     return Promise.reject(new Error('任务不存在'))
   }
   return Promise.resolve({ code: 200, message: 'ok', data: task })
+}
+
+/**
+ * 获取自主率检测结果 · 顶部总体摘要
+ * 页面跳转后按路由 taskId 拉取，用于环形自主率图与统计卡片
+ * @param taskId - 检测任务 ID
+ * @returns 总体/风险自主率与问题数统计
+ */
+export function getAutonomyDetectResultOverview(
+  taskId: string,
+): Promise<ApiResponse<AutonomyDetectResultOverview>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/overview`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockAutonomyDetectResultOverview(taskId),
+  })
+}
+
+/**
+ * 获取自主率检测结果 · 相似代码证据文件树
+ * 页面进入时按 taskId 拉取，供左侧目录树展示
+ * @param taskId - 检测任务 ID
+ */
+export function getAutonomyDetectEvidenceTree(
+  taskId: string,
+): Promise<ApiResponse<FileTreeData>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/evidence-tree`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockAutonomyDetectEvidenceTree(taskId),
+  })
+}
+
+/**
+ * 获取自主率检测结果 · 来源汇总列表（分页）
+ * @param taskId - 检测任务 ID
+ * @param params - 来源项目名 / 风险等级筛选与分页
+ */
+export function getAutonomyDetectSourceHitList(
+  taskId: string,
+  params: AutonomySourceHitQueryParams,
+): Promise<ApiResponse<PageResult<AutonomySourceHitItem>>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/source-hits`, { params })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockAutonomySourceHitPage(taskId, params),
+  })
 }
 
 /**

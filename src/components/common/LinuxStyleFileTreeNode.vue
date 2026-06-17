@@ -6,7 +6,8 @@
       :class="nodeButtonClass"
       @click="handleNodeClick"
     >
-      {{ nodeLabel }}
+      <span class="tree-node-label">{{ nodeLabel }}</span>
+      <span v-if="issueRateLabel" class="tree-issue-rate">{{ issueRateLabel }}</span>
     </button>
     <ul v-if="isDirectory && node.children?.length">
       <LinuxStyleFileTreeNode
@@ -23,6 +24,7 @@ import { computed, inject } from 'vue'
 import LinuxStyleFileTreeNode from '@/components/common/LinuxStyleFileTreeNode.vue'
 import type { LinuxStyleFileTreeContext } from '@/components/common/linuxStyleFileTreeContext'
 import type { FileTreeNode } from '@/types/fileTree'
+import { formatFileTreeIssueRateLabel } from '@/utils/fileTree'
 
 const props = defineProps<{
   node: FileTreeNode
@@ -47,6 +49,9 @@ const nodeLabel = computed(() =>
   isDirectory.value ? `${props.node.name}/` : props.node.name,
 )
 
+/** 问题率 Tag 文案；知识库目录树无 issueRate 时不展示 */
+const issueRateLabel = computed(() => formatFileTreeIssueRateLabel(props.node))
+
 const nodeButtonClass = computed(() => ({
   'tree-folder': isDirectory.value,
   'tree-file': !isDirectory.value,
@@ -65,6 +70,10 @@ function handleNodeClick() {
 
 <style scoped>
 .tree-node {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
   width: 100%;
   padding: 6px 10px;
   border: none;
@@ -73,6 +82,23 @@ function handleNodeClick() {
   text-align: left;
   color: rgba(0, 0, 0, 0.88);
   cursor: pointer;
+}
+
+.tree-node-label {
+  flex: 0 1 auto;
+}
+
+.tree-issue-rate {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fff7e6;
+  color: #d48806;
+  font-size: 12px;
+  line-height: 1.4;
+  flex-shrink: 0;
 }
 
 .tree-node:hover {

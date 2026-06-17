@@ -122,6 +122,52 @@ export function collectDirectoryNodeIds(nodes: FileTreeNode[]): string[] {
 }
 
 /**
+ * 在树中按文件名查找第一个文件 nodeId（深度优先）
+ * @param nodes - 树根节点列表
+ * @param fileName - 文件名（不含路径）
+ */
+export function findFileNodeIdByName(nodes: FileTreeNode[], fileName: string): string | null {
+  for (const node of nodes) {
+    if (node.type === 'file' && node.name === fileName) {
+      return node.nodeId
+    }
+    if (node.children?.length) {
+      const found = findFileNodeIdByName(node.children, fileName)
+      if (found) {
+        return found
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * 收集目标 nodeId 的祖先目录 nodeId 列表（用于展开路径）
+ * @param nodes - 树根节点列表
+ * @param targetNodeId - 目标 nodeId
+ */
+export function collectAncestorDirectoryIds(
+  nodes: FileTreeNode[],
+  targetNodeId: string,
+  ancestors: string[] = [],
+): string[] | null {
+  for (const node of nodes) {
+    if (node.nodeId === targetNodeId) {
+      return ancestors
+    }
+    if (node.children?.length) {
+      const nextAncestors =
+        node.type === 'directory' ? [...ancestors, node.nodeId] : ancestors
+      const found = collectAncestorDirectoryIds(node.children, targetNodeId, nextAncestors)
+      if (found) {
+        return found
+      }
+    }
+  }
+  return null
+}
+
+/**
  * 按关键字过滤文件树（匹配目录名、文件名或 MD5，保留命中文件的祖先目录）
  * @param nodes - 原始树
  * @param keyword - 检索关键词
@@ -151,4 +197,22 @@ export function filterFileTreeByKeyword(nodes: FileTreeNode[], keyword: string):
   }
 
   return nodes.map((node) => walk(node)).filter((node): node is FileTreeNode => node !== null)
+}
+
+/** 格式化问题率数值（保留 1 位小数，整数不带 .0） */
+export function formatFileTreeIssueRateValue(rate: number): string {
+  const rounded = Math.round(rate * 10) / 10
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
+}
+
+/**
+ * 生成树节点问题率 Tag 文案；无 issueRate 时返回 null
+ * @param node - 文件树节点
+ */
+export function formatFileTreeIssueRateLabel(node: FileTreeNode): string | null {
+  if (node.issueRate === undefined) {
+    return null
+  }
+  const pct = formatFileTreeIssueRateValue(node.issueRate)
+  return node.type === 'directory' ? `整体问题率 ${pct}%` : `${pct}%`
 }

@@ -18,7 +18,7 @@ import { provide, ref, watch } from 'vue'
 import LinuxStyleFileTreeNode from '@/components/common/LinuxStyleFileTreeNode.vue'
 import type { LinuxStyleFileTreeContext } from '@/components/common/linuxStyleFileTreeContext'
 import type { FileTreeNode } from '@/types/fileTree'
-import { buildExpandAllDirectoryMap, buildExpandedMapToDirectoryDepth, computeFileTreeDefaultState } from '@/utils/fileTree'
+import { buildExpandAllDirectoryMap, buildExpandedMapToDirectoryDepth, collectAncestorDirectoryIds, computeFileTreeDefaultState, findFileNodeIdByName } from '@/utils/fileTree'
 
 const props = withDefaults(
   defineProps<{
@@ -103,9 +103,42 @@ function collapseToFirstLevel() {
   expandedMap.value = buildExpandedMapToDirectoryDepth(props.nodes, 0)
 }
 
+/**
+ * 展开至指定文件并选中（用于来源汇总「定位」）
+ * @param nodeId - 文件 nodeId
+ */
+function locateFile(nodeId: string) {
+  const ancestorIds = collectAncestorDirectoryIds(props.nodes, nodeId)
+  if (!ancestorIds) {
+    return
+  }
+  const nextExpanded: Record<string, boolean> = { ...expandedMap.value }
+  for (const id of ancestorIds) {
+    nextExpanded[id] = true
+  }
+  expandedMap.value = nextExpanded
+  selectedFileId.value = nodeId
+}
+
+/**
+ * 按文件名展开路径并选中（深度优先匹配第一个同名文件）
+ * @param fileName - 文件名
+ * @returns 是否定位成功
+ */
+function locateFileByName(fileName: string): boolean {
+  const nodeId = findFileNodeIdByName(props.nodes, fileName)
+  if (!nodeId) {
+    return false
+  }
+  locateFile(nodeId)
+  return true
+}
+
 defineExpose({
   expandAll,
   collapseToFirstLevel,
+  locateFile,
+  locateFileByName,
 })
 </script>
 

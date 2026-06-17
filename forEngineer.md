@@ -5,6 +5,109 @@
 
 ---
 
+## [2026-06-17] 证据文件树 · 节点问题率 Tag（对齐原型）
+
+### 改了什么
+
+- `types/fileTree.ts`：`FileTreeNode` 新增可选 `issueRate`（0–100）
+- `LinuxStyleFileTreeNode.vue`：有 `issueRate` 时展示橙色 Tag（目录「整体问题率 xx%」，文件「xx%」）
+- `utils/fileTree.ts`：`formatFileTreeIssueRateLabel` 等格式化工具
+- `mock/.../autonomyEvidenceTree.ts`：各节点补全原型问题率（src 18.2%、solver.cpp 31.6% 等）
+
+### 怎么实现的
+
+- 问题率随 `getAutonomyDetectEvidenceTree` 与树节点一并返回；知识库目录树无 `issueRate` 字段时不显示 Tag，不影响现有页面
+
+---
+
+## [2026-06-17] 自主率检测结果页 · Tab（文件证据 / 来源汇总）与来源定位
+
+### 改了什么
+
+- `AutonomyDetectResult.vue`：统计卡片下增加 `PageNavTabs`（文件证据 / 来源汇总）；移除原型底部来源表与列表视图
+- `AutonomyEvidencePanel.vue`：文件证据 Tab（左树右详情，树数据独立拉取）
+- `AutonomySourceHitPanel.vue` + `AutonomySourceHitQueryBar` + `AutonomySourceHitTable`：来源汇总 Tab（筛选 + 分页列表 + 定位）
+- `LinuxStyleFileTree`：新增 `locateFile` / `locateFileByName` 暴露方法
+- `utils/fileTree.ts`：`findFileNodeIdByName`、`collectAncestorDirectoryIds`
+- `types/detect.ts`：`AutonomySourceHitItem` 等；`api/detect.ts`：`getAutonomyDetectSourceHitList`
+- `mock/modules/detect/autonomySourceHits.ts`：12 条来源汇总 mock（total > pageSize）
+
+### 为什么这么做
+
+底部单独放来源表语义不清；改为 Tab 区分「按文件看证据」与「按知识库来源汇总」。来源汇总支持筛选与定位回文件证据 Tab。
+
+### 怎么实现的
+
+- Tab 1「文件证据」：`AutonomyEvidencePanel` 内 1:3 栅格 + `LinuxStyleFileTree`
+- Tab 2「来源汇总」：`ListQueryBar`（来源项目关键词 + 风险等级）+ `ListTable` 分页；列含来源知识库项目/版本/命中文件/许可证/风险等级/操作
+- 「定位」：父页切 Tab → `nextTick` → `evidencePanelRef.locateFileByName(首个命中文件)`，树展开祖先目录并高亮
+- 来源列表 Tab 首次可见时 lazy load（`visible` watch）
+
+### 注意事项
+
+- 定位默认高亮该行 `hitFileNames[0]`；多文件行后续可改为下拉选择
+- 真实 API 规划 `GET /api/detect/tasks/:taskId/autonomy/source-hits`
+
+---
+
+## [2026-06-17] 自主率检测结果页 · 相似代码证据文件树（左 1/4 + 右详情占位）
+
+### 改了什么
+
+- `src/views/detect/AutonomyDetectResult.vue`：内容区改为 1:3 栅格；左侧复用 `LinuxStyleFileTree` 展示证据树，右侧「文件详情」占位
+- `src/api/detect.ts`：新增 `getAutonomyDetectEvidenceTree(taskId)`
+- `src/mock/modules/detect/autonomyEvidenceTree.ts`：mock 证据树（src/solver.cpp 等，对齐原型 M05-S04-P01）
+
+### 为什么这么做
+
+原型检测结果页下方为「相似代码证据文件树 + 文件详情」左右分栏；知识库项目目录页已封装 `LinuxStyleFileTree`，直接复用避免重复实现。
+
+### 怎么实现的
+
+- 页面 `onMounted` 并行拉取 `getAutonomyDetectResultOverview` 与 `getAutonomyDetectEvidenceTree`
+- 树数据写入 `treeNodes`，`v-model:selected-file-id` 双向绑定选中文件
+- 默认展开/选中：`LinuxStyleFileTree` 内部 `watch(nodes)` 调用 `computeFileTreeDefaultState`，DFS 展开至首个文件所在目录并高亮 `solver.cpp`
+- 右侧用 `findFileTreeNodeById` 解析当前选中文件，暂显示「已选中 xxx（文件详情待实现）」
+
+### 注意事项 / 已知限制
+
+- 真实接口规划 `GET /api/detect/tasks/:taskId/autonomy/evidence-tree`
+- 树节点暂不含「整体问题率」等扩展字段（当前 `FileTreeNode` 未定义）；后续可扩展类型或业务组件
+- 文件详情（代码证据 diff、指纹证据等）待下一迭代
+
+---
+
+## [2026-06-17] 自主率检测结果页 · 顶部总体自主率环形图
+
+### 改了什么
+
+- `src/views/detect/AutonomyDetectResult.vue`：原占位页改为真实页面，顶部展示总体自主率环形图 + 任务/项目信息 + 4 个统计卡片（问题文件数、代码问题、指纹问题、风险自主率）；下方证据树/列表暂留占位
+- `src/components/detect/AutonomyRateRing.vue`：新增环形自主率图组件（ECharts 空心环 + 环心百分比）
+- `src/utils/autonomyRate.ts`：新增自主率配色阈值工具（<50 红 / 50–80 黄 / ≥80 绿）
+- `src/types/detect.ts`：新增 `AutonomyDetectResultOverview` 接口
+- `src/api/detect.ts`：新增 `getAutonomyDetectResultOverview(taskId)`
+- `src/mock/modules/detect/autonomyResult.ts`：新增结果摘要 mock，自主率覆盖红/黄/绿三档
+
+### 为什么这么做
+
+原型 M05-S04-P01「检测结果」顶部是一个总体自主率圆环，需要用 ECharts 实现空心环形、环心显示百分比，并按自主率高低用红/黄/绿区分。
+
+### 怎么实现的
+
+- 数据来源：页面 `onMounted` 时按路由 `:taskId` 调 `getAutonomyDetectResultOverview`（mock 阶段从任务列表 mock 派生），存入 `overview`，三态用 `PageLoading` + `a-empty` 处理
+- 配色集中在 `utils/autonomyRate.ts`，`getAutonomyRateColor(rate)` 返回阈值色，组件与统计共用，避免阈值散落
+- 环形图：复用现有 `useECharts` composable（满足 `chart-lifecycle` 生命周期约束，自动 init/dispose/ResizeObserver）；pie `radius:['72%','92%']` 做空心环，自主部分用阈值色、剩余用浅灰，环心用 ECharts `title` 居中显示百分比
+- 首帧绘制放在组件自身 `onMounted`（在 useECharts 的 onMounted 之后执行，此时实例已 init），`rate` 变化用 `watch`（非 immediate）重绘——避免 immediate 在实例 init 前 setOption 丢失首帧
+
+### 注意事项 / 已知限制
+
+- `getAutonomyDetectResultOverview` 目前是 mock，真实接口规划 `GET /api/detect/tasks/:taskId/autonomy/overview`，切换时只改函数体
+- 取数用路由 `:taskId`（与现有路由参数一致）；若后端确为按任务名称查询，仅需改 API 参数
+- 下方「相似代码证据」树状/列表视图、文件详情、来源命中表暂未实现，仅占位
+- `AutonomyRateRing` 为 detect 业务组件（非公共组件），可被首页「平均自主率」等场景复用
+
+---
+
 ## 公共组件清单（`src/components/common/`，截至 2026-06-16）
 
 共 **18 个**对外 Vue 组件（另含 `LinuxStyleFileTreeNode` 为树组件内部递归子组件，不单独引用）。引用数为在 `src/` 内 import/模板使用的业务文件数（不含 `components.d.ts`）。

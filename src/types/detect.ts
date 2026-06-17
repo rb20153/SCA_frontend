@@ -103,6 +103,57 @@ export interface TaskListFilters {
   status: TaskStatus | ''
 }
 
+/** 自主率检测结果 · 顶部总体摘要（页面跳转后按 taskId 拉取） */
+export interface AutonomyDetectResultOverview {
+  taskId: string
+  taskName: string
+  projectName: string
+  status: TaskStatus
+  /** 完成时间 ISO；未完成时为 null */
+  finishedAt: string | null
+  /** 总体自主率 0–100 */
+  totalAutonomyRate: number
+  /** 风险自主率 0–100 */
+  riskAutonomyRate: number
+  /** 问题文件数 */
+  issueFileCount: number
+  /** 代码问题数 */
+  codeIssueCount: number
+  /** 指纹问题数 */
+  fingerprintIssueCount: number
+}
+
+/** 自主率检测结果 · 来源汇总风险等级（许可证/来源风险） */
+export type AutonomySourceHitRiskLevel = 'high' | 'medium' | 'low'
+
+/** 自主率检测结果 · 来源汇总列表项 */
+export interface AutonomySourceHitItem {
+  hitId: string
+  kbProjectId: string
+  /** 来源知识库项目名称 */
+  kbProjectName: string
+  kbVersion: string
+  /** 命中被测文件名称列表（定位时取首个） */
+  hitFileNames: string[]
+  license: string
+  riskLevel: AutonomySourceHitRiskLevel
+}
+
+/** 自主率检测结果 · 来源汇总筛选表单 */
+export interface AutonomySourceHitListFilters {
+  kbProjectName: string
+  riskLevel: AutonomySourceHitRiskLevel | ''
+}
+
+/** 自主率检测结果 · 来源汇总查询参数 */
+export interface AutonomySourceHitQueryParams extends Partial<PageParams> {
+  kbProjectName?: string
+  riskLevel?: AutonomySourceHitRiskLevel
+}
+
+/** 自主率检测结果 Tab key */
+export type AutonomyDetectResultTabKey = 'evidence' | 'sources'
+
 /** 开源风险详情 · 顶部任务摘要（列表跳转经 state 携带） */
 export interface OpenSourceRiskDetailHeadInfo {
   taskId: string

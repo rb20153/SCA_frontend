@@ -10,6 +10,12 @@ export interface FileTreeNode {
   path?: string
   /** 文件 MD5，供关键字哈希检索 */
   md5?: string
+  /**
+   * 问题率 0–100（自主率证据树等场景）
+   * - 目录：展示「整体问题率 xx%」
+   * - 文件：展示「xx%」
+   */
+  issueRate?: number
   children?: FileTreeNode[]
 }
 
