@@ -5,6 +5,38 @@
 
 ---
 
+## [2026-06-18] 告警中心 · 处置与时间线微调
+
+### 改了什么
+
+- 移除操作列「忽略本次」，改在「处理」弹窗处置下拉中（含「忽略本次」选项）
+- 修复未处理已读行首列 `[object Object]`：去掉独立 readDot 列，蓝点并入标题列
+- 抽离公共 `ChainTimeline.vue`，日志详情与告警处理时间线弹窗复用同一 `a-timeline` 样式
+- 处理时间线弹窗：去掉示例提示与底部关闭按钮；打开时 `getAlertTimeline(alertId)` 拉取数据
+
+---
+
+### 改了什么
+
+- **未处理 Tab**：未读行蓝底 + 蓝点；筛选增加「已读状态」；操作列「处理 / 详情 / 忽略本次」
+- **`AlertHandleModal`**：对齐原型 7 种处置方式，选择后展示「后续动作」与差异化表单项（转派、备注、通知审计员等）
+- **提交**：`handleAlert()` → mock 就地更新队列——`ignore-once` 仅 `isRead=true` 留未处理；其余移入已处理并写时间线
+- **已处理 Tab**：分页列表列含级别/标题/来源模块/处理时间/处理人/状态/操作；「详情」同右侧抽屉；「处理时间线」只读弹窗
+- 新增 mock：`alertHandle.ts`、`alertTimeline.ts`、`alertAssignees.ts`；工具 `utils/alertDisposition.ts`
+
+### 怎么用
+
+1. `/system/alerts` → 未处理 → 点「处理」选方式填表 → 确定
+2. 「忽略本次」等同处置 `ignore-once`，不调弹窗
+3. 已处理 Tab → 「处理时间线」查看 mock 时间线条目（暂无编辑交互）
+
+### 注意事项
+
+- 联调时 `handleAlert` 改 `POST /api/system/alerts/:id/handle`，后端需返回 `movedToHandled` 语义
+- 处理人姓名 mock 阶段由页面传入 `authStore.userInfo.realName`
+
+---
+
 ## [2026-06-18] 策略治理子页去掉顶部 Tab 切换
 
 ### 改了什么

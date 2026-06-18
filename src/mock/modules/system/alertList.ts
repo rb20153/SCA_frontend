@@ -1,10 +1,13 @@
 import type {
   AlertDetail,
+  AlertDisposition,
   AlertLevel,
   AlertListItem,
   AlertQueryParams,
   AlertQueueStatus,
 } from '@/types/system'
+import { ALERT_DISPOSITION } from '@/types/system'
+import { registerMockAlertTimeline, appendMockAlertTimelineEntry } from '@/mock/modules/system/alertTimeline'
 import dayjs from 'dayjs'
 
 interface AlertSeed {
@@ -19,6 +22,7 @@ interface AlertSeed {
   suggestions: string[]
   handlerName?: string
   handledHoursAgo?: number
+  disposition?: AlertDisposition
 }
 
 const PENDING_SEEDS: AlertSeed[] = [
@@ -115,6 +119,7 @@ const HANDLED_SEEDS: AlertSeed[] = [
     hoursAgo: 48,
     handledHoursAgo: 4,
     handlerName: '张三',
+    disposition: ALERT_DISPOSITION.TransferReview,
     triggerRule: 'POLICY_RULE_CONFLICT',
     content: '策略「默认自主率阈值」与项目覆盖项存在互斥规则，自动合并失败。',
     suggestions: ['在策略编辑器中调整互斥项优先级', '发布前走审批流复核'],
@@ -165,6 +170,7 @@ function buildAlertsFromSeeds(
       sourceModule: seed.sourceModule,
       occurredAt,
       status: status === 'pending' ? 'pending' : 'handled',
+      isRead: status === 'pending' ? index >= 2 : undefined,
     }
 
     if (status === 'handled') {
@@ -172,6 +178,7 @@ function buildAlertsFromSeeds(
         .subtract(seed.handledHoursAgo ?? seed.hoursAgo - 1, 'hour')
         .toISOString()
       item.handlerName = seed.handlerName ?? '运维值班'
+      item.disposition = seed.disposition ?? ALERT_DISPOSITION.TransferReview
     }
 
     return item
@@ -193,11 +200,13 @@ function buildAlertsFromSeeds(
       sourceModule: modules[i % modules.length],
       occurredAt,
       status: status === 'pending' ? 'pending' : 'handled',
+      isRead: status === 'pending' ? true : undefined,
     }
 
     if (status === 'handled') {
       item.handledAt = base.subtract(10 + i * 5, 'hour').toISOString()
       item.handlerName = ['张三', '李四', '王五', '赵六'][i % 4]
+      item.disposition = ALERT_DISPOSITION.ManualFix
     }
 
     items.push(item)
@@ -211,19 +220,46 @@ function buildAlertsFromSeeds(
 const MOCK_PENDING_ALERTS = buildAlertsFromSeeds(PENDING_SEEDS, 'pending', 12)
 const MOCK_HANDLED_ALERTS = buildAlertsFromSeeds(HANDLED_SEEDS, 'handled', 9)
 
+type AlertListMutation =
+  | { type: 'update-pending'; index: number; item: AlertListItem }
+  | { type: 'move-to-handled'; pendingIndex: number; handledItem: AlertListItem }
+
+/** mock 阶段就地更新未处理/已处理队列（处置提交后） */
+export function mutateMockAlertLists(mutation: AlertListMutation) {
+  if (mutation.type === 'update-pending') {
+    MOCK_PENDING_ALERTS[mutation.index] = mutation.item
+    return
+  }
+  MOCK_PENDING_ALERTS.splice(mutation.pendingIndex, 1)
+  MOCK_HANDLED_ALERTS.unshift(mutation.handledItem)
+}
+
 const ALERT_DETAIL_BY_ID = new Map<string, AlertDetail>()
 
-function registerDetailFromSeed(alertId: string, seed: AlertSeed, occurredAt: string) {
+function registerDetailFromSeed(
+  alertId: string,
+  seed: AlertSeed,
+  occurredAt: string,
+  status: AlertQueueStatus,
+) {
   ALERT_DETAIL_BY_ID.set(alertId, {
     alertId,
     level: seed.level,
     title: seed.title,
     triggerRule: seed.triggerRule,
     occurredAt,
+    status: status === 'pending' ? 'pending' : 'handled',
     content: seed.content,
     relatedTask: seed.relatedTask,
     relatedProject: seed.relatedProject,
     suggestions: seed.suggestions,
+    handledAt:
+      status === 'handled'
+        ? dayjs()
+            .subtract(seed.handledHoursAgo ?? seed.hoursAgo - 1, 'hour')
+            .toISOString()
+        : undefined,
+    handlerName: status === 'handled' ? seed.handlerName : undefined,
   })
 }
 
@@ -233,16 +269,28 @@ PENDING_SEEDS.forEach((seed, index) => {
     alertId,
     seed,
     dayjs().subtract(seed.hoursAgo, 'hour').toISOString(),
+    'pending',
   )
 })
 
 HANDLED_SEEDS.forEach((seed, index) => {
   const alertId = `alert-handled-${String(index + 1).padStart(3, '0')}`
-  registerDetailFromSeed(
+  const occurredAt = dayjs().subtract(seed.hoursAgo, 'hour').toISOString()
+  registerDetailFromSeed(alertId, seed, occurredAt, 'handled')
+  registerMockAlertTimeline(
     alertId,
-    seed,
-    dayjs().subtract(seed.hoursAgo, 'hour').toISOString(),
+    seed.title,
+    seed.handlerName ?? '运维值班',
+    seed.triggerRule,
+    seed.disposition ?? ALERT_DISPOSITION.TransferReview,
   )
+  if (seed.disposition === ALERT_DISPOSITION.TransferReview) {
+    appendMockAlertTimelineEntry(
+      alertId,
+      dayjs().subtract(seed.handledHoursAgo ?? 4, 'hour').format('YYYY-MM-DD HH:mm'),
+      '已向检测工程师王五发送站内消息，待进一步排查',
+    )
+  }
 })
 
 /** 获取指定队列状态的全量 mock 告警 */
@@ -268,6 +316,22 @@ export function filterMockAlertList(params: AlertQueryParams): AlertListItem[] {
     })
   }
 
+  if (params.status === 'pending' && params.readStatus) {
+    if (params.readStatus === 'unread') {
+      list = list.filter((item) => !item.isRead)
+    } else if (params.readStatus === 'read') {
+      list = list.filter((item) => item.isRead)
+    }
+  }
+
+  if (params.status === 'handled') {
+    return list.sort(
+      (a, b) =>
+        new Date(b.handledAt ?? b.occurredAt).getTime() -
+        new Date(a.handledAt ?? a.occurredAt).getTime(),
+    )
+  }
+
   return list.sort(
     (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
   )
@@ -289,7 +353,10 @@ export function getMockAlertDetail(alertId: string): AlertDetail | null {
     title: found.title,
     triggerRule: 'GENERIC_ALERT',
     occurredAt: found.occurredAt,
+    status: found.status,
     content: `${found.title}：系统检测到异常，请结合来源模块「${found.sourceModule}」进一步排查。`,
     suggestions: ['查看相关模块运行日志', '确认近期配置或数据是否有变更'],
+    handledAt: found.handledAt,
+    handlerName: found.handlerName,
   }
 }

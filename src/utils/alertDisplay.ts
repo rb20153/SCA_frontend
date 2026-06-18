@@ -21,7 +21,7 @@ export const ALERT_LEVEL_COLOR: Record<AlertLevel, string> = {
 }
 
 /** 告警列表表格横向滚动宽度 */
-export const ALERT_TABLE_SCROLL_X = 1000
+export const ALERT_TABLE_SCROLL_X = 1100
 
 /**
  * 格式化告警时间为列表展示

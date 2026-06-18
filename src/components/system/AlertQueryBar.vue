@@ -8,6 +8,14 @@
       />
     </a-form-item>
 
+    <a-form-item v-if="showReadFilter" label="已读状态">
+      <a-select
+        v-model:value="filters.readStatus"
+        class="list-query-select"
+        :options="ALERT_READ_FILTER_OPTIONS"
+      />
+    </a-form-item>
+
     <a-form-item label="时间">
       <a-date-picker
         v-model:value="filters.occurredAt"
@@ -23,7 +31,15 @@
 <script setup lang="ts">
 import ListQueryBar from '@/components/common/ListQueryBar.vue'
 import type { AlertListFilters } from '@/types/system'
-import { ALERT_LEVEL_FILTER_OPTIONS } from '@/utils/alertQuery'
+import {
+  ALERT_LEVEL_FILTER_OPTIONS,
+  ALERT_READ_FILTER_OPTIONS,
+} from '@/utils/alertQuery'
+
+defineProps<{
+  /** 未处理 Tab 展示已读状态筛选 */
+  showReadFilter?: boolean
+}>()
 
 const filters = defineModel<AlertListFilters>({ required: true })
 

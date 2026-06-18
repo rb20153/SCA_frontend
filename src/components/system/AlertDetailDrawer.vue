@@ -23,6 +23,11 @@
           <a-descriptions-item label="时间">
             {{ formatAlertDateTime(detail.occurredAt) }}
           </a-descriptions-item>
+          <a-descriptions-item label="状态">
+            <a-tag :color="detail.status === 'pending' ? 'warning' : 'success'">
+              {{ detail.status === 'pending' ? '未处理' : '已处理' }}
+            </a-tag>
+          </a-descriptions-item>
           <a-descriptions-item label="内容" :span="2">
             <DetailText :text="detail.content" />
           </a-descriptions-item>

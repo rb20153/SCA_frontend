@@ -1,4 +1,9 @@
-import type { AlertLevel, AlertListFilters, AlertQueryParams } from '@/types/system'
+import type {
+  AlertLevel,
+  AlertListFilters,
+  AlertQueryParams,
+  AlertReadFilter,
+} from '@/types/system'
 import { ALERT_LEVEL_LABEL } from '@/utils/alertDisplay'
 import dayjs from 'dayjs'
 
@@ -13,10 +18,18 @@ export const ALERT_LEVEL_FILTER_OPTIONS: {
   { value: 'normal', label: ALERT_LEVEL_LABEL.normal },
 ]
 
+/** 未处理 Tab 已读状态筛选项 */
+export const ALERT_READ_FILTER_OPTIONS: { value: AlertReadFilter; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'unread', label: '未读' },
+  { value: 'read', label: '已读' },
+]
+
 /** 返回空的告警列表筛选表单，时间默认今日 00:00 */
 export function createEmptyAlertListFilters(): AlertListFilters {
   return {
     level: '',
+    readStatus: 'all',
     occurredAt: dayjs().startOf('day'),
   }
 }
@@ -29,6 +42,9 @@ export function alertListFiltersToQuery(
 
   if (filters.level) {
     query.level = filters.level
+  }
+  if (filters.readStatus && filters.readStatus !== 'all') {
+    query.readStatus = filters.readStatus
   }
   if (filters.occurredAt) {
     query.occurredDate = filters.occurredAt.format('YYYY-MM-DD')

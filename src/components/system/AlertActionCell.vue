@@ -1,14 +1,13 @@
 <template>
   <span class="action-cell">
-    <a
-      v-if="queueStatus === 'pending'"
-      href="#"
-      class="list-table-link"
-      @click.prevent
-    >
-      处理
-    </a>
-    <a href="#" class="list-table-link" @click.prevent="emit('detail', alert)">详情</a>
+    <template v-if="queueStatus === 'pending'">
+      <a href="#" class="list-table-link" @click.prevent="emit('handle', alert)">处理</a>
+      <a href="#" class="list-table-link" @click.prevent="emit('detail', alert)">详情</a>
+    </template>
+    <template v-else>
+      <a href="#" class="list-table-link" @click.prevent="emit('detail', alert)">详情</a>
+      <a href="#" class="list-table-link" @click.prevent="emit('timeline', alert)">处理时间线</a>
+    </template>
   </span>
 </template>
 
@@ -22,6 +21,8 @@ defineProps<{
 
 const emit = defineEmits<{
   detail: [alert: AlertListItem]
+  handle: [alert: AlertListItem]
+  timeline: [alert: AlertListItem]
 }>()
 </script>
 

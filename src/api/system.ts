@@ -1,15 +1,19 @@
 import type { ApiResponse, PageResult } from '@/types/common'
 import type {
+  AlertAssigneeOption,
   AlertCenterOverview,
   AlertDetail,
   AlertListItem,
   AlertOverviewQueryParams,
   AlertQueryParams,
+  AlertTimeline,
   CreateDepartmentParams,
   CreateRoleParams,
   Department,
   DepartmentMemberCheckResult,
   DepartmentQueryParams,
+  HandleAlertParams,
+  HandleAlertResult,
   LogDetail,
   LogExportParams,
   LogExportResult,
@@ -37,7 +41,10 @@ import {
 } from '@/mock/modules/system/roleList'
 import { isValidRoleCode } from '@/utils/roleValidation'
 import { getMockAlertCenterOverviewRes } from '@/mock/modules/system/alertOverview'
+import { MOCK_ALERT_ASSIGNEE_OPTIONS } from '@/mock/modules/system/alertAssignees'
+import { mockHandleAlert } from '@/mock/modules/system/alertHandle'
 import { filterMockAlertList, getMockAlertDetail } from '@/mock/modules/system/alertList'
+import { getMockAlertTimeline } from '@/mock/modules/system/alertTimeline'
 import {
   filterMockLogList,
   getMockLogDetail,
@@ -96,6 +103,48 @@ export function getAlertDetail(alertId: string): Promise<ApiResponse<AlertDetail
 
   // TODO: replace with → return request.get(`/api/system/alerts/${alertId}`)
   return Promise.resolve({ code: 200, message: 'ok', data: detail })
+}
+
+/**
+ * 提交告警处置（未处理 Tab「处理」/「忽略本次」）
+ * @param alertId - 告警 ID
+ * @param data - 处置方式与附加字段
+ * @param handlerName - 当前操作人姓名（mock 写入处理人；联调时由后端从 token 解析）
+ */
+export function handleAlert(
+  alertId: string,
+  data: HandleAlertParams,
+  handlerName: string,
+): Promise<ApiResponse<HandleAlertResult>> {
+  try {
+    const result = mockHandleAlert(alertId, data, handlerName)
+    // TODO: replace with → return request.post(`/api/system/alerts/${alertId}/handle`, data)
+    return Promise.resolve({ code: 200, message: 'ok', data: result })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : '处置失败'
+    return Promise.reject(new Error(msg))
+  }
+}
+
+/**
+ * 获取转派复核候选人列表（处理弹窗下拉）
+ */
+export function getAlertAssigneeOptions(): Promise<ApiResponse<AlertAssigneeOption[]>> {
+  // TODO: replace with → return request.get('/api/system/alerts/assignees')
+  return Promise.resolve({ code: 200, message: 'ok', data: MOCK_ALERT_ASSIGNEE_OPTIONS })
+}
+
+/**
+ * 获取已处理告警的处理时间线
+ * @param alertId - 告警 ID
+ */
+export function getAlertTimeline(alertId: string): Promise<ApiResponse<AlertTimeline>> {
+  const timeline = getMockAlertTimeline(alertId)
+  if (!timeline) {
+    return Promise.reject(new Error('暂无处理时间线'))
+  }
+  // TODO: replace with → return request.get(`/api/system/alerts/${alertId}/timeline`)
+  return Promise.resolve({ code: 200, message: 'ok', data: timeline })
 }
 
 /**

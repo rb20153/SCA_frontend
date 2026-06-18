@@ -5,6 +5,7 @@
     :loading="loading"
     :pagination="pagination"
     :scroll-x="ALERT_TABLE_SCROLL_X"
+    :row-class-name="rowClassName"
     row-key="alertId"
   >
     <template #bodyCell="{ column, record: row, text }">
@@ -12,6 +13,24 @@
         <a-tag :color="ALERT_LEVEL_COLOR[getAlert(row).level]" class="list-table-status-tag">
           {{ ALERT_LEVEL_LABEL[getAlert(row).level] }}
         </a-tag>
+      </template>
+
+      <template v-else-if="column.key === 'title'">
+        <span class="alert-title-cell">
+          <span
+            v-if="queueStatus === 'pending' && isAlertUnread(getAlert(row))"
+            class="alert-unread-dot"
+            title="未读"
+          />
+          <span
+            :class="{
+              'alert-title--unread':
+                queueStatus === 'pending' && isAlertUnread(getAlert(row)),
+            }"
+          >
+            {{ getAlert(row).title }}
+          </span>
+        </span>
       </template>
 
       <template v-else-if="column.key === 'occurredAt'">
@@ -23,7 +42,8 @@
       </template>
 
       <template v-else-if="column.key === 'status'">
-        <a-tag color="warning">未处理</a-tag>
+        <a-tag v-if="queueStatus === 'pending'" color="warning">未处理</a-tag>
+        <a-tag v-else color="success">已处理</a-tag>
       </template>
 
       <template v-else-if="column.key === 'action'">
@@ -31,6 +51,8 @@
           :alert="getAlert(row)"
           :queue-status="queueStatus"
           @detail="(alert) => emit('detail', alert)"
+          @handle="(alert) => emit('handle', alert)"
+          @timeline="(alert) => emit('timeline', alert)"
         />
       </template>
 
@@ -62,11 +84,26 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   detail: [alert: AlertListItem]
+  handle: [alert: AlertListItem]
+  timeline: [alert: AlertListItem]
 }>()
 
 /** a-table bodyCell 的 record 收窄为 AlertListItem */
 function getAlert(row: unknown): AlertListItem {
   return row as AlertListItem
+}
+
+/** 未处理且未读（isRead 缺省视为未读） */
+function isAlertUnread(alert: AlertListItem): boolean {
+  return !alert.isRead
+}
+
+/** 未处理未读行蓝底高亮 */
+function rowClassName(record: AlertListItem): string {
+  if (props.queueStatus !== 'pending' || !isAlertUnread(record)) {
+    return ''
+  }
+  return 'alert-row--unread'
 }
 
 /** 未处理 / 已处理使用不同列定义 */
@@ -75,20 +112,70 @@ const columns = computed<TableColumnsType<AlertListItem>>(() => {
     return [
       { title: '级别', key: 'level', width: 100 },
       { title: '标题', key: 'title', dataIndex: 'title', width: 200, ellipsis: true },
-      { title: '来源模块', key: 'sourceModule', dataIndex: 'sourceModule', width: 120, ellipsis: true },
+      {
+        title: '来源模块',
+        key: 'sourceModule',
+        dataIndex: 'sourceModule',
+        width: 120,
+        ellipsis: true,
+      },
       { title: '处理时间', key: 'handledAt', width: 160 },
-      { title: '处理人', key: 'handlerName', dataIndex: 'handlerName', width: 100, ellipsis: true },
-      { title: '操作', key: 'action', width: 100 },
+      {
+        title: '处理人',
+        key: 'handlerName',
+        dataIndex: 'handlerName',
+        width: 100,
+        ellipsis: true,
+      },
+      { title: '状态', key: 'status', width: 100 },
+      { title: '操作', key: 'action', width: 160, fixed: 'right' },
     ]
   }
 
   return [
     { title: '级别', key: 'level', width: 100 },
-    { title: '标题', key: 'title', dataIndex: 'title', width: 200, ellipsis: true },
-    { title: '来源模块', key: 'sourceModule', dataIndex: 'sourceModule', width: 120, ellipsis: true },
+    { title: '标题', key: 'title', dataIndex: 'title', width: 220, ellipsis: true },
+    {
+      title: '来源模块',
+      key: 'sourceModule',
+      dataIndex: 'sourceModule',
+      width: 120,
+      ellipsis: true,
+    },
     { title: '时间', key: 'occurredAt', width: 160 },
     { title: '状态', key: 'status', width: 100 },
-    { title: '操作', key: 'action', width: 140 },
+    { title: '操作', key: 'action', width: 140, fixed: 'right' },
   ]
 })
 </script>
+
+<style scoped>
+.alert-title-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.alert-title--unread {
+  font-weight: 600;
+}
+
+.alert-unread-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #1677ff;
+}
+</style>
+
+<style>
+.alert-row--unread > td {
+  background-color: #e6f4ff !important;
+}
+
+.alert-row--unread:hover > td {
+  background-color: #bae0ff !important;
+}
+</style>

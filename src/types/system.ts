@@ -7,6 +7,22 @@ export type AlertLevel = 'critical' | 'important' | 'normal'
 /** 告警队列 Tab：未处理 / 已处理 */
 export type AlertQueueStatus = 'pending' | 'handled'
 
+/** 告警处置方式（与原型 alert-disposition 一致） */
+export const ALERT_DISPOSITION = {
+  AutoRecover: 'auto-recover',
+  ManualFix: 'manual-fix',
+  TransferReview: 'transfer-review',
+  TempMitigate: 'temp-mitigate',
+  AcceptRisk: 'accept-risk',
+  FalsePositive: 'false-positive',
+  IgnoreOnce: 'ignore-once',
+} as const
+
+export type AlertDisposition = (typeof ALERT_DISPOSITION)[keyof typeof ALERT_DISPOSITION]
+
+/** 未处理列表已读筛选 */
+export type AlertReadFilter = 'all' | 'unread' | 'read'
+
 /** 告警中心页顶部概览 */
 export interface AlertCenterOverview {
   criticalCount: number
@@ -27,10 +43,14 @@ export interface AlertListItem {
   occurredAt: string
   /** 未处理列表展示用 */
   status: 'pending' | 'handled'
+  /** 未处理：是否已读（蓝底高亮仅视觉区分，状态列仍显示未处理） */
+  isRead?: boolean
   /** 已处理：处理时间 */
   handledAt?: string
   /** 已处理：处理人 */
   handlerName?: string
+  /** 已处理：处置方式 */
+  disposition?: AlertDisposition
 }
 
 export interface AlertRelatedTask {
@@ -51,14 +71,47 @@ export interface AlertDetail {
   title: string
   triggerRule: string
   occurredAt: string
+  status: 'pending' | 'handled'
   content: string
   relatedTask?: AlertRelatedTask
   relatedProject?: AlertRelatedProject
   suggestions: string[]
+  handledAt?: string
+  handlerName?: string
+}
+
+/** 提交告警处置请求体 */
+export interface HandleAlertParams {
+  disposition: AlertDisposition
+  /** 处理说明 / 接受原因 / 误报说明 */
+  remark?: string
+  /** 转派复核：被指派人 */
+  assigneeUserId?: string
+  /** 转派复核：计划完成时间 ISO 8601 */
+  plannedCompleteAt?: string
+  notifyAuditor?: boolean
+  notifyTaskOwner?: boolean
+  notifyOps?: boolean
+}
+
+/** 处置接口返回：是否转入已处理队列 */
+export interface HandleAlertResult {
+  alert: AlertListItem
+  movedToHandled: boolean
+}
+
+/** 处理时间线（已处理 Tab 弹窗，打开时从接口拉取） */
+export interface AlertTimeline {
+  alertId: string
+  title: string
+  handlerName: string
+  timeline: LogTimelineItem[]
 }
 
 export interface AlertListFilters {
   level: AlertLevel | ''
+  /** 未处理 Tab：已读状态筛选 */
+  readStatus: AlertReadFilter
   /** 筛选时间（日期+时刻），默认今日 */
   occurredAt?: Dayjs
 }
@@ -66,8 +119,15 @@ export interface AlertListFilters {
 export interface AlertQueryParams extends PageParams {
   status: AlertQueueStatus
   level?: AlertLevel
+  readStatus?: AlertReadFilter
   /** 筛选日期，格式 YYYY-MM-DD */
   occurredDate?: string
+}
+
+/** 告警转派候选人（处理弹窗下拉） */
+export interface AlertAssigneeOption {
+  userId: string
+  label: string
 }
 
 /** 审计日志结果 */
