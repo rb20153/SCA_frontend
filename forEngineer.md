@@ -5,6 +5,42 @@
 
 ---
 
+## [2026-06-18] 策略治理子页去掉顶部 Tab 切换
+
+### 改了什么
+
+- `PolicyRuleTrace.vue`、`PolicyGovernance.vue` 移除 `PageNavTabs`；两页各自独立，仅保留策略名统计卡片
+- 删除 `POLICY_GOVERNANCE_TABS` 常量
+
+### 注意事项
+
+- 策略列表操作列仍分别跳转「版本/审批」与「命中追溯」，两页互不嵌套 Tab
+
+---
+
+## [2026-06-18] 策略管理 · 规则命中追溯页
+
+### 改了什么
+
+- 新增 `PolicyRuleTrace.vue`（路由 `/policies/:policyId/trace`），从策略列表「命中追溯」独立进入
+- 新增 `PolicyRuleHitQueryBar` / `PolicyRuleHitTable` / `PolicyRuleHitDetailDrawer` 组件
+- 抽离公共 `CodeSnippetBlock.vue`（黑底等宽代码块），`LogDetailDrawer` 原始日志区复用
+- 新增 mock `policy/ruleHitList.ts`、api `getPolicyRuleHitList` / `getPolicyRuleHitDetail` / `getPolicyById`
+- `PolicyActionCell` 命中追溯改跳 `/trace`；`PolicyGovernance` 补策略名卡片
+- `LogList` 支持 `?traceId=` 查询参数自动填充筛选
+
+### 怎么实现的
+
+- 顶部策略名单卡靠左展示；刷新后用 `getPolicyById` 兜底
+- 列表用 `useFilteredPaginatedList` + `ListTable`；TraceID 列 `router-link` 到 `/system/logs?traceId=`
+- 详情抽屉 `a-descriptions` 展示规则/对象/脱敏动作/TraceID/命中片段/处理结果
+
+### 注意事项
+
+- `PolicyGovernance` 仍为占位，仅保留策略名卡片；与命中追溯为两个独立页面，无顶部 Tab 互跳
+
+---
+
 ## [2026-06-17] 报告查看 · PDF/HTML 在线预览 viewer
 
 ### 改了什么

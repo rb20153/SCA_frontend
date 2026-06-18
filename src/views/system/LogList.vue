@@ -82,12 +82,17 @@ function openDetailDrawer(log: LogListItem) {
   detailVisible.value = true
 }
 
-/** 从检测任务页带任务名跳转时，自动按资源/对象列筛选日志 */
+/** 从检测任务页或命中追溯页带参跳转时，自动填充日志筛选条件 */
 function applyRouteLogFilter() {
   const resourceObject = route.query.resourceObject
-  if (typeof resourceObject !== 'string' || !resourceObject) return
+  if (typeof resourceObject === 'string' && resourceObject) {
+    filterForm.resourceObject = resourceObject
+  }
 
-  filterForm.resourceObject = resourceObject
+  const traceId = route.query.traceId
+  if (typeof traceId === 'string' && traceId) {
+    filterForm.traceId = traceId
+  }
 }
 
 onMounted(async () => {

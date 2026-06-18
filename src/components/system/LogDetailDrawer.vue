@@ -39,7 +39,7 @@
         </a-card>
 
         <h4 class="section-title">原始日志（节选）</h4>
-        <pre class="raw-log-block">{{ detail.rawLogExcerpt }}</pre>
+        <CodeSnippetBlock :content="detail.rawLogExcerpt" />
       </template>
     </PageLoading>
   </a-drawer>
@@ -48,6 +48,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { getLogDetail } from '@/api/system'
+import CodeSnippetBlock from '@/components/common/CodeSnippetBlock.vue'
 import DetailText from '@/components/common/DetailText.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import type { LogDetail } from '@/types/system'
@@ -118,19 +119,5 @@ watch(
   margin-right: 8px;
   color: rgba(0, 0, 0, 0.45);
   font-family: Consolas, Monaco, monospace;
-}
-
-.raw-log-block {
-  margin: 0;
-  padding: 12px 14px;
-  background: #1e1e1e;
-  border: 1px solid #2d2d2d;
-  border-radius: 6px;
-  font-family: Consolas, Monaco, 'Courier New', monospace;
-  font-size: 12px;
-  line-height: 1.65;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: #d4d4d4;
 }
 </style>

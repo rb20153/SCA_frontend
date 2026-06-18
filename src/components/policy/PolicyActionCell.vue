@@ -1,8 +1,8 @@
 <template>
   <span class="action-cell">
     <router-link :to="editorPath" class="list-table-link">编辑</router-link>
-    <router-link :to="governancePath" class="list-table-link">版本/审批</router-link>
-    <router-link :to="governancePath" class="list-table-link">命中追溯</router-link>
+    <a href="#" class="list-table-link" @click.prevent="goGovernance">版本/审批</a>
+    <a href="#" class="list-table-link" @click.prevent="goTrace">命中追溯</a>
     <a href="#" class="list-table-link list-table-link--danger" @click.prevent="emit('delete', policy)">
       删除
     </a>
@@ -11,7 +11,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import type { Policy } from '@/types/policy'
+import { navigateToPolicySubPage } from '@/utils/policyDisplay'
 
 const props = defineProps<{
   policy: Policy
@@ -21,11 +23,20 @@ const emit = defineEmits<{
   delete: [policy: Policy]
 }>()
 
+const router = useRouter()
+
 /** 策略编辑器路由 */
 const editorPath = computed(() => `/policies/${props.policy.policyId}/edit`)
 
-/** 版本与审批 / 命中追溯路由 */
-const governancePath = computed(() => `/policies/${props.policy.policyId}/governance`)
+/** 跳转版本与审批页 */
+function goGovernance() {
+  navigateToPolicySubPage(router, props.policy, 'governance')
+}
+
+/** 跳转规则命中追溯页 */
+function goTrace() {
+  navigateToPolicySubPage(router, props.policy, 'trace')
+}
 </script>
 
 <style scoped>

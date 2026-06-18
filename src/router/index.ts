@@ -121,6 +121,15 @@ const routes: RouteRecordRaw[] = [
           breadcrumbs: crumbs('策略管理', { title: '策略列表', path: '/policies' }, '版本与审批'),
         },
       },
+      {
+        path: 'policies/:policyId/trace',
+        name: 'PolicyRuleTrace',
+        component: () => import('@/views/policy/PolicyRuleTrace.vue'),
+        meta: {
+          title: '规则命中追溯',
+          breadcrumbs: crumbs('策略管理', { title: '策略列表', path: '/policies' }, '规则命中追溯'),
+        },
+      },
 
       // ── 报告管理 ──────────────────────────────────────────────────────────
       {
