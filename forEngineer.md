@@ -5,35 +5,88 @@
 
 ---
 
-## [2026-06-18] 告警中心 · 处置与时间线微调
+## [2026-06-18] 自主率检测结果 · 指纹检测证据卡片
 
 ### 改了什么
 
-- 移除操作列「忽略本次」，改在「处理」弹窗处置下拉中（含「忽略本次」选项）
-- 修复未处理已读行首列 `[object Object]`：去掉独立 readDot 列，蓝点并入标题列
-- 抽离公共 `ChainTimeline.vue`，日志详情与告警处理时间线弹窗复用同一 `a-timeline` 样式
-- 处理时间线弹窗：去掉示例提示与底部关闭按钮；打开时 `getAlertTimeline(alertId)` 拉取数据
-
----
-
-### 改了什么
-
-- **未处理 Tab**：未读行蓝底 + 蓝点；筛选增加「已读状态」；操作列「处理 / 详情 / 忽略本次」
-- **`AlertHandleModal`**：对齐原型 7 种处置方式，选择后展示「后续动作」与差异化表单项（转派、备注、通知审计员等）
-- **提交**：`handleAlert()` → mock 就地更新队列——`ignore-once` 仅 `isRead=true` 留未处理；其余移入已处理并写时间线
-- **已处理 Tab**：分页列表列含级别/标题/来源模块/处理时间/处理人/状态/操作；「详情」同右侧抽屉；「处理时间线」只读弹窗
-- 新增 mock：`alertHandle.ts`、`alertTimeline.ts`、`alertAssignees.ts`；工具 `utils/alertDisposition.ts`
+- `AutonomyFingerprintEvidenceItem` 扩展字段：`alertType` / `confidence` / `sourceProject` / `sourceVersion` / `description`
+- `AutonomyFingerprintEvidenceCard`：顶部元信息与代码证据共用 `AutonomyEvidenceMetaRow`，下方一段描述文字（无 diff 区，卡片更矮）
+- mock `solver.cpp` 3 条指纹证据对齐原型文案；与代码证据同接口 `getAutonomyDetectFileDetail` 一次返回
+- 指纹区块 `evidence-variant="fingerprint"` 使用更紧凑的 `--evidence-fp-item-height: 110px`
 
 ### 怎么用
 
-1. `/system/alerts` → 未处理 → 点「处理」选方式填表 → 确定
-2. 「忽略本次」等同处置 `ignore-once`，不调弹窗
-3. 已处理 Tab → 「处理时间线」查看 mock 时间线条目（暂无编辑交互）
+文件证据 Tab → 选 `solver.cpp` → 代码证据下方查看指纹区块；每页 2 条，超过 2 条分页
 
 ### 注意事项
 
-- 联调时 `handleAlert` 改 `POST /api/system/alerts/:id/handle`，后端需返回 `movedToHandled` 语义
-- 处理人姓名 mock 阶段由页面传入 `authStore.userInfo.realName`
+- 告警类型枚举：`fingerprint-hit` / `fingerprint-sequence` / `segment-fingerprint`，文案见 `autonomyDetectResultDisplay.ts`
+- 描述段落为后端 `description` 字段，勿包含原型布局备注
+
+---
+
+## [2026-06-18] 自主率检测结果 · 代码检测证据 diff 与分页
+
+### 改了什么
+
+- **数据加载**：`getAutonomyDetectFileDetail` 一次返回该文件全部证据；树加载后自动选中首文件并请求详情，切换左侧文件节点时再请求
+- **分页**：`AutonomyEvidenceSection` 客户端切片 — 代码每页 **1** 条（>1 条分页）、指纹每页 **2** 条（>2 条分页）
+- **代码证据**：`AutonomyCodeEvidenceCard` — 顶部告警类型 Tag / 置信度 / 来源项目 / 来源版本；左右 diff 双栏，标题居中无底色
+- **CodeSnippetBlock**：新增 `lines` diff 模式，红底删除、绿底新增行高亮
+- mock `solver.cpp` 两条证据对齐原型（高相似 + 片段重组）
+
+### 怎么用
+
+1. 自主率检测结果 →「文件证据」→ 默认选中首文件即加载详情
+2. 选 `solver.cpp` 查看两条代码 diff；指纹区块仍为占位卡片
+
+### 注意事项
+
+- 指纹证据内容待下一迭代；分页仅控制展示，不额外按页请求接口
+- `AutonomyCodeAlertType` 当前为 `high-similarity` / `fragment-reassembly`，后端新增类型需补 `autonomyDetectResultDisplay.ts` 文案
+
+---
+
+## [2026-06-18] 自主率检测结果 · 文件详情模块（样式占位）
+
+### 改了什么
+
+- 右侧「文件详情」：`AutonomyFileDetailPanel` — 摘要区（问题行数/整体问题率/来源项目/来源版本/最高置信度）+ 当前文件提示行，对齐原型 `panel-head-row` + `desc-grid`
+- `AutonomyEvidenceSection`：代码检测证据、指纹检测证据两区块，标题旁蓝色数量角标
+
+### 怎么用
+
+1. 进入自主率检测结果页 →「文件证据」Tab → 左侧树选 `solver.cpp`
+2. 右侧查看摘要与证据卡片布局；证据 diff/指纹说明下一迭代填充
+
+### 注意事项
+
+- 字段「整体问题率」与证据树节点 `issueRate`、原型一致（非环图「总体自主率」）
+- 无证据时对应区块显示 `a-empty`
+
+---
+
+## [2026-06-18] 文档 · 公共组件清单同步至 22 个
+
+### 改了什么
+
+- 更新下文「公共组件清单」：`18 → 22` 个对外组件；补充 `ChainTimeline`、`CodeSnippetBlock`、`LineAreaTrendChart`、`RiskRosePieChart` 及引用统计
+
+---
+
+## [2026-06-18] 告警中心 · 处置弹窗、已处理列表与时间线
+
+### 改了什么
+
+- **未处理 Tab**：未读蓝底 + 标题旁蓝点；筛选「已读状态」；操作「处理 / 详情」（「忽略本次」仅在处理弹窗处置下拉中）
+- **`AlertHandleModal`**：7 种处置方式 + 后续动作联动表单；`handleAlert()` 提交后 mock 就地更新列表
+- **已处理 Tab**：分页列表 + 详情抽屉 + `getAlertTimeline` 处理时间线弹窗
+- 抽离 **`ChainTimeline.vue`**（日志详情、告警时间线复用）；修复已读行 `[object Object]`（蓝点并入标题列）
+- 新增 mock：`alertHandle.ts`、`alertTimeline.ts`、`alertAssignees.ts`；工具 `utils/alertDisposition.ts`
+
+### 注意事项
+
+- 联调：`POST /api/system/alerts/:id/handle`、`GET .../timeline`；处理人 mock 阶段由页面传 `authStore.userInfo.realName`
 
 ---
 
@@ -610,27 +663,28 @@
 
 ---
 
-## 公共组件清单（`src/components/common/`，截至 2026-06-16）
+## 公共组件清单（`src/components/common/`，截至 2026-06-18）
 
-共 **18 个**对外 Vue 组件（另含 `LinuxStyleFileTreeNode` 为树组件内部递归子组件，不单独引用）。引用数为在 `src/` 内 import/模板使用的业务文件数（不含 `components.d.ts`）。
+共 **22 个**对外 Vue 组件（另含 `LinuxStyleFileTreeNode` 为树内部递归子组件、`linuxStyleFileTreeContext.ts` 为 provide 上下文，业务不直接引用）。引用数为 `src/` 内 `import '@/components/common/<Name>'` 的业务文件数（不含 `components.d.ts`、不含 common 自身互引）。
 
-### 一、页面状态与布局（4 个）
+### 一、页面状态与布局（5 个）
 
 | 组件 | 作用 | 引用约 |
 |---|---|---|
-| `PageLoading` | 页面/面板 loading 遮罩，支持路由切换最小高度 | 35 处 |
-| `ListEmptyGuide` | 列表空态 + 可选跳转引导 | 22 处 |
-| `PageNavTabs` | 详情页 Tab 导航 | 3 处（项目详情、开源风险详情、告警中心） |
-| `StatCard` / `StatCardRow` | 统计卡片 / 卡片行 | 各 8–9 处（首页、知识库、告警、项目摘要等） |
+| `PageLoading` | 页面/面板 loading 遮罩（`a-spin`），路由切换时全局遮罩也可用 | 44 处 |
+| `ListEmptyGuide` | 列表空态 + 可选跳转引导 | 26 处 |
+| `PageNavTabs` | 详情页 Tab 导航 | 4 处（项目详情、自主率/开源风险详情、告警中心） |
+| `StatCard` | 单张统计卡（标签 + 数值 + 可选对比行） | 13 处 |
+| `StatCardRow` | 多张 `StatCard` 横向排列 | 9 处 |
 
 ### 二、列表页体系（4 个）
 
 | 组件 | 作用 | 引用约 |
 |---|---|---|
-| `ListQueryBar` | 统一查询区卡片（查询/重置 + `#extra-actions` 插槽） | 18 处 |
-| `ListTable` | 封装 `a-table`，统一分页/滚动/默认单元格 | 21 张业务表 |
-| `ListTableCell` | 单元格默认渲染（省略号或 `—`） | 随 `ListTable` |
-| `EllipsisText` | 超长文本省略 + tooltip | 3 处 |
+| `ListQueryBar` | 统一查询区卡片（查询/重置 + `#extra-actions` 插槽） | 20 处 |
+| `ListTable` | 封装 `a-table`（分页、横向滚动、`rowClassName`、默认 `bodyCell`） | 25 处 |
+| `ListTableCell` | 单元格默认渲染（按列配置省略号或 `—`） | 随 `ListTable` |
+| `EllipsisText` | 超长文本单行省略 + tooltip | 3 处 |
 
 ### 三、表单与远程数据（4 个）
 
@@ -638,33 +692,55 @@
 |---|---|---|
 | `UserSearchInput` | 防抖搜用户，候选列表点选 | 4 处 |
 | `AsyncOptionsSelect` | 展开下拉时请求选项（部门/项目/知识库版本等） | 11 处 |
-| `TagInput` | 回车添加标签 | 3 处 |
-| `SourceIngestForm` | 源码入库表单（仓库拉取 / 上传包 + 凭据联动） | 4 处 |
+| `TagInput` | 回车添加标签、可删除 | 3 处 |
+| `SourceIngestForm` | 源码入库（仓库拉取 / 上传包 + 凭据联动） | 4 处 |
 
-### 四、向导与表单操作（2 个，较上一版新增）
+### 四、向导与表单操作（2 个）
 
 | 组件 | 作用 | 引用约 |
 |---|---|---|
 | `FormStepWizardModal` | 分步向导弹窗壳（步骤条 + 上一步/下一步） | 3 处（创建项目、自主检测任务、添加开源项目） |
 | `ProfileFormActions` | 详情 Tab 内保存/取消按钮区 | 3 处（项目基本信息/策略、个人设置） |
 
-### 五、目录树（1 个，较上一版新增）
+### 五、目录树（1 个对外）
 
 | 组件 | 作用 | 引用约 |
 |---|---|---|
-| `LinuxStyleFileTree` | Linux 风格目录树（展开/收起、文件高亮、`v-model:selected-file-id`、展开/折叠全部 API） | 1 处（知识库项目目录）；配套 `utils/fileTree.ts`、`types/fileTree.ts` |
+| `LinuxStyleFileTree` | Linux 风格目录树；`v-model:selected-file-id`；`expandAll` / `collapseToFirstLevel` | 5 处（知识库项目目录、自主率文件证据、AI 解析结果树等） |
 
-### 六、详情展示（1 个）
+配套：`utils/fileTree.ts`、`types/fileTree.ts`。
 
-| 组件 | 作用 | 引用约 |
-|---|---|---|
-| `DetailText` | 抽屉/详情中长文本展示，可保留换行 | 7 处 |
-
-### 七、通用弹窗（1 个）
+### 六、详情、代码与时间线（3 个）
 
 | 组件 | 作用 | 引用约 |
 |---|---|---|
-| `BoundCountDeleteModal` | 删除前绑定数校验 | 3 处（用户/角色/部门） |
+| `DetailText` | 抽屉/详情中长文本，保留换行 | 9 处 |
+| `CodeSnippetBlock` | 黑底等宽代码块（日志节选、规则命中代码片段） | 2 处（日志详情、命中追溯详情） |
+| `ChainTimeline` | `a-timeline` 链路时间线（`time` + `message` 条目） | 2 处（日志详情、告警处理时间线弹窗） |
+
+### 七、图表（2 个）
+
+| 组件 | 作用 | 引用约 |
+|---|---|---|
+| `LineAreaTrendChart` | 低饱和折线/面积趋势图（可配置图例、面积填充） | 2 处（首页自主率趋势、覆盖统计更新趋势） |
+| `RiskRosePieChart` | 玫瑰饼图（风险档位分布） | 2 处（首页漏洞环图、漏洞库风险摘要） |
+
+内部封装 `useECharts`，页面只传数据与配色。
+
+### 八、通用弹窗（1 个）
+
+| 组件 | 作用 | 引用约 |
+|---|---|---|
+| `BoundCountDeleteModal` | 删除前绑定数校验二次确认 | 3 处（用户/角色/部门） |
+
+### 新增组件速查（相对 2026-06-16 版）
+
+| 组件 | 引入时间 | 典型场景 |
+|---|---|---|
+| `LineAreaTrendChart` | 2026-06-17 前后 | 仪表盘/覆盖统计趋势 |
+| `RiskRosePieChart` | 2026-06-17 前后 | 风险分布玫瑰图 |
+| `CodeSnippetBlock` | 2026-06-18 | 日志/策略命中代码展示 |
+| `ChainTimeline` | 2026-06-18 | 日志链路、告警处置时间线 |
 
 ### 配套公共能力（非 `common/` 组件，常与上面一起用）
 
@@ -677,8 +753,14 @@
 | 源码入库 | `src/types/sourceIngest.ts` + `src/utils/sourceIngest.ts` | 与 `SourceIngestForm` 配套 |
 | 列表分页 | `src/composables/usePaginatedList.ts` / `useFilteredPaginatedList.ts` | 列表页分页 + 筛选 |
 | 详情返回 | `src/components/layout/PageBackButton.vue` + `usePageBack` + `useRouteWithFrom` | 顶栏返回与 `from` query |
-| 图表生命周期 | `src/composables/useECharts.ts` / `useG6Graph.ts` | ECharts / G6 封装 |
+| 图表生命周期 | `src/composables/useECharts.ts` / `useG6Graph.ts` | ECharts / G6 封装（业务图表组件内部使用） |
 | 轮询 | `src/composables/usePolling.ts` | 任务进度等定时刷新 |
+| 统计卡映射 | `src/utils/statCard.ts` | 各模块概览 API 数据 → `StatCardItem[]` |
+
+### 抽取原则
+
+- 仅当 **≥2 个业务页面/模块** 复用同一 UI 块时放入 `common/`；单模块专用放 `components/<模块>/`（如 `AutonomyRateRing` 在 detect）
+- 新公共组件需在本文档本节补充一行，并在顶部工程师日志记一笔
 
 ---
 

@@ -29,6 +29,13 @@ export interface SelectOption {
   value: string
 }
 
+/** 代码 diff 单行（用于 CodeSnippetBlock diff 模式） */
+export interface CodeDiffLine {
+  kind: 'context' | 'delete' | 'add' | 'spacer'
+  lineNumber: number
+  text: string
+}
+
 /** 统计卡片单项（StatCard / StatCardRow 通用） */
 export interface StatCardItem {
   key: string

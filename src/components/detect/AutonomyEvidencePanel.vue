@@ -15,15 +15,15 @@
         </PageLoading>
       </a-card>
 
-      <a-card :bordered="false" class="result-detail-card" title="文件详情">
-        <template #extra>
-          <a-tag v-if="selectedFile" color="blue">当前文件</a-tag>
-        </template>
+      <a-card :bordered="false" class="result-detail-card">
         <div class="result-detail-body">
           <a-empty v-if="!selectedFile" description="请选择左侧文件" />
-          <p v-else class="result-detail-hint">
-            已选中：<strong>{{ selectedFile.name }}</strong>（文件详情待实现）
-          </p>
+          <AutonomyFileDetailPanel
+            v-else
+            :task-id="taskId"
+            :file-id="selectedFileId"
+            :file-name="selectedFile.name"
+          />
         </div>
       </a-card>
     </div>
@@ -35,6 +35,7 @@ import { computed, onMounted, ref } from 'vue'
 import { getAutonomyDetectEvidenceTree } from '@/api/detect'
 import LinuxStyleFileTree from '@/components/common/LinuxStyleFileTree.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
+import AutonomyFileDetailPanel from '@/components/detect/AutonomyFileDetailPanel.vue'
 import type { FileTreeNode } from '@/types/fileTree'
 import { findFileTreeNodeById } from '@/utils/fileTree'
 
@@ -104,12 +105,6 @@ defineExpose({
 
 .result-detail-body {
   min-height: 280px;
-}
-
-.result-detail-hint {
-  margin: 0;
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.65);
 }
 
 @media (max-width: 992px) {

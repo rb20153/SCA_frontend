@@ -1,10 +1,38 @@
 import type { PageNavTabItem } from '@/types/common'
 import type {
+  AutonomyCodeAlertType,
+  AutonomyFingerprintAlertType,
   AutonomyDetectResultTabKey,
   AutonomySourceHitListFilters,
   AutonomySourceHitQueryParams,
   AutonomySourceHitRiskLevel,
 } from '@/types/detect'
+
+/** 代码检测告警类型 Tag 颜色 */
+export const AUTONOMY_CODE_ALERT_TYPE_COLOR: Record<AutonomyCodeAlertType, string> = {
+  'high-similarity': 'error',
+  'fragment-reassembly': 'warning',
+}
+
+/** 代码检测告警类型展示文案 */
+export const AUTONOMY_CODE_ALERT_TYPE_LABEL: Record<AutonomyCodeAlertType, string> = {
+  'high-similarity': '高相似',
+  'fragment-reassembly': '片段重组',
+}
+
+/** 指纹检测告警类型 Tag 颜色 */
+export const AUTONOMY_FINGERPRINT_ALERT_TYPE_COLOR: Record<AutonomyFingerprintAlertType, string> = {
+  'fingerprint-hit': 'blue',
+  'fingerprint-sequence': 'cyan',
+  'segment-fingerprint': 'geekblue',
+}
+
+/** 指纹检测告警类型展示文案 */
+export const AUTONOMY_FINGERPRINT_ALERT_TYPE_LABEL: Record<AutonomyFingerprintAlertType, string> = {
+  'fingerprint-hit': '指纹命中',
+  'fingerprint-sequence': '函数级指纹',
+  'segment-fingerprint': '片段指纹',
+}
 
 /** 自主率检测结果页 Tab 配置 */
 export const AUTONOMY_DETECT_RESULT_TABS: PageNavTabItem[] = [

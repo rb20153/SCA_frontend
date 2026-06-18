@@ -23,6 +23,7 @@ import type {
   TerminateTaskParams,
   VulnDbVersionOption,
   AutonomyDetectResultOverview,
+  AutonomyFileDetail,
   AutonomySourceHitItem,
   AutonomySourceHitQueryParams,
 } from '@/types/detect'
@@ -35,6 +36,7 @@ import {
 import { getMockOpenSourceRiskDetailSummary } from '@/mock/modules/detect/openSourceRiskDetail'
 import { getMockAutonomyDetectResultOverview } from '@/mock/modules/detect/autonomyResult'
 import { getMockAutonomyDetectEvidenceTree } from '@/mock/modules/detect/autonomyEvidenceTree'
+import { getMockAutonomyFileDetail } from '@/mock/modules/detect/autonomyFileDetail'
 import { getMockAutonomySourceHitPage } from '@/mock/modules/detect/autonomySourceHits'
 import {
   getMockOpenSourceRiskComponentPage,
@@ -201,6 +203,32 @@ export function getAutonomyDetectEvidenceTree(
     code: 200,
     message: 'ok',
     data: getMockAutonomyDetectEvidenceTree(taskId),
+  })
+}
+
+/**
+ * 获取自主率检测结果 · 单文件详情（摘要 + 全量代码/指纹证据，前端分页展示）
+ * @param taskId - 检测任务 ID
+ * @param fileId - 证据树文件节点 ID
+ * @param fileName - 文件名（展示与 mock 匹配）
+ */
+export function getAutonomyDetectFileDetail(
+  taskId: string,
+  fileId: string,
+  fileName: string,
+): Promise<ApiResponse<AutonomyFileDetail>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  const detail = getMockAutonomyFileDetail(taskId, fileId, fileName)
+  if (!detail) {
+    return Promise.reject(new Error('文件详情不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/files/${fileId}`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: detail,
   })
 }
 

@@ -8,6 +8,7 @@ import type {
   RiskDependencyDepth,
   RiskSourceMode,
   PageParams,
+  CodeDiffLine,
 } from './common'
 import type { RepoAuthType, SourceIngestMode } from './sourceIngest'
 import type { FileTreeNode } from './fileTree'
@@ -122,6 +123,64 @@ export interface AutonomyDetectResultOverview {
   codeIssueCount: number
   /** 指纹问题数 */
   fingerprintIssueCount: number
+}
+
+/** 自主率检测结果 · 文件详情摘要（右侧详情区顶部） */
+export interface AutonomyFileDetailSummary {
+  fileId: string
+  fileName: string
+  /** 展示用类型，如「文本文件」 */
+  fileTypeLabel: string
+  /** 问题行区间描述，如 120-132，54-58 */
+  issueLineRanges: string
+  /** 整体问题率 0–100 */
+  overallIssueRate: number
+  sourceProject: string
+  sourceVersion: string
+  /** 最高置信度 0–1 */
+  maxConfidence: number
+}
+
+/** 代码检测告警类型（后端枚举） */
+export type AutonomyCodeAlertType = 'high-similarity' | 'fragment-reassembly'
+
+/** 指纹检测告警类型（后端枚举） */
+export type AutonomyFingerprintAlertType = 'fingerprint-hit' | 'fingerprint-sequence' | 'segment-fingerprint'
+
+/** 代码 diff 单侧代码块（当前文件 / 疑似来源） */
+export interface AutonomyCodeDiffPane {
+  /** 居中标题，如「当前被检测代码 · solver.cpp L128-132」 */
+  paneTitle: string
+  lines: CodeDiffLine[]
+}
+
+/** 代码检测证据条目 */
+export interface AutonomyCodeEvidenceItem {
+  evidenceId: string
+  alertType: AutonomyCodeAlertType
+  confidence: number
+  sourceProject: string
+  sourceVersion: string
+  currentCode: AutonomyCodeDiffPane
+  suspectedCode: AutonomyCodeDiffPane
+}
+
+/** 指纹检测证据条目 */
+export interface AutonomyFingerprintEvidenceItem {
+  evidenceId: string
+  alertType: AutonomyFingerprintAlertType
+  confidence: number
+  sourceProject: string
+  sourceVersion: string
+  /** 命中说明（一段文字描述） */
+  description: string
+}
+
+/** 自主率检测结果 · 单文件详情（证据一次性全量返回，前端分页展示） */
+export interface AutonomyFileDetail {
+  summary: AutonomyFileDetailSummary
+  codeEvidences: AutonomyCodeEvidenceItem[]
+  fingerprintEvidences: AutonomyFingerprintEvidenceItem[]
 }
 
 /** 自主率检测结果 · 来源汇总风险等级（许可证/来源风险） */
