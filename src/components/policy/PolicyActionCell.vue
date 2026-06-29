@@ -1,6 +1,6 @@
 <template>
   <span class="action-cell">
-    <router-link :to="editorPath" class="list-table-link">编辑</router-link>
+    <a href="#" class="list-table-link" @click.prevent="emit('edit', policy)">编辑</a>
     <a href="#" class="list-table-link" @click.prevent="goGovernance">版本/审批</a>
     <a href="#" class="list-table-link" @click.prevent="goTrace">命中追溯</a>
     <a href="#" class="list-table-link list-table-link--danger" @click.prevent="emit('delete', policy)">
@@ -10,7 +10,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Policy } from '@/types/policy'
 import { navigateToPolicySubPage } from '@/utils/policyDisplay'
@@ -20,13 +19,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  edit: [policy: Policy]
   delete: [policy: Policy]
 }>()
 
 const router = useRouter()
-
-/** 策略编辑器路由 */
-const editorPath = computed(() => `/policies/${props.policy.policyId}/edit`)
 
 /** 跳转版本与审批页 */
 function goGovernance() {

@@ -101,7 +101,7 @@ function applyRouteProjectFilter() {
   const projectName = route.query.projectName
   if (typeof projectName !== 'string' || !projectName) return
 
-  filterForm.projectName = projectName
+  filterForm.value.projectName = projectName
 }
 
 onMounted(async () => {

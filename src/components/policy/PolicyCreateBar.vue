@@ -1,6 +1,6 @@
 <template>
   <div class="create-bar">
-    <a-button type="primary" @click="handleAdd">
+    <a-button type="primary" @click="emit('add')">
       <template #icon>
         <PlusOutlined />
       </template>
@@ -10,15 +10,11 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import { PlusOutlined } from '@ant-design/icons-vue'
 
-const router = useRouter()
-
-/** 跳转策略编辑器页（新建策略） */
-function handleAdd() {
-  router.push('/policies/new/edit')
-}
+const emit = defineEmits<{
+  add: []
+}>()
 </script>
 
 <style scoped>

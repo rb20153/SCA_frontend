@@ -5,6 +5,151 @@
 
 ---
 
+## [2026-06-29] 修复用户列表 / 个人设置无法进入（mock 循环引用）
+
+### 改了什么
+
+- 新增 `src/mock/modules/system/userProjectRelations.ts`：仅存放 `USER_PROJECT_RELATIONS` 与 `getMockOwnedProjectCount`
+- `userList.ts` 改为从 `userProjectRelations` 取负责项目数，**不再** import `userProjects.ts`
+- `userProjects.ts` 改为从 `userProjectRelations` 读关系表，并 re-export `getMockOwnedProjectCount`
+
+### 为什么这么做
+
+`userList → userProjects → projectList → userList` 形成循环引用。加载用户列表或个人设置页时会触发 `projectList` 在 `MOCK_ALL_USERS` 初始化前调用 `findMockEnabledUserByRealName`，浏览器报：
+
+`ReferenceError: can't access lexical declaration 'MOCK_ALL_USERS' before initialization`
+
+路由守卫 / 菜单跳转因此失败，表现为「点了没反应」。
+
+### 注意事项
+
+- mock 模块之间禁止「A 引 B、B 再引回 A」；共享种子数据应抽到无反向依赖的独立文件
+- 若新增 mock 又在模块顶层互相 import，可用同样方式拆关系表 / 常量文件
+
+---
+
+## [2026-06-29] 用户列表 · 修复点击无响应 & 消除 filterForm v-model 编译警告
+
+### 改了什么
+
+- `useFilteredPaginatedList.ts`：`filterForm` 从 `reactive()` 改为 `ref()`，模板仍写 `v-model="filterForm"`（自动解包），消除 Vue 3.5 的 `const reactive binding` 编译警告
+- `UserList.vue`：`watch(route.query)` 在带 `departmentName` / `roleName` 跳转时重新填筛选并查询；详情抽屉改为 `detailUserId` + 常驻挂载（对齐 `LogList` / `LogDetailDrawer` 模式）
+- `UserDetailDrawer.vue`：`userId` 改为 `string | null`，仅在抽屉打开且 ID 存在时拉详情
+- 脚本里直接改 `filterForm.xxx` 的页面改为 `filterForm.value.xxx`（LogList、KnowledgeBaseList、VulnItemList、OpenSourceRiskVulnerabilityPanel）
+- `AdminLayout.vue`：`handleMenuClick` 对 `key` 做 `String()`，兼容 Ant Design Menu 的 `Key` 类型
+
+### 为什么这么做
+
+1. **编译警告**：`v-model="filterForm"` 会编译成 `filterForm = $event`，而 `useFilteredPaginatedList` 解构出来的是 `const` + `reactive()`，Vue 3.5 会警告并自动降级为 `let`。改成 `ref` 后 `v-model` 更新的是 `.value`，不再冲突。
+2. **点击无反应**：从部门/角色页点「成员数/绑定用户数」跳转到 `/system/users?...` 时，若用户列表组件已被复用，`onMounted` 不会再次执行，筛选和列表不刷新，看起来像「点了没反应」。详情抽屉原先 `v-if="detailUser"` .mount 时序也可能导致首次点「详情」不稳定。
+
+### 注意事项
+
+- 侧栏已在 `/system/users` 时再点「用户列表」，Vue Router 默认不会重复导航，页面不会刷新——这是预期行为
+- 若仍无反应，打开浏览器控制台看是否有红色报错，并说明是侧栏、查询按钮还是表格「修改/详情」
+
+---
+
+## [2026-06-18] 修复「打开策略编辑器失败」（CodeMirror 依赖未预构建）
+
+### 改了什么
+
+- `vite.config.ts`：新增 `optimizeDeps.include`，把 `codemirror`、`@codemirror/state`、`@codemirror/view`、`@codemirror/commands`、`@codemirror/language`、`@codemirror/lang-json`、`@lezer/highlight` 全部加入预构建
+- `PolicyEntryWizardModal.vue`：跳转 catch 里补 `console.error`，失败时控制台能看到真实原因，不再只弹一句提示
+
+### 为什么这么做
+
+入口弹窗点「策略编辑器」直接弹「打开策略编辑器失败」。根因不是布局/路由，而是 dev 模式下 CodeMirror 这组依赖没在启动时预构建——用户首次进入编辑器页时 Vite 才发现新依赖，触发二次预构建并自动 reload，导致那一次路由的异步 `import()` 被 reject，被 `navigateToPolicyEditor` 外层的 `catch` 弹成「打开失败」。
+
+### 怎么实现的
+
+- 把 CodeMirror 全家桶塞进 `optimizeDeps.include`，启动时就预构建好，进入编辑器不再触发二次优化 → 异步 chunk 正常加载
+- 改完需**重启 dev server**（Vite 检测到 config 变化会自动重建 `.vite/deps` 缓存）
+- 已用浏览器动态 `import('/src/views/policy/PolicyEditor.vue')` 验证整条依赖链加载成功（返回 `OK:default`）
+
+### 注意事项
+
+- 改了 `optimizeDeps` 后必须重启 dev，且浏览器最好硬刷新（Ctrl+Shift+R）一次，清掉旧的依赖缓存
+- 以后再引入新的第三方非 ESM/大型库且用于懒加载路由时，记得同样加进 `optimizeDeps.include`，避免同类「首次进入 reject」问题
+
+---
+
+## [2026-06-18] 策略编辑器页 · JSON 编辑与动态解析预览
+
+### 改了什么
+
+- `PolicyEditor`：顶栏 `page-actions`（与其他页一致，无独立白底条）；主体左右分栏占满内容区高度
+- **左侧** `PolicyJsonEditorPanel`（标题「JSON/ YAML 配置编辑器」）：CodeMirror 黑底可编辑
+- **右侧** `PolicyConfigPreviewPanel`：只读预览；排除目录 tag 纵向排列
+- 新建/编辑、解析失败提示逻辑不变；依赖 `codemirror`
+
+### 注意事项
+
+- 数据流单向：仅左侧 JSON 编辑器可改，右侧预览随解析更新
+- 高度占满：`PageLoading` 内部 `.page-loading__body` 默认无 `flex`，会把高度卡成内容高度。页面里必须 `:deep` 打通 `a-spin 根 → .ant-spin-container → .page-loading__body → 工作区` 整条 `flex:1` 链；工作区再加 `min-height: calc(100vh - 152px)` 兜底，两个卡片 `height:100%` 才能撑满视口
+- 允许根字段：`name`、`similarity_threshold`、`min_match_len`、`excluded_folders`、`retry`、`output_format`
+- 字段值约束（`policyConfigParse.ts`）：`similarity_threshold` 必须是 0–1 的数字（`readNumberField` 支持传 range 校验）；`output_format` 只能是 `json` 或 `yaml`（类型已收窄为联合类型，超范围/非枚举均报对应 schema 错误）
+- 联调：`GET /api/policies/:policyId/editor-content`（`new` 用默认模板）
+- 顶部按钮交互、保存草稿/发布申请弹窗待后续迭代
+- 入口弹窗选「策略编辑器」须先 `emit` 再关弹窗（`EntryTypePickModal`），跳转使用命名路由 `PolicyEditor`
+
+---
+
+
+### 改了什么
+
+- 新增 `getPolicyDetectParams(policyId)`：返回策略当前生效版本的相似度阈值、最小匹配长度、排除目录
+- `ProjectCreateWizardModal`、`ProjectPolicyPanel`：选择/切换检测策略后自动填充上述三项，用户可在默认值基础上修改
+- 未选策略时参数字段禁用；切换策略会重新拉取该策略默认值（覆盖当前编辑中的参数）
+- composable：`usePolicyBindingParamsFill`；mock：`policy/policyDetectParams.ts`
+
+### 注意事项
+
+- 项目详情 Tab 初次加载仍回显**已保存的项目绑定**（含用户曾修改过的覆盖值），不会因拉策略默认值而覆盖
+- 仅在用户**切换**策略下拉选项时重新填充；联调接口 `GET /api/policies/:policyId/detect-params`
+
+---
+
+
+### 改了什么
+
+- 从 `ProjectDeliverableAddBar` 既有 **520px** 选型弹窗样式抽取 `EntryTypePickModal`（`a-modal` + 提示 + 选项卡片）
+- `ProjectDeliverableAddBar`、`DetectTaskCreateBar`、`PolicyEntryWizardModal`、`KbVersionUpdateBar` 均改为引用该组件
+- 删除误建的 `EntryTypeOptionList`（只抽了列表、没抽 modal 壳，与交付物页重复）
+
+### 怎么用
+
+```vue
+<EntryTypePickModal
+  v-model:open="visible"
+  title="选择交付物类型"
+  hint="请选择要添加的交付物类型"
+  :options="[{ key, title, description }]"
+  @select="handleSelect"
+/>
+```
+
+### 注意事项
+
+- 选项类型 `EntryTypePickOption` 从 `EntryTypePickModal.vue` 导出；`muted: true` 可弱化标题（创建项目向导内联表单暂未接入）
+- 选中后组件内部自动关弹窗，父级在 `@select` 里打开下一步弹窗即可
+
+---
+
+## [2026-06-18] 策略管理 · 添加/编辑入口向导与导入
+
+### 改了什么
+
+- 入口与交付物/检测任务一致：`EntryTypePickModal` 选方式；导入另开 `PolicyImportModal`（560px），不再用 `FormStepWizardModal` 包第一步
+- 选编辑器 → 跳转编辑页；选导入 → 上传 JSON/YAML + `importPolicy`，toast 后不刷新列表
+
+### 注意事项
+
+- 导入默认勾选三项导入前校验；编辑场景默认导入模式为「导入为新版本」
+- 联调：`POST /api/policies/import`（multipart）
+
+---
+
 ## [2026-06-18] 自主率检测结果 · 指纹检测证据卡片
 
 ### 改了什么

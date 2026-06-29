@@ -7,7 +7,7 @@ import type {
   UserRecord,
   UserSearchCandidate,
 } from '@/types/user'
-import { getMockOwnedProjectCount } from '@/mock/modules/system/userProjects'
+import { getMockOwnedProjectCount } from '@/mock/modules/system/userProjectRelations'
 import { MOCK_REGISTERED_USERNAMES } from '@/mock/modules/auth/users'
 import { MOCK_ALL_DEPARTMENTS } from '@/mock/modules/system/departmentList'
 import { MOCK_ALL_ROLES } from '@/mock/modules/system/roleList'

@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="page-container">
-    <PolicyCreateBar />
+    <PolicyCreateBar @add="openEntryWizard()" />
 
     <PolicyQueryBar
       v-model="filterForm"
@@ -20,10 +20,16 @@
           :policies="policyList"
           :loading="loading"
           :pagination="pagination"
+          @edit="openEntryWizard"
           @delete="openDeleteModal"
         />
       </PageLoading>
     </a-card>
+
+    <PolicyEntryWizardModal
+      v-model:open="entryWizardVisible"
+      :context-policy="entryContextPolicy"
+    />
 
     <PolicyDeleteModal
       v-if="deletingPolicy"
@@ -42,6 +48,7 @@ import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import PolicyCreateBar from '@/components/policy/PolicyCreateBar.vue'
 import PolicyDeleteModal from '@/components/policy/PolicyDeleteModal.vue'
+import PolicyEntryWizardModal from '@/components/policy/PolicyEntryWizardModal.vue'
 import PolicyQueryBar from '@/components/policy/PolicyQueryBar.vue'
 import PolicyTable from '@/components/policy/PolicyTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
@@ -53,6 +60,8 @@ import {
 
 const deleteVisible = ref(false)
 const deletingPolicy = ref<Policy | null>(null)
+const entryWizardVisible = ref(false)
+const entryContextPolicy = ref<Policy | null>(null)
 
 const {
   filterForm,
@@ -70,6 +79,12 @@ const {
     pageSize: 10,
   },
 )
+
+/** 打开添加/编辑策略入口向导 */
+function openEntryWizard(policy?: Policy) {
+  entryContextPolicy.value = policy ?? null
+  entryWizardVisible.value = true
+}
 
 /** 打开删除确认弹窗 */
 function openDeleteModal(policy: Policy) {

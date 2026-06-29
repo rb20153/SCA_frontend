@@ -1,11 +1,7 @@
 import type { ProjectPolicyBinding, ProjectPolicyBindingInput } from '@/types/project'
 import { MOCK_ALL_PROJECTS } from '@/mock/modules/project/projectList'
 import { MOCK_ALL_POLICIES } from '@/mock/modules/policy/policyList'
-import {
-  DEFAULT_PROJECT_EXCLUDE_DIRECTORIES,
-  DEFAULT_PROJECT_MIN_MATCH_LENGTH,
-  DEFAULT_PROJECT_SIMILARITY_THRESHOLD,
-} from '@/utils/projectCreate'
+import { getMockPolicyDetectParams } from '@/mock/modules/policy/policyDetectParams'
 
 /** 项目 ID → 已绑定策略 */
 export const MOCK_PROJECT_POLICY_BINDINGS: Record<string, ProjectPolicyBinding> = {}
@@ -52,11 +48,15 @@ function seedMockProjectPolicyBindings(): void {
     if (MOCK_PROJECT_POLICY_BINDINGS[project.projectId]) {
       continue
     }
+    const defaults =
+      getMockPolicyDetectParams(defaultPolicy.policyId) ?? {
+        similarityThreshold: 85,
+        minMatchLength: 50,
+        excludeDirectories: ['node_modules/', 'build/', 'third_party/'],
+      }
     mockSetProjectPolicyBinding(project.projectId, {
       policyId: defaultPolicy.policyId,
-      similarityThreshold: DEFAULT_PROJECT_SIMILARITY_THRESHOLD,
-      minMatchLength: DEFAULT_PROJECT_MIN_MATCH_LENGTH,
-      excludeDirectories: [...DEFAULT_PROJECT_EXCLUDE_DIRECTORIES],
+      ...defaults,
     })
   }
 }

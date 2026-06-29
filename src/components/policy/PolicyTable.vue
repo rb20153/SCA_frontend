@@ -21,6 +21,7 @@
       <template v-else-if="column.key === 'action'">
         <PolicyActionCell
           :policy="getPolicy(row)"
+          @edit="(policy) => emit('edit', policy)"
           @delete="(policy) => emit('delete', policy)"
         />
       </template>
@@ -45,6 +46,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
+  edit: [policy: Policy]
   delete: [policy: Policy]
 }>()
 

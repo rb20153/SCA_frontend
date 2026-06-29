@@ -142,10 +142,10 @@ async function applyRouteSourceFilter() {
   const sourceId = getRouteSourceId()
   if (!sourceId) return
 
-  filterForm.sourceId = sourceId
+  filterForm.value.sourceId = sourceId
   const res = await getVulnItemOverview({ sourceId })
   if (res.data.activeSourceName) {
-    filterForm.sourceName = res.data.activeSourceName
+    filterForm.value.sourceName = res.data.activeSourceName
   }
 }
 
@@ -168,7 +168,7 @@ async function onReset() {
 
 /** 点击快捷建议：写入筛选表单并自动查询 */
 async function handleQuickSearch(suggestion: VulnItemQuickSearchSuggestion) {
-  Object.assign(filterForm, quickSearchSuggestionToFilters(suggestion))
+  Object.assign(filterForm.value, quickSearchSuggestionToFilters(suggestion))
 
   if (getRouteSourceId()) {
     await router.replace({ query: {} })

@@ -1,4 +1,4 @@
-import { reactive, ref } from 'vue'
+import { reactive, ref, type Ref } from 'vue'
 import type { PageParams, PageResult } from '@/types/common'
 import { usePaginatedList, type UsePaginatedListOptions } from '@/composables/usePaginatedList'
 
@@ -40,7 +40,8 @@ export function useFilteredPaginatedList<TItem, TFilters extends object>(
     ...paginationOptions
   } = options
 
-  const filterForm = reactive(createEmptyFilters()) as TFilters
+  // 用 ref 包裹筛选表单，避免模板 v-model="filterForm" 触发 reactive const 编译警告
+  const filterForm = ref(createEmptyFilters()) as Ref<TFilters>
   const appliedQuery = ref<Record<string, unknown>>({})
 
   const { loading, list, pagination, loadPage, refresh } = usePaginatedList<TItem>(
@@ -53,13 +54,13 @@ export function useFilteredPaginatedList<TItem, TFilters extends object>(
   )
 
   async function handleSearch() {
-    appliedQuery.value = filtersToQuery(filterForm)
+    appliedQuery.value = filtersToQuery(filterForm.value)
     pagination.current = 1
     await loadPage()
   }
 
   async function handleReset() {
-    Object.assign(filterForm, createEmptyFilters())
+    filterForm.value = createEmptyFilters()
     appliedQuery.value = {}
     pagination.current = 1
     await loadPage()

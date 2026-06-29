@@ -194,8 +194,8 @@ watch(
   { immediate: true },
 )
 
-function handleMenuClick({ key }: { key: string }) {
-  router.push(key)
+function handleMenuClick(info: { key: string | number }) {
+  router.push(String(info.key))
 }
 
 function handleLogout() {

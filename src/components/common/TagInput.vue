@@ -4,7 +4,7 @@
       <a-tag
         v-for="tag in model"
         :key="tag"
-        closable
+        :closable="!disabled"
         @close.prevent="removeTag(tag)"
       >
         {{ tag }}
@@ -13,6 +13,7 @@
     <a-input
       v-model:value="inputValue"
       :placeholder="placeholder"
+      :disabled="disabled"
       allow-clear
       @press-enter="handleEnter"
     />
@@ -23,12 +24,15 @@
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     placeholder?: string
+    /** 禁用时不可增删标签 */
+    disabled?: boolean
   }>(),
   {
     placeholder: '输入后按回车添加标签',
+    disabled: false,
   },
 )
 
@@ -53,11 +57,17 @@ function addTagFromInput() {
 
 /** 回车时添加标签 */
 function handleEnter() {
+  if (props.disabled) {
+    return
+  }
   addTagFromInput()
 }
 
 /** 点击标签关闭按钮时移除 */
 function removeTag(tag: string) {
+  if (props.disabled) {
+    return
+  }
   model.value = model.value.filter((item) => item !== tag)
 }
 

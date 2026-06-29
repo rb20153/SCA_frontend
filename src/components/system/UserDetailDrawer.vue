@@ -79,8 +79,8 @@ import {
 } from '@/utils/userDisplay'
 
 const props = defineProps<{
-  /** 当前查看的用户 ID */
-  userId: string
+  /** 当前查看的用户 ID；抽屉关闭时可为 null */
+  userId: string | null
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
@@ -91,11 +91,11 @@ const loading = ref(false)
 const detail = ref<UserDetail | null>(null)
 
 /** 打开抽屉时拉取用户详情 */
-async function loadDetail() {
+async function loadDetail(userId: string) {
   loading.value = true
   detail.value = null
   try {
-    const res = await getUserDetail(props.userId)
+    const res = await getUserDetail(userId)
     detail.value = res.data
   } finally {
     loading.value = false
@@ -104,14 +104,14 @@ async function loadDetail() {
 
 watch(
   () => [visible.value, props.userId] as const,
-  ([open]) => {
-    if (open) {
-      loadDetail()
-    } else {
+  ([open, userId]) => {
+    if (open && userId) {
+      loadDetail(userId)
+    }
+    if (!open) {
       detail.value = null
     }
   },
-  { immediate: true },
 )
 
 /** 点击项目 Tag 跳转项目详情 */

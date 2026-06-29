@@ -14,7 +14,7 @@ export const DEFAULT_PROJECT_SIMILARITY_THRESHOLD = 85
 export const DEFAULT_PROJECT_MIN_MATCH_LENGTH = 50
 
 /**
- * 返回创建项目向导中策略绑定的默认表单值
+ * 返回创建项目向导中策略绑定的默认表单值（参数字段待选择策略后自动填充）
  */
 export function createDefaultProjectPolicyBinding(): Omit<
   ProjectPolicyBindingInput,
@@ -24,9 +24,9 @@ export function createDefaultProjectPolicyBinding(): Omit<
 } {
   return {
     policyId: undefined,
-    similarityThreshold: DEFAULT_PROJECT_SIMILARITY_THRESHOLD,
-    minMatchLength: DEFAULT_PROJECT_MIN_MATCH_LENGTH,
-    excludeDirectories: [...DEFAULT_PROJECT_EXCLUDE_DIRECTORIES],
+    similarityThreshold: 0,
+    minMatchLength: 0,
+    excludeDirectories: [],
   }
 }
 

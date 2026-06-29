@@ -13,25 +13,36 @@
               :load-options="loadPolicySelectOptions"
             />
           </a-form-item>
-          <a-form-item label="相似度阈值" required>
-            <a-input-number
-              v-model:value="form.similarityThreshold"
-              :min="0"
-              :max="100"
-              class="project-policy-number"
-            />
-          </a-form-item>
-          <a-form-item label="最小匹配长度" required>
-            <a-input-number
-              v-model:value="form.minMatchLength"
-              :min="1"
-              :max="9999"
-              class="project-policy-number"
-            />
-          </a-form-item>
-          <a-form-item label="排除目录">
-            <TagInput ref="excludeDirTagRef" v-model="form.excludeDirectories" />
-          </a-form-item>
+          <p v-if="!form.policyId" class="policy-binding-hint">
+            选择检测策略后将自动带出默认参数，可按项目需要调整
+          </p>
+          <a-spin :spinning="paramsLoading" size="small">
+            <a-form-item label="相似度阈值" required>
+              <a-input-number
+                v-model:value="form.similarityThreshold"
+                :min="0"
+                :max="100"
+                :disabled="paramsFieldsDisabled"
+                class="project-policy-number"
+              />
+            </a-form-item>
+            <a-form-item label="最小匹配长度" required>
+              <a-input-number
+                v-model:value="form.minMatchLength"
+                :min="1"
+                :max="9999"
+                :disabled="paramsFieldsDisabled"
+                class="project-policy-number"
+              />
+            </a-form-item>
+            <a-form-item label="排除目录">
+              <TagInput
+                ref="excludeDirTagRef"
+                v-model="form.excludeDirectories"
+                :disabled="paramsFieldsDisabled"
+              />
+            </a-form-item>
+          </a-spin>
 
           <ProfileFormActions
             :submitting="submitting"
@@ -48,13 +59,14 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, toRef, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { getProjectPolicyBinding, updateProjectPolicyBinding } from '@/api/project'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import ProfileFormActions from '@/components/common/ProfileFormActions.vue'
 import TagInput from '@/components/common/TagInput.vue'
+import { usePolicyBindingParamsFill } from '@/composables/usePolicyBindingParamsFill'
 import type { ProjectPolicyBinding, ProjectPolicyBindingInput } from '@/types/project'
 import { validateProjectPolicyBinding } from '@/utils/projectCreate'
 import { loadPolicySelectOptions } from '@/utils/remoteSelectLoaders'
@@ -76,10 +88,25 @@ const excludeDirTagRef = ref<InstanceType<typeof TagInput> | null>(null)
 
 const form = reactive<ProjectPolicyBindingInput>({
   policyId: '',
-  similarityThreshold: 85,
-  minMatchLength: 50,
+  similarityThreshold: 0,
+  minMatchLength: 0,
   excludeDirectories: [],
 })
+
+const skipPolicyParamsFill = ref(true)
+
+const policyIdRef = computed({
+  get: () => form.policyId || undefined,
+  set: (id) => {
+    form.policyId = id ?? ''
+  },
+})
+
+const { paramsLoading, paramsFieldsDisabled } = usePolicyBindingParamsFill(
+  policyIdRef,
+  form,
+  { skipFill: skipPolicyParamsFill },
+)
 
 /** 将绑定数据写入表单 */
 function applyBindingToForm(binding: ProjectPolicyBinding) {
@@ -94,6 +121,7 @@ function applyBindingToForm(binding: ProjectPolicyBinding) {
 /** 从服务端拉取当前项目的策略绑定 */
 async function fetchBinding() {
   loading.value = true
+  skipPolicyParamsFill.value = true
   try {
     const res = await getProjectPolicyBinding(props.projectId)
     if (!res.data) {
@@ -105,6 +133,8 @@ async function fetchBinding() {
     await policySelectRef.value?.prefetchOptions()
   } finally {
     loading.value = false
+    await nextTick()
+    skipPolicyParamsFill.value = false
   }
 }
 
@@ -113,12 +143,18 @@ function handleCancel() {
   if (!savedBinding.value) {
     return
   }
+  skipPolicyParamsFill.value = true
   applyBindingToForm(savedBinding.value)
   excludeDirTagRef.value?.clearInput()
+  skipPolicyParamsFill.value = false
 }
 
 /** 校验并提交策略更新 */
 async function handleSubmit() {
+  if (paramsLoading.value) {
+    message.warning('正在加载策略默认参数，请稍候')
+    return
+  }
   const validation = validateProjectPolicyBinding(form)
   if (!validation.valid) {
     message.warning(validation.message)
@@ -167,5 +203,11 @@ watch(
 
 .project-policy-number {
   width: 120px;
+}
+
+.policy-binding-hint {
+  margin: -8px 0 16px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.45);
 }
 </style>

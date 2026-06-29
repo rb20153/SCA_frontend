@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import type { Router } from 'vue-router'
-import type { Policy, PolicyMaskingAction, PolicyRuleHitScope } from '@/types/policy'
+import type { Policy, PolicyImportMode, PolicyImportPrecheck, PolicyMaskingAction, PolicyRuleHitScope } from '@/types/policy'
 
 /** 策略列表表格横向滚动宽度 */
 export const POLICY_TABLE_SCROLL_X = 1050
@@ -49,6 +49,14 @@ export function formatPolicyRuleHitDateTime(value: string): string {
 }
 
 /**
+ * 格式化 retry.enabled 为中文展示
+ * @param enabled - 是否启用自动重试
+ */
+export function formatPolicyRetryEnabled(enabled: boolean): string {
+  return enabled ? '是' : '否'
+}
+
+/**
  * 构建策略治理子页路由路径
  * @param policyId - 策略 ID
  * @param tabKey - governance | trace
@@ -74,6 +82,45 @@ export function buildLogListTracePath(traceId: string): string {
 export function buildPolicyNavigationState(policy?: Policy): HistoryState | undefined {
   return policy ? ({ policy } as HistoryState) : undefined
 }
+
+/**
+ * 跳转策略编辑器
+ * @param router - Vue Router 实例
+ * @param policyId - 策略 ID，新建传 `new`
+ * @param policy - 列表跳转时携带的策略上下文（可选）
+ */
+export async function navigateToPolicyEditor(
+  router: Router,
+  policyId: string,
+  policy?: Policy,
+): Promise<void> {
+  const state = buildPolicyNavigationState(policy)
+  await router.push({
+    name: 'PolicyEditor',
+    params: { policyId },
+    ...(state ? { state } : {}),
+  })
+}
+
+/** 策略导入模式筛选项 */
+export const POLICY_IMPORT_MODE_OPTIONS: {
+  value: PolicyImportMode
+  label: string
+}[] = [
+  { value: 'create', label: '新建策略' },
+  { value: 'overwrite', label: '覆盖同名策略' },
+  { value: 'new-version', label: '导入为新版本' },
+]
+
+/** 策略导入前校验多选项 */
+export const POLICY_IMPORT_PRECHECK_OPTIONS: {
+  value: PolicyImportPrecheck
+  label: string
+}[] = [
+  { value: 'dedup', label: '查重（名称+版本）' },
+  { value: 'compatibility', label: '兼容性校验（字段/规则）' },
+  { value: 'risk', label: '风险预估（导出/权限影响）' },
+]
 
 /**
  * 跳转策略治理子页并携带策略上下文

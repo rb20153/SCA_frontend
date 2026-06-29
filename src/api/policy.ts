@@ -1,12 +1,19 @@
 import type { ApiResponse, PageResult } from '@/types/common'
 import type {
   Policy,
+  PolicyDetectParams,
+  PolicyImportParams,
   PolicyQueryParams,
   PolicyRuleHitDetail,
   PolicyRuleHitListItem,
   PolicyRuleHitQueryParams,
 } from '@/types/policy'
 import { MOCK_ALL_POLICIES } from '@/mock/modules/policy/policyList'
+import {
+  getMockPolicyEditorConfigText,
+  MOCK_NEW_POLICY_EDITOR_JSON,
+} from '@/mock/modules/policy/policyEditorConfig'
+import { getMockPolicyDetectParams } from '@/mock/modules/policy/policyDetectParams'
 import {
   getMockPolicyRuleHitDetailSeed,
   getMockPolicyRuleHits,
@@ -76,6 +83,39 @@ export function getPolicySelectOptions(): Promise<ApiResponse<Policy[]>> {
 }
 
 /**
+ * 获取策略编辑器配置文本（新建返回默认模板，编辑返回当前生效版本）
+ * @param policyId - 策略 ID；新建传 `new`
+ */
+export function getPolicyEditorContent(
+  policyId: string,
+): Promise<ApiResponse<string | null>> {
+  const data =
+    policyId === 'new'
+      ? MOCK_NEW_POLICY_EDITOR_JSON
+      : getMockPolicyEditorConfigText(policyId)
+
+  if (!data) {
+    // TODO: replace with → return request.get(`/api/policies/${policyId}/editor-content`)
+    return Promise.resolve({ code: 200, message: 'ok', data: null })
+  }
+
+  // TODO: replace with → return request.get(`/api/policies/${policyId}/editor-content`)
+  return Promise.resolve({ code: 200, message: 'ok', data })
+}
+
+/**
+ * 获取策略当前生效版本的检测参数（项目绑定默认值）
+ * @param policyId - 策略 ID
+ */
+export function getPolicyDetectParams(
+  policyId: string,
+): Promise<ApiResponse<PolicyDetectParams | null>> {
+  const data = getMockPolicyDetectParams(policyId)
+  // TODO: replace with → return request.get(`/api/policies/${policyId}/detect-params`)
+  return Promise.resolve({ code: 200, message: 'ok', data })
+}
+
+/**
  * 删除策略
  * @param policyId - 要删除的策略 ID
  */
@@ -96,7 +136,17 @@ export function deletePolicy(policyId: string): Promise<ApiResponse<null>> {
 export function getPolicyById(policyId: string): Promise<ApiResponse<Policy | null>> {
   const policy = MOCK_ALL_POLICIES.find((item) => item.policyId === policyId) ?? null
   // TODO: replace with → return request.get(`/api/policies/${policyId}`)
-  return Promise.resolve({ code: 200, message: 'ok', data: policy })
+  return Promise.resolve({ code: 200, message: 'ok', data: policy   })
+}
+
+/**
+ * 导入策略文件（JSON/YAML），后端异步校验
+ * @param params - 文件、导入模式与导入前校验项
+ */
+export function importPolicy(params: PolicyImportParams): Promise<ApiResponse<null>> {
+  void params.file.name
+  // TODO: replace with → FormData + request.post('/api/policies/import', formData)
+  return Promise.resolve({ code: 200, message: 'ok', data: null })
 }
 
 /** mock 阶段按筛选条件过滤规则命中列表 */

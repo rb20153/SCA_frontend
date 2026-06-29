@@ -62,25 +62,36 @@
             :load-options="loadPolicySelectOptions"
           />
         </a-form-item>
-        <a-form-item label="相似度阈值" required>
-          <a-input-number
-            v-model:value="policyForm.similarityThreshold"
-            :min="0"
-            :max="100"
-            class="wizard-number"
-          />
-        </a-form-item>
-        <a-form-item label="最小匹配长度" required>
-          <a-input-number
-            v-model:value="policyForm.minMatchLength"
-            :min="1"
-            :max="9999"
-            class="wizard-number"
-          />
-        </a-form-item>
-        <a-form-item label="排除目录">
-          <TagInput ref="excludeDirTagRef" v-model="policyForm.excludeDirectories" />
-        </a-form-item>
+        <p v-if="!policyForm.policyId" class="policy-binding-hint">
+          选择检测策略后将自动带出默认参数，可按项目需要调整
+        </p>
+        <a-spin :spinning="paramsLoading" size="small">
+          <a-form-item label="相似度阈值" required>
+            <a-input-number
+              v-model:value="policyForm.similarityThreshold"
+              :min="0"
+              :max="100"
+              :disabled="paramsFieldsDisabled"
+              class="wizard-number"
+            />
+          </a-form-item>
+          <a-form-item label="最小匹配长度" required>
+            <a-input-number
+              v-model:value="policyForm.minMatchLength"
+              :min="1"
+              :max="9999"
+              :disabled="paramsFieldsDisabled"
+              class="wizard-number"
+            />
+          </a-form-item>
+          <a-form-item label="排除目录">
+            <TagInput
+              ref="excludeDirTagRef"
+              v-model="policyForm.excludeDirectories"
+              :disabled="paramsFieldsDisabled"
+            />
+          </a-form-item>
+        </a-spin>
       </a-form>
     </template>
 
@@ -94,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, toRef, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { createProject } from '@/api/project'
 import { searchUsers } from '@/api/user'
@@ -103,6 +114,7 @@ import FormStepWizardModal from '@/components/common/FormStepWizardModal.vue'
 import TagInput from '@/components/common/TagInput.vue'
 import UserSearchInput from '@/components/common/UserSearchInput.vue'
 import ProjectDeliverableInlineForm from '@/components/project/ProjectDeliverableInlineForm.vue'
+import { usePolicyBindingParamsFill } from '@/composables/usePolicyBindingParamsFill'
 import type {
   CreateProjectWizardParams,
   Project,
@@ -143,6 +155,13 @@ const basicForm = reactive({
 })
 
 const policyForm = reactive(createDefaultProjectPolicyBinding())
+const skipPolicyParamsFill = ref(false)
+
+const { paramsLoading, paramsFieldsDisabled } = usePolicyBindingParamsFill(
+  toRef(policyForm, 'policyId'),
+  policyForm,
+  { skipFill: skipPolicyParamsFill },
+)
 
 /** 搜索负责人（不限项目成员） */
 async function searchOwnerUsers(keyword: string) {
@@ -161,8 +180,10 @@ const isStep0Valid = computed(() => {
   return departmentId.value !== undefined && departmentId.value !== ''
 })
 
-/** 第二步校验 */
-const isStep1Valid = computed(() => validateProjectPolicyBinding(policyForm).valid)
+/** 第二步校验：已选策略且默认参数已加载 */
+const isStep1Valid = computed(
+  () => !paramsLoading.value && validateProjectPolicyBinding(policyForm).valid,
+)
 
 /** 第三步校验：已选类型且表单填写完整 */
 const isStep2Valid = computed(() => deliverableStepValid.value)
@@ -322,5 +343,11 @@ watch(
 
 .wizard-number {
   width: 120px;
+}
+
+.policy-binding-hint {
+  margin: -8px 0 16px;
+  font-size: 13px;
+  color: rgba(0, 0, 0, 0.45);
 }
 </style>

@@ -24,6 +24,17 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  optimizeDeps: {
+    include: [
+      'codemirror',
+      '@codemirror/state',
+      '@codemirror/view',
+      '@codemirror/commands',
+      '@codemirror/language',
+      '@codemirror/lang-json',
+      '@lezer/highlight',
+    ],
+  },
   server: {
     port: 5173,
     proxy: {

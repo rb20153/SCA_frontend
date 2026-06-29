@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-container">
     <div class="page-actions">
       <a-button @click="exportVisible = true">导出日志</a-button>
@@ -86,12 +86,12 @@ function openDetailDrawer(log: LogListItem) {
 function applyRouteLogFilter() {
   const resourceObject = route.query.resourceObject
   if (typeof resourceObject === 'string' && resourceObject) {
-    filterForm.resourceObject = resourceObject
+    filterForm.value.resourceObject = resourceObject
   }
 
   const traceId = route.query.traceId
   if (typeof traceId === 'string' && traceId) {
-    filterForm.traceId = traceId
+    filterForm.value.traceId = traceId
   }
 }
 
