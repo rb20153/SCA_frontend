@@ -1,15 +1,22 @@
 import type { ApiResponse, PageResult } from '@/types/common'
 import type {
-  CreateReportTemplateParams,
+  NewReportTemplateDraftParams,
   ReportTemplate,
+  ReportTemplateDetail,
   ReportTemplatePublishFailureReason,
   ReportTemplateQueryParams,
+  SaveReportTemplateParams,
 } from '@/types/reportTemplate'
 import {
   MOCK_ALL_REPORT_TEMPLATES,
   SYSTEM_REPORT_TEMPLATE_NAMES,
   getMockTemplatePublishFailureReason,
 } from '@/mock/modules/report/templateList'
+import {
+  getMockNewReportTemplateEditorDetail,
+  getMockReportTemplateDetail,
+  mockSaveReportTemplate,
+} from '@/mock/modules/report/templateDetail'
 
 // TODO: replace with: import request from '@/utils/request'
 
@@ -83,34 +90,53 @@ export function getReportTemplateList(
 }
 
 /**
- * 新建报告模板（草稿）
- * @param data - 模板名称与复制来源
+ * 获取新建模板编辑器草稿详情（弹窗确认后、首次保存前）
+ * @param draft - 模板名称与复制来源
  */
-export function createReportTemplate(
-  data: CreateReportTemplateParams,
-): Promise<ApiResponse<ReportTemplate>> {
-  const seq = MOCK_ALL_REPORT_TEMPLATES.length + 1
-  const templateId = `tpl-${String(seq).padStart(3, '0')}`
-  const copyFrom = data.copyFromTemplateId
-    ? MOCK_ALL_REPORT_TEMPLATES.find((item) => item.templateId === data.copyFromTemplateId)
-    : undefined
+export function getNewReportTemplateEditorDetail(
+  draft: NewReportTemplateDraftParams,
+): Promise<ApiResponse<ReportTemplateDetail>> {
+  // TODO: replace with → return request.post('/api/report-templates/draft-preview', draft)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockNewReportTemplateEditorDetail(draft),
+  })
+}
 
-  const created: ReportTemplate = {
-    templateId,
-    templateName: data.templateName.trim(),
-    version: copyFrom?.version ?? 'v1.0',
-    outputFormat: copyFrom?.outputFormat ?? 'pdf',
-    visibility: copyFrom?.visibility ?? 'project',
-    isDefault: false,
-    isSystem: false,
-    status: 'draft',
-    updatedAt: new Date().toISOString(),
-  }
+/**
+ * 保存报告模板（新建 templateId=new 或更新已有模板）
+ * @param templateId - 模板 ID，新建传 new
+ * @param data - 基本信息、Markdown（英文 varKey）、导出与权限
+ */
+export function saveReportTemplate(
+  templateId: string,
+  data: SaveReportTemplateParams,
+): Promise<ApiResponse<ReportTemplateDetail>> {
+  // TODO: replace with →
+  // templateId === 'new'
+  //   ? request.post('/api/report-templates', data)
+  //   : request.put(`/api/report-templates/${templateId}`, data)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: mockSaveReportTemplate(templateId, data),
+  })
+}
 
-  MOCK_ALL_REPORT_TEMPLATES.push(created)
-
-  // TODO: replace with → return request.post('/api/report-templates', data)
-  return Promise.resolve({ code: 200, message: 'ok', data: created })
+/**
+ * 获取报告模板详情（编辑器页加载基本信息与 Markdown 正文）
+ * @param templateId - 模板 ID
+ */
+export function getReportTemplateDetail(
+  templateId: string,
+): Promise<ApiResponse<ReportTemplateDetail | null>> {
+  // TODO: replace with → return request.get(`/api/report-templates/${templateId}`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockReportTemplateDetail(templateId),
+  })
 }
 
 /**

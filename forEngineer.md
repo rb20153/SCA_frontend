@@ -5,6 +5,105 @@
 
 ---
 
+## [2026-06-29] 报告模板 · 保存后回列表 + 系统模板只读查看
+
+### 改了什么
+
+- **`ReportTemplateEditor.vue`**：保存成功后 `router.push('/reports/templates')`；系统模板（`isSystem`）进入只读模式，顶部 `a-alert` 提示，隐藏保存按钮
+- **`ReportTemplateActionCell.vue`**：系统默认模板操作列改为蓝色链接「查看」（不再显示灰色不可操作文案）
+- **子组件** `BasicInfoForm` / `ContentPanel` / `MarkdownEditor` / `ExportPanel` / `ExportDownloadForm`：新增 `readonly` prop，禁用全部表单与编辑交互
+
+### 注意事项
+
+- 系统模板与普通模板共用 `/reports/templates/:id/edit` 路由，只读态由详情 `isSystem` 决定
+- 只读模式下 Markdown 编辑器 textarea 不可编辑，变量库不可点击，导出 Markdown 按钮隐藏
+
+---
+
+### 改了什么
+
+- **`ReportTemplateEditor.vue`**：「保存模板」按钮接入 `saveReportTemplate`；保存前校验基本信息必填项、Markdown 正文、水印内容
+- **`ReportTemplateCreateModal.vue`**：确认后仅 `emit('navigate')` 跳转 `/reports/templates/new/edit`，不再调用创建 API
+- **`api/reportTemplate.ts`**：新增 `getNewReportTemplateEditorDetail`、`saveReportTemplate`；移除 `createReportTemplate`
+- **`utils/reportTemplateMarkdown.ts`**：`convertMarkdownVariablesToEnglish` / `ToChinese`（保存转英文、加载转中文）
+- **`utils/reportTemplateEditorValidate.ts`**：保存前统一校验
+- **`mock/modules/report/templateDetail.ts`**：新建草稿详情 + `mockSaveReportTemplate` 落库
+
+### 保存提交内容
+
+- 基本信息：名称、版本、输出格式、可见范围、绑定项目（项目组可用时）、是否默认模板
+- Markdown 正文：编辑器内 `$中文变量名` → 提交时转为 `$英文varKey`
+- 导出与权限：敏感字段 + 下载与水印（不含只读 roleRules）
+
+### 注意事项
+
+- 新建流程：弹窗填名称 → 编辑器 `/new/edit` → 填完点保存 → mock 分配真实 `templateId` 并 `router.replace`
+- 直接访问 `/reports/templates/new/edit` 且无 `history.state.draft` 会显示加载失败
+- 联调时 `saveReportTemplate('new', …)` 对应 `POST`，已有 ID 对应 `PUT`
+
+---
+
+### 改了什么
+
+- **`ReportTemplateExportPanel.vue`**：左右分栏——按角色脱敏（`ListTable` 无分页）+ 敏感字段多选；下载与水印表单
+- **`ReportTemplateExportDownloadForm.vue`**：允许格式、导出需审批、水印、谁可下载、链接有效期、下载审计
+- 详情 API 增加 **`exportSettings`**；空白新建用默认配置，复制/编辑从 mock 加载（tpl-002/004/005 有差异化示例）
+
+### 默认项
+
+- 敏感字段 / 允许格式 / 下载审计：全选
+- 导出需审批：是；水印：开启，内容 `机密｜{user}｜{project}｜{time}`
+- 谁可下载：项目成员；链接有效期：24 小时
+
+---
+
+## [2026-06-29] 报告模板编辑器 · Markdown 工作区 + 实时预览
+
+### 改了什么
+
+- **`ReportTemplateMarkdownEditor.vue`**：MD 语法提示（`a-alert`）、变量库 `a-tag`（不可关闭，点击插入 `$中文变量名`）、全宽自适应高度 textarea、底部「导出 Markdown」下载
+- **`ReportTemplateMarkdownPreview.vue`**：左侧正文实时渲染；`$变量` 显示为蓝色中文标签
+- **`utils/reportTemplateMarkdown.ts`**：轻量 Markdown 渲染、变量映射、光标插入、文件下载
+- **`mock/modules/report/templateVariables.ts`**：变量库 + 默认示例正文；**`templateMarkdown.ts`**：已有模板正文存储
+- 详情 API 增加 `variables` + `markdownContent`；复制/编辑加载已有正文，空白新建用原型默认正文
+
+### 布局
+
+- 编辑器区 **2/3** 宽，实时预览 **1/3** 宽（`grid-template-columns: 2fr 1fr`）
+
+### 注意事项
+
+- 变量 tag 仅展示中文名；插入与预览均用 `$中文变量名`；Backspace/Delete 在占位符内/边界时整段删除
+- 编辑器与预览区等高（flex 撑满 card body）；所有 mock 模板（tpl-001～018）均有 Markdown 正文
+
+---
+
+## [2026-06-29] 报告模板编辑器 · 基本信息 + Tab 骨架
+
+### 改了什么
+
+- **`ReportTemplateEditor.vue`**：顶部「保存模板」按钮（暂无交互）；`PageNavTabs` 切换「模板内容 / 导出与权限」；进入页按路由 `templateId` 调 `getReportTemplateDetail` 回填表单
+- **`ReportTemplateBasicInfoForm.vue`**：模板名称、版本、输出格式（HTML/PDF/Word 无默认）、可见范围、绑定项目（`AsyncOptionsSelect`）、默认模板
+- **`ReportTemplateContentPanel.vue`** / **`ReportTemplateExportPanel.vue`**：左右编辑器/预览、导出权限区占位（待接入）
+- **`api/reportTemplate.ts`** + **`mock/modules/report/templateDetail.ts`**：新增详情接口 mock
+- **`types/reportTemplate.ts`**：新增 `ReportTemplateDetail`、`ReportTemplateEditorForm`
+
+### 怎么用
+
+1. 报告模板列表点「编辑」→ `/reports/templates/:templateId/edit`
+2. 页面加载后自动请求详情，基本信息字段已填好；可见范围=项目组可用时绑定项目下拉必填且可搜索
+3. Markdown 编辑器与实时预览、导出与权限 Tab 内容下一阶段再做
+
+### 注意事项
+
+- 保存模板按钮尚未接 API；输出格式/可见范围/默认模板下拉 intentionally 无默认值（新建空白场景），编辑态由详情 API 回填
+- **新建空白**：`createReportTemplate` 设 `isNewBlank: true`，详情 API 只返回 `templateName` + `version: v1.0`，其余 undefined
+- **新建且复制自**：创建时存 `copyFromTemplateId`，详情 API 读取源模板完整字段，但 `templateName` 用新建名、`version` 固定 `v1.0`、`isDefault` 为 false
+- **列表点编辑已有模板**：无上述标记，详情 API 返回模板自身完整数据
+- 绑定项目下拉复用 `loadDetectTaskProjectSelectOptions`；编辑态通过 `seedOption` + `prefetchOptions` 展示项目名称
+
+---
+
 ## [2026-06-29] 修复用户列表 / 个人设置无法进入（mock 循环引用）
 
 ### 改了什么

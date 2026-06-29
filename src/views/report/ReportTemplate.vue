@@ -31,7 +31,7 @@
     <ReportTemplateCreateModal
       v-model:open="createVisible"
       :templates="copyFromTemplates"
-      @success="onCreateSuccess"
+      @navigate="onCreateNavigate"
     />
 
     <ReportTemplateDeleteModal
@@ -145,12 +145,12 @@ function openFailureReasonModal(template: ReportTemplate) {
   failureReasonVisible.value = true
 }
 
-/** 新建成功后跳转编辑器并刷新列表 */
-async function onCreateSuccess(templateId: string) {
-  message.success('模板已创建')
-  await loadPage()
-  await fetchCopyFromTemplates()
-  router.push(`/reports/templates/${templateId}/edit`)
+/** 新建弹窗确认后进入编辑器（不发保存请求） */
+function onCreateNavigate(draft: { templateName: string; copyFromTemplateId?: string }) {
+  router.push({
+    path: '/reports/templates/new/edit',
+    state: { draft },
+  })
 }
 
 /** 删除成功后更新列表；若当前页删空且非第一页则回退一页 */

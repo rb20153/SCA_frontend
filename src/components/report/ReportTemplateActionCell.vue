@@ -1,5 +1,8 @@
 <template>
-  <span v-if="template.isSystem" class="system-hint">系统默认模版不可操作</span>
+  <span v-if="template.isSystem" class="action-cell">
+    <router-link :to="editorPath" class="list-table-link">查看</router-link>
+    <span class="system-template-label">系统模版</span>
+  </span>
 
   <span v-else class="action-cell">
     <router-link :to="editorPath" class="list-table-link">编辑</router-link>
@@ -69,8 +72,9 @@ const editorPath = computed(() => `/reports/templates/${props.template.templateI
   gap: 8px 12px;
 }
 
-.system-hint {
+.system-template-label {
+  font-size: 13px;
   color: rgba(0, 0, 0, 0.25);
-  font-size: 14px;
+  user-select: none;
 }
 </style>

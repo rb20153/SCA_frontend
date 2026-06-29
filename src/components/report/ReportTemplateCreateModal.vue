@@ -2,7 +2,6 @@
   <a-modal
     v-model:open="visible"
     title="新建模板"
-    :confirm-loading="submitting"
     ok-text="确定"
     cancel-text="取消"
     destroy-on-close
@@ -29,10 +28,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { createReportTemplate } from '@/api/reportTemplate'
-import type { ReportTemplate } from '@/types/reportTemplate'
+import type { NewReportTemplateDraftParams, ReportTemplate } from '@/types/reportTemplate'
 
 const props = defineProps<{
   /** 可选的复制来源模板列表 */
@@ -42,10 +40,8 @@ const props = defineProps<{
 const visible = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{
-  success: [templateId: string]
+  navigate: [draft: NewReportTemplateDraftParams]
 }>()
-
-const submitting = ref(false)
 
 const form = reactive({
   templateName: '新建 Markdown 报告模板',
@@ -70,24 +66,18 @@ watch(
   },
 )
 
-/** 校验并创建模板，成功后返回新模板 ID */
-async function handleOk() {
+/** 校验模板名称后进入编辑器（保存请求在编辑页「保存模板」触发） */
+function handleOk() {
   const templateName = form.templateName.trim()
   if (!templateName) {
     message.warning('请输入模板名称')
     return
   }
 
-  submitting.value = true
-  try {
-    const res = await createReportTemplate({
-      templateName,
-      copyFromTemplateId: form.copyFromTemplateId,
-    })
-    visible.value = false
-    emit('success', res.data.templateId)
-  } finally {
-    submitting.value = false
-  }
+  visible.value = false
+  emit('navigate', {
+    templateName,
+    copyFromTemplateId: form.copyFromTemplateId,
+  })
 }
 </script>
