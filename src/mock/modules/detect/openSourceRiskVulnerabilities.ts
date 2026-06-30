@@ -175,3 +175,25 @@ export function countMockOpenSourceRiskVulnerabilitiesByComponent(
       keyword.includes(item.componentName),
   ).length
 }
+
+/** mock：按 ID 查找漏洞清单项 */
+export function findMockOpenSourceRiskVulnerability(
+  taskId: string,
+  vulnerabilityId: string,
+): OpenSourceRiskVulnerability | undefined {
+  return getTaskVulnerabilityPool(taskId).find((item) => item.vulnerabilityId === vulnerabilityId)
+}
+
+/** mock：更新漏洞处理状态 */
+export function setMockOpenSourceRiskVulnerabilityStatus(
+  taskId: string,
+  vulnerabilityId: string,
+  processingStatus: OpenSourceRiskVulnerabilityProcessingStatus,
+): boolean {
+  const item = findMockOpenSourceRiskVulnerability(taskId, vulnerabilityId)
+  if (!item) {
+    return false
+  }
+  item.processingStatus = processingStatus
+  return true
+}

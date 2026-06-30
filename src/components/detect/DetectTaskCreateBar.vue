@@ -1,6 +1,6 @@
 <template>
   <div class="create-bar">
-    <a-button type="primary" @click="typeModalVisible = true">
+    <a-button type="primary" @click="handleCreateClick">
       <template #icon>
         <PlusOutlined />
       </template>
@@ -8,6 +8,7 @@
     </a-button>
 
     <EntryTypePickModal
+      v-if="variant === 'picker'"
       v-model:open="typeModalVisible"
       title="选择检测类型"
       hint="请选择要创建的检测任务类型"
@@ -38,6 +39,16 @@ import RiskDetectTaskCreateModal from '@/components/detect/RiskDetectTaskCreateM
 import type { DetectTask } from '@/types/detect'
 import { TASK_TYPE_LABEL } from '@/utils/taskDisplay'
 
+const props = withDefaults(
+  defineProps<{
+    /** autonomy / risk 直接打开对应弹窗；picker 先选类型（项目详情等场景） */
+    variant?: 'autonomy' | 'open-source-risk' | 'picker'
+  }>(),
+  {
+    variant: 'picker',
+  },
+)
+
 const emit = defineEmits<{
   created: [task: DetectTask]
 }>()
@@ -59,7 +70,20 @@ const taskTypeOptions: EntryTypePickOption[] = [
   },
 ]
 
-/** 按所选类型打开对应创建向导弹窗 */
+/** 按 variant 打开类型选择或对应创建弹窗 */
+function handleCreateClick() {
+  if (props.variant === 'autonomy') {
+    autonomyModalVisible.value = true
+    return
+  }
+  if (props.variant === 'open-source-risk') {
+    riskModalVisible.value = true
+    return
+  }
+  typeModalVisible.value = true
+}
+
+/** 类型选择弹窗选中后打开对应创建向导 */
 function handleTaskTypeSelect(key: string) {
   if (key === 'autonomy') {
     autonomyModalVisible.value = true

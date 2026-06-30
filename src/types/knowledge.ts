@@ -3,7 +3,11 @@ import type { SourceIngestFormState } from '@/types/sourceIngest'
 import type { Dayjs } from 'dayjs'
 
 /** 开源项目分类 */
-export type KbProjectCategory = 'simulation_framework' | 'numerical_computing' | 'toolchain'
+export type KbProjectCategory =
+  | 'simulation_framework'
+  | 'numerical_computing'
+  | 'pre_post_processing'
+  | 'general_dependency'
 
 /** 采集 / 入库方式 */
 export type KbCollectMode = 'cloud_repo' | 'upload_package'
@@ -37,6 +41,29 @@ export interface KbProjectQueryParams extends PageParams {
   /** 最近更新日期，格式 YYYY-MM-DD */
   updatedDate?: string
 }
+
+/** 知识库管理页顶部概览（统计卡片） */
+export interface KbProjectOverview {
+  /** 入库项目总数 */
+  totalCount: number
+  /** 各分类入库数量 */
+  categoryCounts: Record<KbProjectCategory, number>
+}
+
+/** 入库待办状态 */
+export type KbIntakeTodoStatus = 'in_progress' | 'pending' | 'alert'
+
+/** 知识库管理页 · 入库待办行 */
+export interface KbIntakeTodoItem {
+  todoId: string
+  projectName: string
+  status: KbIntakeTodoStatus
+  /** 待办说明 / 详情 */
+  detail: string
+}
+
+/** 入库待办列表查询参数 */
+export interface KbIntakeTodoQueryParams extends PageParams {}
 
 export interface UpdateKbProjectParams {
   projectName: string
@@ -73,6 +100,16 @@ export interface KbVersion {
   status: KbVersionStatus
   /** 创建时间，ISO 8601 */
   createdAt: string
+  /** 索引构建任务 TraceID，status 为 indexing 时用于跳转日志页 */
+  indexBuildTraceId?: string
+  /** 更新说明正文，status 为 ready 时在弹窗展示 */
+  updateNotes?: string
+}
+
+/** 恢复已归档版本请求参数 */
+export interface RestoreKbVersionParams {
+  kbProjectId: string
+  versionId: string
 }
 
 /** 版本管理页顶部概览（统计卡片） */
@@ -116,6 +153,54 @@ export interface KbProjectDirectoryQueryParams {
   keyword?: string
 }
 
+/** 项目目录 · 文件详情查询参数 */
+export interface KbProjectFileDetailQueryParams {
+  kbProjectId: string
+  versionId: string
+  fileNodeId: string
+}
+
+/** 项目目录 · 指纹与来源摘要表格行 */
+export interface KbProjectFingerprintSummaryRow {
+  rowId: string
+  dimension: string
+  hitCount: number
+  maxConfidence: number
+  description: string
+}
+
+/** 项目目录 · 单个文件详情 */
+export interface KbProjectFileDetail {
+  fileName: string
+  path: string
+  fileType: string
+  sizeLabel: string
+  md5: string
+  sha1: string
+  fingerprintSummary: string
+  licenseClue: string
+  /** 来源候选列表，展示时用分号连接 */
+  sourceCandidates: string[]
+  /** 最近更新时间，ISO 8601 */
+  updatedAt: string
+  /** 写入情况说明，如「由季度更新任务 KB-2026Q2-01 写入」 */
+  writeContext: string
+  fingerprintSummaries: KbProjectFingerprintSummaryRow[]
+}
+
+/** 项目目录 · 文件元数据导出参数 */
+export interface KbProjectFileMetadataExportParams {
+  kbProjectId: string
+  versionId: string
+  fileNodeId: string
+}
+
+/** 项目目录 · 文件元数据导出结果 */
+export interface KbProjectFileMetadataExportResult {
+  downloadUrl: string
+  fileName: string
+}
+
 /** 获取版本更新（云端拉取）响应 */
 export interface FetchKbVersionUpdateResult {
   /** 更新包大小（GB） */
@@ -146,6 +231,18 @@ export interface KnowledgeCoverageOverview {
   vulnSourceCoverageRate: number
   /** 待补全项目数 */
   pendingProjectCount: number
+}
+
+/** 季度更新管理页顶部概览 */
+export interface KbQuarterUpdateOverview {
+  /** 最近季度，如「2026 Q2」 */
+  recentQuarter: string
+  /** 本季度新增项目数 */
+  newProjectCount: number
+  /** 本季度上传包数量 */
+  uploadPackageCount: number
+  /** 本季度云端拉取数量 */
+  cloudPullCount: number
 }
 
 /** 分类覆盖统计行 */

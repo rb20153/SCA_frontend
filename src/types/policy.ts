@@ -114,3 +114,128 @@ export interface PolicyImportParams {
   /** 编辑已有策略时传入，用于覆盖或新版本 */
   policyId?: string
 }
+
+/** 策略版本状态 */
+export type PolicyVersionStatus = 'published' | 'pending' | 'history'
+
+/** 策略版本列表项 */
+export interface PolicyVersionListItem {
+  versionId: string
+  policyId: string
+  versionNo: string
+  status: PolicyVersionStatus
+  creatorId: string
+  creatorName: string
+  createdAt: string
+  changeSummary: string
+}
+
+/** 策略版本与审批页概览 */
+export interface PolicyGovernanceOverview {
+  policyId: string
+  policyName: string
+  currentVersion: string
+  pendingCount: number
+  lastChangedAt: string
+}
+
+/** 策略编辑器加载内容（配置文本 + 当前生效版本） */
+export interface PolicyEditorContent {
+  configText: string
+  /** 新建策略时为 null */
+  currentVersion: string | null
+}
+
+/** 提交策略发布申请参数 */
+export interface SubmitPolicyPublishParams {
+  /** 新建传 `new` */
+  policyId: string
+  versionNo: string
+  changeSummary: string
+  /** JSON 配置全文 */
+  configText: string
+  /** 当前编辑人 userId */
+  editorId: string
+}
+
+/** 提交策略发布申请响应 */
+export interface SubmitPolicyPublishResult {
+  policyId: string
+  versionId: string
+  versionNo: string
+}
+
+/** 策略版本差异对比一侧摘要 */
+export interface PolicyVersionDiffSide {
+  versionId: string
+  versionNo: string
+  status: PolicyVersionStatus
+  configSummary: string
+}
+
+/** 策略版本差异对比结果 */
+export interface PolicyVersionDiffResult {
+  policyId: string
+  policyName: string
+  anchorVersionId: string
+  leftVersionId: string
+  rightVersionId: string
+  left: PolicyVersionDiffSide
+  right: PolicyVersionDiffSide
+}
+
+/** 策略版本差异报告导出结果 */
+export interface PolicyVersionDiffExportResult {
+  downloadUrl: string
+  fileName: string
+}
+
+/** 策略版本审批结论 */
+export type PolicyVersionApprovalConclusion = 'approved' | 'rejected'
+
+/** 策略版本审批生效时间 */
+export type PolicyVersionEffectiveTime = 'immediate' | 'next-window'
+
+/** 提交策略版本审批参数 */
+export interface SubmitPolicyVersionApprovalParams {
+  policyId: string
+  versionId: string
+  conclusion: PolicyVersionApprovalConclusion
+  opinion: string
+  effectiveTime: PolicyVersionEffectiveTime
+}
+
+/** 提交策略版本审批响应 */
+export interface SubmitPolicyVersionApprovalResult {
+  versionId: string
+  conclusion: PolicyVersionApprovalConclusion
+  effectiveTime: PolicyVersionEffectiveTime
+}
+
+/** 策略版本导出范围 */
+export type PolicyVersionExportScope = 'params-and-rules' | 'params-only' | 'rules-only'
+
+/** 策略版本导出格式 */
+export type PolicyVersionExportFormat = 'json' | 'yaml'
+
+/** 导出策略版本参数 */
+export interface ExportPolicyVersionParams {
+  policyId: string
+  versionId: string
+  scope: PolicyVersionExportScope
+  format: PolicyVersionExportFormat
+}
+
+/** 策略版本导出结果 */
+export interface PolicyVersionExportResult {
+  downloadUrl: string
+  fileName: string
+}
+
+/** 回滚策略版本参数 */
+export interface RollbackPolicyVersionParams {
+  policyId: string
+  versionId: string
+  /** 用户输入的版本号，须与目标历史版本一致 */
+  confirmVersionNo: string
+}

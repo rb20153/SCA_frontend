@@ -1,12 +1,28 @@
-import type { ApiResponse, PageResult } from '@/types/common'
+import {
+  getMockPolicyRuleHitDetailSeed,
+  getMockPolicyRuleHits,
+} from '@/mock/modules/policy/ruleHitList'
+import type { ApiResponse, PageParams, PageResult } from '@/types/common'
 import type {
   Policy,
   PolicyDetectParams,
+  PolicyEditorContent,
+  PolicyGovernanceOverview,
   PolicyImportParams,
   PolicyQueryParams,
   PolicyRuleHitDetail,
   PolicyRuleHitListItem,
   PolicyRuleHitQueryParams,
+  PolicyVersionListItem,
+  PolicyVersionDiffExportResult,
+  PolicyVersionDiffResult,
+  SubmitPolicyPublishParams,
+  SubmitPolicyPublishResult,
+  SubmitPolicyVersionApprovalParams,
+  SubmitPolicyVersionApprovalResult,
+  ExportPolicyVersionParams,
+  PolicyVersionExportResult,
+  RollbackPolicyVersionParams,
 } from '@/types/policy'
 import { MOCK_ALL_POLICIES } from '@/mock/modules/policy/policyList'
 import {
@@ -15,11 +31,18 @@ import {
 } from '@/mock/modules/policy/policyEditorConfig'
 import { getMockPolicyDetectParams } from '@/mock/modules/policy/policyDetectParams'
 import {
-  getMockPolicyRuleHitDetailSeed,
-  getMockPolicyRuleHits,
-} from '@/mock/modules/policy/ruleHitList'
-
-// TODO: replace with: import request from '@/utils/request'
+  exportMockPolicyVersionDiffReport,
+  getMockPolicyVersionDiff,
+} from '@/mock/modules/policy/policyVersionDiff'
+import {
+  getMockPolicyCurrentVersion,
+  getMockPolicyGovernanceOverview,
+  getMockPolicyVersionPage,
+  submitMockPolicyPublishApplication,
+  submitMockPolicyVersionApproval,
+  exportMockPolicyVersion,
+  rollbackMockPolicyVersion,
+} from '@/mock/modules/policy/policyVersionList'
 
 const DEFAULT_PAGE_SIZE = 10
 
@@ -88,19 +111,29 @@ export function getPolicySelectOptions(): Promise<ApiResponse<Policy[]>> {
  */
 export function getPolicyEditorContent(
   policyId: string,
-): Promise<ApiResponse<string | null>> {
-  const data =
+): Promise<ApiResponse<PolicyEditorContent | null>> {
+  const configText =
     policyId === 'new'
       ? MOCK_NEW_POLICY_EDITOR_JSON
       : getMockPolicyEditorConfigText(policyId)
 
-  if (!data) {
+  if (!configText) {
     // TODO: replace with → return request.get(`/api/policies/${policyId}/editor-content`)
     return Promise.resolve({ code: 200, message: 'ok', data: null })
   }
 
+  const currentVersion =
+    policyId === 'new' ? null : getMockPolicyCurrentVersion(policyId)
+
   // TODO: replace with → return request.get(`/api/policies/${policyId}/editor-content`)
-  return Promise.resolve({ code: 200, message: 'ok', data })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: {
+      configText,
+      currentVersion,
+    },
+  })
 }
 
 /**
@@ -228,4 +261,130 @@ export function getPolicyRuleHitDetail(
       processingResult: seed.processingResult,
     },
   })
+}
+
+/**
+ * 获取策略版本与审批页概览统计
+ * @param policyId - 策略 ID
+ */
+export function getPolicyGovernanceOverview(
+  policyId: string,
+): Promise<ApiResponse<PolicyGovernanceOverview | null>> {
+  const data = getMockPolicyGovernanceOverview(policyId)
+  // TODO: replace with → return request.get(`/api/policies/${policyId}/governance/overview`)
+  return Promise.resolve({ code: 200, message: 'ok', data })
+}
+
+/**
+ * 获取策略版本列表（分页）
+ * @param policyId - 策略 ID
+ * @param params - 分页参数
+ */
+export function getPolicyVersionList(
+  policyId: string,
+  params: PageParams,
+): Promise<ApiResponse<PageResult<PolicyVersionListItem>>> {
+  const data = getMockPolicyVersionPage(policyId, params)
+  // TODO: replace with → return request.get(`/api/policies/${policyId}/versions`, { params })
+  return Promise.resolve({ code: 200, message: 'ok', data })
+}
+
+/**
+ * 提交策略发布申请（携带配置与编辑人 ID）
+ * @param params - 版本号、变更摘要、配置文本与 editorId
+ */
+export async function submitPolicyPublishApplication(
+  params: SubmitPolicyPublishParams,
+): Promise<ApiResponse<SubmitPolicyPublishResult>> {
+  try {
+    const data = submitMockPolicyPublishApplication(params)
+    // TODO: replace with → return request.post(`/api/policies/${params.policyId}/publish-requests`, params)
+    return { code: 200, message: 'ok', data }
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : '提交失败'
+    return Promise.reject(new Error(messageText))
+  }
+}
+
+/**
+ * 获取策略版本差异对比（左右版本摘要由后端按行状态解析）
+ * @param policyId - 策略 ID
+ * @param anchorVersionId - 当前点击的版本行 ID
+ */
+export function getPolicyVersionDiff(
+  policyId: string,
+  anchorVersionId: string,
+): Promise<ApiResponse<PolicyVersionDiffResult | null>> {
+  const data = getMockPolicyVersionDiff(policyId, anchorVersionId)
+  // TODO: replace with → return request.get(`/api/policies/${policyId}/versions/${anchorVersionId}/diff`)
+  return Promise.resolve({ code: 200, message: 'ok', data })
+}
+
+/**
+ * 导出策略版本差异报告
+ * @param policyId - 策略 ID
+ * @param anchorVersionId - 当前点击的版本行 ID
+ */
+export function exportPolicyVersionDiffReport(
+  policyId: string,
+  anchorVersionId: string,
+): Promise<ApiResponse<PolicyVersionDiffExportResult | null>> {
+  const data = exportMockPolicyVersionDiffReport(policyId, anchorVersionId)
+  if (!data) {
+    // TODO: replace with → return request.post(`/api/policies/${policyId}/versions/${anchorVersionId}/diff/export`)
+    return Promise.resolve({ code: 200, message: 'ok', data: null })
+  }
+  // TODO: replace with → return request.post(`/api/policies/${policyId}/versions/${anchorVersionId}/diff/export`)
+  return Promise.resolve({ code: 200, message: 'ok', data })
+}
+
+/**
+ * 提交策略版本发布审批
+ * @param params - 审批结论、意见与生效时间
+ */
+export async function submitPolicyVersionApproval(
+  params: SubmitPolicyVersionApprovalParams,
+): Promise<ApiResponse<SubmitPolicyVersionApprovalResult>> {
+  try {
+    const data = submitMockPolicyVersionApproval(params)
+    // TODO: replace with → return request.post(`/api/policies/${params.policyId}/versions/${params.versionId}/approval`, params)
+    return { code: 200, message: 'ok', data }
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : '审批提交失败'
+    return Promise.reject(new Error(messageText))
+  }
+}
+
+/**
+ * 导出策略版本文件
+ * @param params - 版本 ID、导出范围与格式
+ */
+export function exportPolicyVersion(
+  params: ExportPolicyVersionParams,
+): Promise<ApiResponse<PolicyVersionExportResult>> {
+  try {
+    const data = exportMockPolicyVersion(params)
+    // TODO: replace with → return request.post(`/api/policies/${params.policyId}/versions/${params.versionId}/export`, params)
+    return Promise.resolve({ code: 200, message: 'ok', data })
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : '导出失败'
+    return Promise.reject(new Error(messageText))
+  }
+}
+
+/**
+ * 回滚策略历史版本为当前生效版本
+ * @param params - 目标版本 ID 与确认版本号
+ */
+export async function rollbackPolicyVersion(
+  params: RollbackPolicyVersionParams,
+): Promise<ApiResponse<null>> {
+  try {
+    rollbackMockPolicyVersion(params)
+    // TODO: replace with → return request.post(`/api/policies/${params.policyId}/versions/${params.versionId}/rollback`, params)
+    return { code: 200, message: 'ok', data: null }
+  } catch (error) {
+    const messageText = error instanceof Error ? error.message : '回滚失败'
+    return Promise.reject(new Error(messageText))
+  }
 }

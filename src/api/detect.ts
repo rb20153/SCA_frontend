@@ -11,7 +11,16 @@ import type {
   RiskComponentGraph,
   IgnoreOpenSourceRiskComponentParams,
   OpenSourceRiskVulnerability,
+  OpenSourceRiskVulnerabilityDetail,
   OpenSourceRiskVulnerabilityQueryParams,
+  OpenSourceRiskSbomModulePreviewRow,
+  OpenSourceRiskSbomPackagePreviewRow,
+  OpenSourceRiskSbomProjectPreviewRow,
+  ExportOpenSourceRiskSbomParams,
+  ExportOpenSourceRiskSbomResult,
+  OpenSourceRiskSbomPreviewQueryParams,
+  RegisterOpenSourceRiskVulnerabilityDispositionParams,
+  ReviewOpenSourceRiskVulnerabilityDispositionParams,
   AiParseTask,
   AiParseTaskQueryParams,
   AiParseFallbackCompareItem,
@@ -46,6 +55,15 @@ import {
 } from '@/mock/modules/detect/openSourceRiskComponents'
 import { getMockRiskComponentGraph } from '@/mock/modules/detect/riskComponentGraph'
 import { getMockOpenSourceRiskVulnerabilityPage, countMockOpenSourceRiskVulnerabilitiesByComponent } from '@/mock/modules/detect/openSourceRiskVulnerabilities'
+import {
+  getMockOpenSourceRiskVulnerabilityDetail,
+  mockRegisterOpenSourceRiskVulnerabilityDisposition,
+  mockReviewOpenSourceRiskVulnerabilityDisposition,
+} from '@/mock/modules/detect/openSourceRiskVulnerabilityDetail'
+import {
+  getMockOpenSourceRiskSbomPreviewPage,
+  mockExportOpenSourceRiskSbom,
+} from '@/mock/modules/detect/openSourceRiskSbom'
 import {
   getMockAiParseTaskPage,
   mockCreateAiParseTask,
@@ -390,6 +408,118 @@ export function getOpenSourceRiskVulnerabilityList(
     code: 200,
     message: 'ok',
     data: getMockOpenSourceRiskVulnerabilityPage(taskId, params),
+  })
+}
+
+/**
+ * 获取开源风险 · 漏洞详情（抽屉打开时拉取）
+ * @param taskId - 任务 ID
+ * @param vulnerabilityId - 漏洞 ID
+ */
+export function getOpenSourceRiskVulnerabilityDetail(
+  taskId: string,
+  vulnerabilityId: string,
+): Promise<ApiResponse<OpenSourceRiskVulnerabilityDetail>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  const detail = getMockOpenSourceRiskVulnerabilityDetail(taskId, vulnerabilityId)
+  if (!detail) {
+    return Promise.reject(new Error('漏洞不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/vulnerabilities/${vulnerabilityId}`)
+  return Promise.resolve({ code: 200, message: 'ok', data: detail })
+}
+
+/**
+ * 登记开源风险漏洞处置
+ * @param taskId - 任务 ID
+ * @param vulnerabilityId - 漏洞 ID
+ * @param data - 登记表单
+ */
+export function registerOpenSourceRiskVulnerabilityDisposition(
+  taskId: string,
+  vulnerabilityId: string,
+  data: RegisterOpenSourceRiskVulnerabilityDispositionParams,
+): Promise<ApiResponse<null>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  const ok = mockRegisterOpenSourceRiskVulnerabilityDisposition(taskId, vulnerabilityId, data)
+  if (!ok) {
+    return Promise.reject(new Error('当前状态不可登记处置'))
+  }
+  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/risk/vulnerabilities/${vulnerabilityId}/disposition`, data)
+  return Promise.resolve({ code: 200, message: 'ok', data: null })
+}
+
+/**
+ * 复核开源风险漏洞处置
+ * @param taskId - 任务 ID
+ * @param vulnerabilityId - 漏洞 ID
+ * @param data - 复核表单
+ */
+export function reviewOpenSourceRiskVulnerabilityDisposition(
+  taskId: string,
+  vulnerabilityId: string,
+  data: ReviewOpenSourceRiskVulnerabilityDispositionParams,
+): Promise<ApiResponse<null>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  const ok = mockReviewOpenSourceRiskVulnerabilityDisposition(taskId, vulnerabilityId, data)
+  if (!ok) {
+    return Promise.reject(new Error('当前状态不可复核'))
+  }
+  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/risk/vulnerabilities/${vulnerabilityId}/disposition/review`, data)
+  return Promise.resolve({ code: 200, message: 'ok', data: null })
+}
+
+/**
+ * 获取开源风险 · SBOM 清单预览（分页）
+ * @param taskId - 任务 ID
+ * @param params - 输出粒度与分页
+ */
+export function getOpenSourceRiskSbomPreview(
+  taskId: string,
+  params: OpenSourceRiskSbomPreviewQueryParams,
+): Promise<
+  ApiResponse<
+    PageResult<
+      | OpenSourceRiskSbomProjectPreviewRow
+      | OpenSourceRiskSbomModulePreviewRow
+      | OpenSourceRiskSbomPackagePreviewRow
+    >
+  >
+> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/sbom/preview`, { params })
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: getMockOpenSourceRiskSbomPreviewPage(taskId, params),
+  })
+}
+
+/**
+ * 导出开源风险 SBOM 文件
+ * @param taskId - 任务 ID
+ * @param data - 标准格式、文件格式与输出粒度
+ */
+export function exportOpenSourceRiskSbom(
+  taskId: string,
+  data: ExportOpenSourceRiskSbomParams,
+): Promise<ApiResponse<ExportOpenSourceRiskSbomResult>> {
+  if (!findMockTask(taskId)) {
+    return Promise.reject(new Error('任务不存在'))
+  }
+  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/risk/sbom/export`, data)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: mockExportOpenSourceRiskSbom(taskId, data),
   })
 }
 

@@ -1,37 +1,58 @@
 <template>
   <span class="action-cell">
-    <router-link :to="directoryTo" class="list-table-link">项目目录</router-link>
+    <router-link
+      v-if="version.status !== 'indexing'"
+      :to="directoryTo"
+      class="list-table-link"
+    >
+      项目目录
+    </router-link>
+
     <a
       v-if="version.status === 'ready'"
       href="#"
       class="list-table-link"
-      @click.prevent
+      @click.prevent="updateNotesVisible = true"
     >
       更新说明
     </a>
-    <a
+
+    <router-link
       v-else-if="version.status === 'indexing'"
-      href="#"
+      :to="buildLogPath"
       class="list-table-link"
-      @click.prevent
     >
       构建日志
-    </a>
+    </router-link>
+
     <a
-      v-else
+      v-else-if="version.status === 'archived'"
       href="#"
       class="list-table-link"
-      @click.prevent
+      @click.prevent="restoreVisible = true"
     >
       恢复
     </a>
+
+    <KbVersionUpdateNotesModal
+      v-model:open="updateNotesVisible"
+      :version="version"
+    />
+
+    <KbVersionRestoreModal
+      v-model:open="restoreVisible"
+      :version="version"
+    />
   </span>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
+import KbVersionRestoreModal from '@/components/knowledge/KbVersionRestoreModal.vue'
+import KbVersionUpdateNotesModal from '@/components/knowledge/KbVersionUpdateNotesModal.vue'
 import type { KbProject, KbVersion } from '@/types/knowledge'
+import { buildLogListTracePath } from '@/utils/knowledgeVersionDisplay'
 
 const props = defineProps<{
   version: KbVersion
@@ -40,6 +61,9 @@ const props = defineProps<{
 }>()
 
 const { withFrom } = useRouteWithFrom()
+
+const updateNotesVisible = ref(false)
+const restoreVisible = ref(false)
 
 /** 项目目录页路由（携带项目 + 版本上下文 + from 供顶栏返回） */
 const directoryTo = computed(() =>
@@ -53,6 +77,15 @@ const directoryTo = computed(() =>
     },
   }),
 )
+
+/** 构建日志跳转路径（日志页按 TraceID 自动查询） */
+const buildLogPath = computed(() => {
+  const traceId = props.version.indexBuildTraceId?.trim()
+  if (!traceId) {
+    return '/system/logs'
+  }
+  return buildLogListTracePath(traceId)
+})
 </script>
 
 <style scoped>

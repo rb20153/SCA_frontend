@@ -35,7 +35,8 @@
           <a-sub-menu key="detect">
             <template #icon><scan-outlined /></template>
             <template #title>检测分析</template>
-            <a-menu-item key="/detect/tasks">检测任务</a-menu-item>
+            <a-menu-item key="/detect/autonomy">自主率检测</a-menu-item>
+            <a-menu-item key="/detect/risk">开源风险检测</a-menu-item>
             <a-menu-item key="/detect/ai-analysis">AI辅助分析</a-menu-item>
           </a-sub-menu>
 
@@ -57,6 +58,7 @@
             <a-menu-item key="/knowledge">知识库管理</a-menu-item>
             <a-menu-item key="/knowledge/coverage">覆盖统计</a-menu-item>
             <a-menu-item key="/knowledge/vulnerabilities">漏洞知识库</a-menu-item>
+            <a-menu-item key="/knowledge/quarter-updates">季度更新管理</a-menu-item>
           </a-sub-menu>
 
           <a-sub-menu key="system">
@@ -120,7 +122,7 @@
             route-mode
             tip="页面加载中..."
           >
-            <router-view />
+            <router-view :key="route.path" />
           </PageLoading>
         </a-layout-content>
       </a-layout>
@@ -178,6 +180,10 @@ watch(
     ) {
       // 项目目录、版本管理为知识库列表的子页，侧栏仍高亮「知识库管理」
       selectedKeys.value = ['/knowledge']
+    } else if (path.startsWith('/detect/autonomy')) {
+      selectedKeys.value = ['/detect/autonomy']
+    } else if (path.startsWith('/detect/risk')) {
+      selectedKeys.value = ['/detect/risk']
     } else if (path.startsWith('/projects/')) {
       // 项目详情为列表子页，侧栏仍高亮「项目管理」
       selectedKeys.value = ['/projects']

@@ -10,7 +10,7 @@
       />
     </a-form-item>
 
-    <a-form-item label="检测类型">
+    <a-form-item v-if="!hideTaskType" label="检测类型">
       <a-select
         v-model:value="filters.taskType"
         :options="TASK_TYPE_FILTER_OPTIONS"
@@ -42,6 +42,16 @@
 import ListQueryBar from '@/components/common/ListQueryBar.vue'
 import type { TaskListFilters } from '@/types/detect'
 import { TASK_STATUS_FILTER_OPTIONS, TASK_TYPE_FILTER_OPTIONS } from '@/utils/taskQuery'
+
+const { hideTaskType } = withDefaults(
+  defineProps<{
+    /** 分类列表页隐藏检测类型筛选（类型由路由固定） */
+    hideTaskType?: boolean
+  }>(),
+  {
+    hideTaskType: false,
+  },
+)
 
 const filters = defineModel<TaskListFilters>({ required: true })
 

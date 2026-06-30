@@ -1,0 +1,16 @@
+/** 列表操作列链接样式（ListTable / *ActionCell 复用） */
+.list-table-link {
+  color: #1677ff;
+}
+
+.list-table-link--danger {
+  color: #ff4d4f;
+}
+
+.list-table-status-tag {
+  margin: 0;
+}
+
+.list-table-action-dash {
+  color: rgba(0, 0, 0, 0.25);
+}

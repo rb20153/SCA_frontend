@@ -344,6 +344,84 @@ export type OpenSourceRiskVulnerabilityProcessingStatus =
   | 'needs_review'
   | 'verified'
 
+/** 开源风险 · 漏洞处置方式 */
+export const OPEN_SOURCE_RISK_VULNERABILITY_DISPOSITION = {
+  UpgradeVersion: 'upgrade-version',
+  TempIsolate: 'temp-isolate',
+  AcceptRisk: 'accept-risk',
+  FalsePositiveIgnore: 'false-positive-ignore',
+} as const
+
+export type OpenSourceRiskVulnerabilityDispositionMethod =
+  (typeof OPEN_SOURCE_RISK_VULNERABILITY_DISPOSITION)[keyof typeof OPEN_SOURCE_RISK_VULNERABILITY_DISPOSITION]
+
+/** 开源风险 · 漏洞处置复核结论 */
+export const OPEN_SOURCE_RISK_VULNERABILITY_REVIEW_CONCLUSION = {
+  Approved: 'approved',
+  Rejected: 'rejected',
+} as const
+
+export type OpenSourceRiskVulnerabilityReviewConclusion =
+  (typeof OPEN_SOURCE_RISK_VULNERABILITY_REVIEW_CONCLUSION)[keyof typeof OPEN_SOURCE_RISK_VULNERABILITY_REVIEW_CONCLUSION]
+
+/** 开源风险 · 漏洞处置登记信息 */
+export interface OpenSourceRiskVulnerabilityRegistration {
+  method: OpenSourceRiskVulnerabilityDispositionMethod
+  assigneeName: string
+  plannedCompleteDate: string
+  description: string
+  registeredBy: string
+  registeredAt: string
+}
+
+/** 开源风险 · 漏洞处置验证结果（已验证） */
+export interface OpenSourceRiskVulnerabilityVerificationResult {
+  finalMethod: OpenSourceRiskVulnerabilityDispositionMethod
+  verifierName: string
+  verifiedAt: string
+  resultDescription: string
+}
+
+/** 开源风险 · 漏洞处置时间线条目 */
+export interface OpenSourceRiskVulnerabilityTimelineItem {
+  time: string
+  message: string
+}
+
+/** 开源风险 · 漏洞详情（抽屉） */
+export interface OpenSourceRiskVulnerabilityDetail {
+  vulnerabilityId: string
+  cveId: string
+  componentName: string
+  version: string
+  riskLevel: OpenSourceRiskComponentRiskLevel
+  cvssScore: number
+  processingStatus: OpenSourceRiskVulnerabilityProcessingStatus
+  affectedComponents: string[]
+  fixSuggestion: string
+  /** 待处理时已登记但未复核的方案；通常为 null */
+  registration: OpenSourceRiskVulnerabilityRegistration | null
+  /** 需复核时的待审方案 */
+  pendingReviewPlan: OpenSourceRiskVulnerabilityRegistration | null
+  verificationResult: OpenSourceRiskVulnerabilityVerificationResult | null
+  dispositionTimeline: OpenSourceRiskVulnerabilityTimelineItem[]
+}
+
+/** 登记漏洞处置请求体 */
+export interface RegisterOpenSourceRiskVulnerabilityDispositionParams {
+  method: OpenSourceRiskVulnerabilityDispositionMethod
+  plannedCompleteDate: string
+  assigneeUserId: string
+  assigneeName: string
+  description: string
+}
+
+/** 复核漏洞处置请求体 */
+export interface ReviewOpenSourceRiskVulnerabilityDispositionParams {
+  conclusion: OpenSourceRiskVulnerabilityReviewConclusion
+  opinion: string
+}
+
 /** 开源风险 · 漏洞风险清单项 */
 export interface OpenSourceRiskVulnerability {
   vulnerabilityId: string
@@ -371,6 +449,63 @@ export interface OpenSourceRiskVulnerabilityQueryParams extends Partial<PagePara
   riskLevel?: OpenSourceRiskComponentRiskLevel
   componentName?: string
   processingStatus?: OpenSourceRiskVulnerabilityProcessingStatus
+}
+
+/** 开源风险 · SBOM 标准格式 */
+export type OpenSourceRiskSbomStandardFormat = 'spdx' | 'cyclonedx'
+
+/** 开源风险 · SBOM 文件格式 */
+export type OpenSourceRiskSbomFileFormat = 'json' | 'xml'
+
+/** 开源风险 · SBOM 输出粒度 */
+export type OpenSourceRiskSbomGranularity = 'project' | 'module' | 'package'
+
+/** 开源风险 · SBOM 清单预览（项目级行） */
+export interface OpenSourceRiskSbomProjectPreviewRow {
+  rowId: string
+  componentName: string
+  version: string
+  license: string
+  supplier: string
+  referenceMode: string
+  riskLevel: OpenSourceRiskComponentRiskLevel
+}
+
+/** 开源风险 · SBOM 清单预览（模块级行） */
+export interface OpenSourceRiskSbomModulePreviewRow {
+  rowId: string
+  moduleName: string
+  componentCount: number
+  highRiskLicense: string
+  vulnerableComponentCount: number
+}
+
+/** 开源风险 · SBOM 清单预览（包级行） */
+export interface OpenSourceRiskSbomPackagePreviewRow {
+  rowId: string
+  packageLabel: string
+  evidenceSource: string
+  confidence: number
+  conflictHint: 'none' | 'conflict'
+  remediationSuggestion: string
+}
+
+/** 开源风险 · SBOM 预览查询参数 */
+export interface OpenSourceRiskSbomPreviewQueryParams extends Partial<PageParams> {
+  granularity: OpenSourceRiskSbomGranularity
+}
+
+/** 导出 SBOM 请求体 */
+export interface ExportOpenSourceRiskSbomParams {
+  standardFormat: OpenSourceRiskSbomStandardFormat
+  fileFormat: OpenSourceRiskSbomFileFormat
+  granularity: OpenSourceRiskSbomGranularity
+}
+
+/** 导出 SBOM 响应 */
+export interface ExportOpenSourceRiskSbomResult {
+  downloadUrl: string
+  fileName: string
 }
 
 /** AI 解析 · 任务状态 */

@@ -14,7 +14,8 @@ export const mockCollectionMethodCoverageStatsRes: ApiResponse<
       categoryCounts: [
         { category: '仿真框架', projectCount: 27 },
         { category: '数值计算', projectCount: 16 },
-        { category: '工具链', projectCount: 18 },
+        { category: '前后处理', projectCount: 10 },
+        { category: '通用依赖', projectCount: 8 },
       ],
       successRate: 94,
       avgDurationMinutes: 16,
@@ -25,7 +26,8 @@ export const mockCollectionMethodCoverageStatsRes: ApiResponse<
       categoryCounts: [
         { category: '仿真框架', projectCount: 15 },
         { category: '数值计算', projectCount: 12 },
-        { category: '工具链', projectCount: 14 },
+        { category: '前后处理', projectCount: 8 },
+        { category: '通用依赖', projectCount: 6 },
       ],
       successRate: 98,
       avgDurationMinutes: 9,

@@ -58,8 +58,8 @@ export const PERMISSION_TREE_GROUPS: PermissionTreeGroup[] = [
     children: [
       { key: 'menu.home', label: '首页' },
       { key: 'menu.project', label: '项目管理' },
-      { key: 'menu.scan', label: '检测任务' },
-      { key: 'menu.risk', label: '开源风险' },
+      { key: 'menu.scan', label: '自主率检测' },
+      { key: 'menu.risk', label: '开源风险检测' },
       { key: 'menu.ai', label: 'AI 辅助分析' },
       { key: 'menu.policy', label: '策略管理' },
       { key: 'menu.report', label: '报告管理' },

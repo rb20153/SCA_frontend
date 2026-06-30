@@ -80,6 +80,8 @@ import TaskTypeText from '@/components/detect/TaskTypeText.vue'
 import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import {
   DETECT_TASK_LIST_SCROLL_X,
+  DETECT_TASK_SPLIT_LIST_SCROLL_X,
+  DETECT_TASK_TABLE_NO_PROJECT_NO_TYPE_SCROLL_X,
   DETECT_TASK_TABLE_NO_PROJECT_SCROLL_X,
   DETECT_TASK_TABLE_SCROLL_X,
   TASK_SOURCE_MODE_LABEL,
@@ -96,8 +98,12 @@ const props = withDefaults(
     loading?: boolean
     /** 首页最近任务传 false；检测任务列表页传分页配置 */
     pagination?: TablePaginationConfig | false
-    /** 检测任务列表页展示「来源/模式」列；首页不展示 */
+    /** 检测任务列表页展示模式/来源列；首页不展示 */
     showSourceMode?: boolean
+    /** 模式/来源列标题；默认「来源/模式」，分类列表页传「模式」或「来源」 */
+    sourceModeColumnTitle?: string
+    /** 分类列表页隐藏检测类型列 */
+    hideTaskType?: boolean
     /** 检测任务列表页展示完整操作列（含弹窗交互） */
     showFullActions?: boolean
     /** 隐藏「项目」列（项目详情关联任务等场景） */
@@ -109,6 +115,8 @@ const props = withDefaults(
     showSourceMode: false,
     showFullActions: false,
     hideProjectColumn: false,
+    hideTaskType: false,
+    sourceModeColumnTitle: '来源/模式',
   },
 )
 
@@ -129,15 +137,22 @@ const actionColumnWidth = computed(() => (props.showFullActions ? 220 : 110))
 const columns = computed<TableColumnsType<DetectTask>>(() => {
   const cols: TableColumnsType<DetectTask> = [
     { title: '任务名称', dataIndex: 'taskName', key: 'taskName', width: 180, ellipsis: true },
-    { title: '检测类型', key: 'taskType', width: 130 },
   ]
+
+  if (!props.hideTaskType) {
+    cols.push({ title: '检测类型', key: 'taskType', width: 130 })
+  }
 
   if (!props.hideProjectColumn) {
     cols.push({ title: '项目', dataIndex: 'projectName', key: 'projectName', width: 160, ellipsis: true })
   }
 
   if (props.showSourceMode) {
-    cols.push({ title: '来源/模式', key: 'sourceMode', width: 120 })
+    cols.push({
+      title: props.sourceModeColumnTitle,
+      key: 'sourceMode',
+      width: 120,
+    })
   }
 
   cols.push(
@@ -152,13 +167,16 @@ const columns = computed<TableColumnsType<DetectTask>>(() => {
 
 const tableScrollX = computed(() => {
   if (props.hideProjectColumn) {
-    return DETECT_TASK_TABLE_NO_PROJECT_SCROLL_X
+    return props.hideTaskType
+      ? DETECT_TASK_TABLE_NO_PROJECT_NO_TYPE_SCROLL_X
+      : DETECT_TASK_TABLE_NO_PROJECT_SCROLL_X
   }
   if (props.showSourceMode && props.showFullActions) {
-    return DETECT_TASK_LIST_SCROLL_X
+    return props.hideTaskType ? DETECT_TASK_SPLIT_LIST_SCROLL_X : DETECT_TASK_LIST_SCROLL_X
   }
   if (props.showSourceMode) {
-    return DETECT_TASK_LIST_SCROLL_X - 110 + actionColumnWidth.value
+    const base = props.hideTaskType ? DETECT_TASK_SPLIT_LIST_SCROLL_X : DETECT_TASK_LIST_SCROLL_X
+    return base - 220 + actionColumnWidth.value
   }
   return DETECT_TASK_TABLE_SCROLL_X
 })

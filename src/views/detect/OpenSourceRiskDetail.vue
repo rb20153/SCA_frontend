@@ -11,9 +11,11 @@
 
         <PageNavTabs v-model:active-key="activeTab" :tabs="OPEN_SOURCE_RISK_DETAIL_TABS" />
 
-        <a-card v-show="activeTab === 'sbom'" :bordered="false" class="tab-content-card">
-          <div class="tab-placeholder" />
-        </a-card>
+        <OpenSourceRiskSbomPanel
+          v-show="activeTab === 'sbom'"
+          :task-id="taskId"
+          :visible="activeTab === 'sbom'"
+        />
 
         <OpenSourceRiskComponentPanel
           v-show="activeTab === 'components'"
@@ -43,6 +45,7 @@ import PageNavTabs from '@/components/common/PageNavTabs.vue'
 import StatCardRow from '@/components/common/StatCardRow.vue'
 import OpenSourceRiskDetailHead from '@/components/detect/OpenSourceRiskDetailHead.vue'
 import OpenSourceRiskComponentPanel from '@/components/detect/OpenSourceRiskComponentPanel.vue'
+import OpenSourceRiskSbomPanel from '@/components/detect/OpenSourceRiskSbomPanel.vue'
 import OpenSourceRiskVulnerabilityPanel from '@/components/detect/OpenSourceRiskVulnerabilityPanel.vue'
 import type { StatCardItem } from '@/types/common'
 import type { DetectTask, OpenSourceRiskDetailHeadInfo, OpenSourceRiskDetailTabKey } from '@/types/detect'
@@ -151,13 +154,5 @@ watch(
 
 .risk-summary-row {
   margin-bottom: 16px;
-}
-
-.tab-content-card {
-  min-height: 240px;
-}
-
-.tab-placeholder {
-  min-height: 200px;
 }
 </style>

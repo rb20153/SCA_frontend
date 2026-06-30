@@ -49,39 +49,64 @@ const routes: RouteRecordRaw[] = [
 
       // ── 检测分析 ──────────────────────────────────────────────────────────
       {
-        path: 'detect/tasks',
-        name: 'DetectTaskList',
-        component: () => import('@/views/detect/DetectTaskList.vue'),
+        path: 'detect/autonomy',
+        name: 'AutonomyDetectTaskList',
+        component: () => import('@/views/detect/AutonomyDetectTaskList.vue'),
         meta: {
-          title: '检测任务',
-          breadcrumbs: crumbs('检测分析', '检测任务'),
+          title: '自主率检测',
+          breadcrumbs: crumbs('检测分析', '自主率检测'),
         },
       },
       {
-        path: 'detect/tasks/:taskId/result',
+        path: 'detect/risk',
+        name: 'OpenSourceRiskTaskList',
+        component: () => import('@/views/detect/OpenSourceRiskTaskList.vue'),
+        meta: {
+          title: '开源风险检测',
+          breadcrumbs: crumbs('检测分析', '开源风险检测'),
+        },
+      },
+      {
+        path: 'detect/autonomy/:taskId/result',
         name: 'AutonomyDetectResult',
         component: () => import('@/views/detect/AutonomyDetectResult.vue'),
         meta: {
           title: '自主率检测结果',
           breadcrumbs: crumbs(
             '检测分析',
-            { title: '检测任务', path: '/detect/tasks' },
+            { title: '自主率检测', path: '/detect/autonomy' },
             '检测结果',
           ),
         },
       },
       {
-        path: 'detect/tasks/:taskId/risk',
+        path: 'detect/risk/:taskId',
         name: 'OpenSourceRiskDetail',
         component: () => import('@/views/detect/OpenSourceRiskDetail.vue'),
         meta: {
           title: '开源风险检测结果',
           breadcrumbs: crumbs(
             '检测分析',
-            { title: '检测任务', path: '/detect/tasks' },
-            '开源风险详情',
+            { title: '开源风险检测', path: '/detect/risk' },
+            '检测结果',
           ),
         },
+      },
+      {
+        path: 'detect/tasks',
+        redirect: '/detect/autonomy',
+      },
+      {
+        path: 'detect/tasks/:taskId/result',
+        redirect: (to) => ({
+          path: `/detect/autonomy/${String(to.params.taskId)}/result`,
+        }),
+      },
+      {
+        path: 'detect/tasks/:taskId/risk',
+        redirect: (to) => ({
+          path: `/detect/risk/${String(to.params.taskId)}`,
+        }),
       },
       {
         path: 'detect/ai-analysis',
@@ -190,6 +215,15 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: '漏洞知识库',
           breadcrumbs: crumbs({ title: '知识库管理', path: '/knowledge' }, '漏洞知识库'),
+        },
+      },
+      {
+        path: 'knowledge/quarter-updates',
+        name: 'KbQuarterUpdateManage',
+        component: () => import('@/views/knowledge/KbQuarterUpdateManage.vue'),
+        meta: {
+          title: '季度更新管理',
+          breadcrumbs: crumbs({ title: '知识库管理', path: '/knowledge' }, '季度更新管理'),
         },
       },
       {

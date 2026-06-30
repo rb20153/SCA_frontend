@@ -16,7 +16,13 @@
       >
         {{ action.label }}
       </router-link>
-      <a v-else href="#" class="list-table-link" @click.prevent="openModal(action.key)">
+      <a
+        v-else
+        href="#"
+        class="list-table-link"
+        :class="{ 'list-table-link--danger': action.key === 'delete' }"
+        @click.prevent="openModal(action.key)"
+      >
         {{ action.label }}
       </a>
     </template>

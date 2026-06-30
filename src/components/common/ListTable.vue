@@ -66,22 +66,3 @@ function rowClassNameFn(record: T): string {
   overflow: hidden;
 }
 </style>
-
-<!-- 列表单元格常用样式，供业务表格 bodyCell 插槽内 class 复用 -->
-<style>
-.list-table-link {
-  color: #1677ff;
-}
-
-.list-table-link--danger {
-  color: #ff4d4f;
-}
-
-.list-table-status-tag {
-  margin: 0;
-}
-
-.list-table-action-dash {
-  color: rgba(0, 0, 0, 0.25);
-}
-</style>

@@ -137,6 +137,26 @@ const LOG_SEEDS: LogSeed[] = [
 [12:05:03] INFO policy activated`,
   },
   {
+    traceId: 'trace-kb-index-v2406-rc1',
+    minutesAgo: 180,
+    username: 'engine',
+    module: '知识库',
+    operation: '索引构建',
+    resourceObject: 'OpenFOAM v2406-rc1',
+    ip: '10.0.0.12',
+    result: 'success',
+    auditConclusion: '版本 v2406-rc1 目录索引与指纹入库进行中，可通过 TraceID 查看构建日志。',
+    timeline: [
+      { time: '22:10:05', message: 'UI: 获取更新创建候选版本 v2406-rc1' },
+      { time: '22:10:10', message: 'KB Service: index build started' },
+      { time: '22:12:00', message: 'Indexer: directory tree parsed 68%' },
+      { time: '22:14:30', message: 'Indexer: fingerprint batch 2/5 running' },
+    ],
+    rawLogExcerpt: `[22:10:10] INFO index build started version=v2406-rc1 trace=trace-kb-index-v2406-rc1
+[22:12:00] INFO directory parsed progress=68%
+[22:14:30] INFO fingerprint batch=2/5`,
+  },
+  {
     traceId: 'trace-20260517-0033',
     minutesAgo: 1440,
     username: 'engine',

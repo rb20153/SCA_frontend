@@ -17,6 +17,14 @@ export const KB_VERSION_STATUS_COLOR: Record<KbVersionStatus, string> = {
 export const KB_VERSION_TABLE_SCROLL_X = 1100
 
 /**
+ * 构建日志列表 TraceID 筛选跳转路径（构建日志入口）
+ * @param traceId - 全链路 TraceID
+ */
+export function buildLogListTracePath(traceId: string): string {
+  return `/system/logs?traceId=${encodeURIComponent(traceId)}`
+}
+
+/**
  * 格式化版本创建时间为列表展示
  * @param value - ISO 8601 字符串
  */

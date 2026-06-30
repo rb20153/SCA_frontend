@@ -1,4 +1,4 @@
-﻿<template>
+<template>
 
   <div class="page-container">
 
@@ -61,19 +61,27 @@
 
         <template #extra>
 
-          <a-tag v-if="selectedFile" color="blue">当前文件</a-tag>
+          <a-button
+            v-if="selectedFileId"
+            type="primary"
+            :loading="exporting"
+            @click="handleExportMetadata"
+          >
+            导出元数据
+          </a-button>
 
         </template>
 
         <div class="directory-detail-body">
 
-          <a-empty v-if="!selectedFile" description="请选择左侧文件" />
+          <a-empty v-if="!selectedFileId" description="请选择左侧文件" />
 
-          <p v-else class="detail-preview-hint">
-
-            已选中：<strong>{{ selectedFile.name }}</strong>（文件详情待实现）
-
-          </p>
+          <KbProjectFileDetailPanel
+            v-else
+            :kb-project-id="kbProjectId"
+            :version-id="appliedQuery?.versionId"
+            :file-node-id="selectedFileId"
+          />
 
         </div>
 
@@ -91,9 +99,13 @@
 
 import { computed, reactive, ref, watch } from 'vue'
 
+import { message } from 'ant-design-vue'
+
 import { useRoute } from 'vue-router'
 
 import {
+
+  exportKbProjectFileMetadata,
 
   getKbProjectDetail,
 
@@ -113,13 +125,13 @@ import StatCardRow from '@/components/common/StatCardRow.vue'
 
 import KbProjectDirectoryQueryBar from '@/components/knowledge/KbProjectDirectoryQueryBar.vue'
 
+import KbProjectFileDetailPanel from '@/components/knowledge/KbProjectFileDetailPanel.vue'
+
 import type { StatCardItem } from '@/types/common'
 
 import type { FileTreeNode } from '@/types/fileTree'
 
 import type { KbProject, KbProjectDirectoryQueryParams, KbVersion } from '@/types/knowledge'
-
-import { findFileTreeNodeById } from '@/utils/fileTree'
 
 import {
 
@@ -139,6 +151,8 @@ import {
 
 } from '@/utils/kbProjectDirectoryQuery'
 
+import { triggerReportDownload } from '@/utils/reportDownload'
+
 
 
 const route = useRoute()
@@ -157,6 +171,7 @@ const treeNodes = ref<FileTreeNode[]>([])
 
 const selectedFileId = ref<string>()
 const directoryTreeRef = ref<InstanceType<typeof LinuxStyleFileTree> | null>(null)
+const exporting = ref(false)
 
 
 
@@ -209,22 +224,6 @@ const defaultVersionLabel = computed(
   () => navigationVersion.value?.versionNo ?? projectContext.value?.latestVersion,
 
 )
-
-
-
-/** 当前高亮选中的文件节点 */
-
-const selectedFile = computed(() => {
-
-  if (!selectedFileId.value) {
-
-    return null
-
-  }
-
-  return findFileTreeNodeById(treeNodes.value, selectedFileId.value)
-
-})
 
 
 
@@ -522,6 +521,28 @@ function handleCollapseAll() {
   directoryTreeRef.value?.collapseToFirstLevel()
 }
 
+/** 请求后端导出当前选中文件元数据并触发下载 */
+async function handleExportMetadata() {
+  const versionId = appliedQuery.value?.versionId
+  const fileNodeId = selectedFileId.value
+  if (!kbProjectId.value || !versionId || !fileNodeId) {
+    return
+  }
+
+  exporting.value = true
+  try {
+    const res = await exportKbProjectFileMetadata({
+      kbProjectId: kbProjectId.value,
+      versionId,
+      fileNodeId,
+    })
+    triggerReportDownload(res.data.downloadUrl, res.data.fileName)
+    message.success('元数据导出已开始下载')
+  } finally {
+    exporting.value = false
+  }
+}
+
 watch(kbProjectId, () => {
 
   void initPage()
@@ -627,22 +648,6 @@ watch(appliedQuery, () => {
 .directory-detail-body {
 
   min-height: 280px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-}
-
-
-
-.detail-preview-hint {
-
-  margin: 0;
-
-  color: rgba(0, 0, 0, 0.65);
 
 }
 

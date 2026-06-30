@@ -2,9 +2,12 @@ import type { StatCardItem } from '@/types/common'
 import type { DashboardStatItem } from '@/types/dashboard'
 import type {
   KnowledgeCoverageOverview,
+  KbProjectOverview,
+  KbQuarterUpdateOverview,
   VulnItemOverview,
   VulnKnowledgeOverview,
 } from '@/types/knowledge'
+import { KB_PROJECT_CATEGORY_LABEL } from '@/utils/knowledgeDisplay'
 import type { AlertCenterOverview } from '@/types/system'
 import dayjs from 'dayjs'
 
@@ -21,6 +24,34 @@ export function mapDashboardStatsToStatCards(items: DashboardStatItem[]): StatCa
     growthSuffix: item.growthSuffix,
     warnValue: item.warnValue,
   }))
+}
+
+const KB_PROJECT_OVERVIEW_CATEGORY_ORDER = [
+  'simulation_framework',
+  'numerical_computing',
+  'pre_post_processing',
+  'general_dependency',
+] as const
+
+/**
+ * 将知识库管理页概览转为 StatCardItem 列表（入库总数 + 四类分类计数）
+ * @param overview - 知识库管理 overview API 返回数据
+ */
+export function mapKbProjectOverviewToStatCards(overview: KbProjectOverview): StatCardItem[] {
+  const categoryCards = KB_PROJECT_OVERVIEW_CATEGORY_ORDER.map((key) => ({
+    key,
+    label: KB_PROJECT_CATEGORY_LABEL[key],
+    value: String(overview.categoryCounts[key]),
+  }))
+
+  return [
+    {
+      key: 'totalCount',
+      label: '入库总数',
+      value: String(overview.totalCount),
+    },
+    ...categoryCards,
+  ]
 }
 
 /**
@@ -51,6 +82,35 @@ export function mapKnowledgeCoverageToStatCards(
       label: '待补全项目',
       value: String(overview.pendingProjectCount),
       warnValue: overview.pendingProjectCount > 0,
+    },
+  ]
+}
+
+/**
+ * 将季度更新管理页概览转为 StatCardItem 列表
+ * @param overview - 季度更新 overview API 返回数据
+ */
+export function mapKbQuarterUpdateToStatCards(overview: KbQuarterUpdateOverview): StatCardItem[] {
+  return [
+    {
+      key: 'recentQuarter',
+      label: '最近季度',
+      value: overview.recentQuarter,
+    },
+    {
+      key: 'newProjectCount',
+      label: '新增项目',
+      value: String(overview.newProjectCount),
+    },
+    {
+      key: 'uploadPackageCount',
+      label: '上传包',
+      value: String(overview.uploadPackageCount),
+    },
+    {
+      key: 'cloudPullCount',
+      label: '云端拉取',
+      value: String(overview.cloudPullCount),
     },
   ]
 }

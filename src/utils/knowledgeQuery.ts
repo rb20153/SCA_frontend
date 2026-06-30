@@ -17,7 +17,8 @@ export const KB_PROJECT_CATEGORY_FILTER_OPTIONS: {
   { value: '', label: '全部分类' },
   { value: 'simulation_framework', label: KB_PROJECT_CATEGORY_LABEL.simulation_framework },
   { value: 'numerical_computing', label: KB_PROJECT_CATEGORY_LABEL.numerical_computing },
-  { value: 'toolchain', label: KB_PROJECT_CATEGORY_LABEL.toolchain },
+  { value: 'pre_post_processing', label: KB_PROJECT_CATEGORY_LABEL.pre_post_processing },
+  { value: 'general_dependency', label: KB_PROJECT_CATEGORY_LABEL.general_dependency },
 ]
 
 /** 采集方式筛选项（默认「全部方式」） */

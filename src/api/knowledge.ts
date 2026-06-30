@@ -3,6 +3,13 @@ import type { FileTreeData } from '@/types/fileTree'
 import type {
   KbProject,
   KbProjectDirectoryQueryParams,
+  KbProjectFileDetail,
+  KbProjectFileDetailQueryParams,
+  KbProjectFileMetadataExportParams,
+  KbProjectFileMetadataExportResult,
+  KbIntakeTodoItem,
+  KbIntakeTodoQueryParams,
+  KbProjectOverview,
   KbProjectQueryParams,
   CategoryCoverageStat,
   CollectionMethodCoverageStat,
@@ -12,12 +19,14 @@ import type {
   CreateKbProjectParams,
   CreateKbProjectResult,
   KnowledgeCoverageOverview,
+  KbQuarterUpdateOverview,
   FetchKbVersionUpdateResult,
   KbProjectSelectOption,
   KbVersion,
   KbVersionOverview,
   KbVersionQueryParams,
   KbVersionSelectOption,
+  RestoreKbVersionParams,
   UploadKbVersionPackageParams,
   UploadKbVersionPackageResult,
   UpdateKbProjectParams,
@@ -38,12 +47,19 @@ import type {
   VulnSyncAllPreview,
 } from '@/types/knowledge'
 import { MOCK_ALL_KB_PROJECTS, mockCreateKbProject } from '@/mock/modules/knowledge/knowledgeList'
+import { mockKbProjectOverviewRes } from '@/mock/modules/knowledge/kbProjectOverview'
+import { getMockKbIntakeTodoListPage } from '@/mock/modules/knowledge/kbIntakeTodoList'
 import { getMockKbProjectDirectoryTree } from '@/mock/modules/knowledge/projectDirectoryTree'
+import {
+  getMockKbProjectFileDetail,
+  getMockKbProjectFileMetadataExport,
+} from '@/mock/modules/knowledge/projectDirectoryFileDetail'
 import { mockCategoryCoverageStatsRes } from '@/mock/modules/knowledge/coverageCategoryStats'
 import { mockCollectionMethodCoverageStatsRes } from '@/mock/modules/knowledge/coverageCollectionMethodStats'
 import { getMockCoveragePendingListPage } from '@/mock/modules/knowledge/coveragePendingList'
 import { mockCoverageUpdateTrendWeeksRes } from '@/mock/modules/knowledge/coverageUpdateTrend'
 import { mockKnowledgeCoverageOverviewRes } from '@/mock/modules/knowledge/coverageOverview'
+import { mockKbQuarterUpdateOverviewRes } from '@/mock/modules/knowledge/quarterUpdateOverview'
 import { mockVulnKnowledgeOverviewRes } from '@/mock/modules/knowledge/vulnKnowledgeOverview'
 import { getMockVulnItemExportResult } from '@/mock/modules/knowledge/vulnItemExport'
 import { getMockVulnItemDetail, getMockVulnItemListPage } from '@/mock/modules/knowledge/vulnItemList'
@@ -61,6 +77,7 @@ import {
   getMockKbVersionOverview,
   getMockKbVersions,
   mockFetchKbVersionUpdate,
+  mockRestoreKbVersion,
   mockUploadKbVersionPackage,
 } from '@/mock/modules/knowledge/versionList'
 
@@ -123,6 +140,25 @@ export function getKbProjectList(
       pageSize,
     },
   })
+}
+
+/**
+ * 获取知识库管理页顶部概览（入库总数与各分类计数）
+ */
+export function getKbProjectOverview(): Promise<ApiResponse<KbProjectOverview>> {
+  // TODO: replace with → return request.get('/api/knowledge/projects/overview')
+  return Promise.resolve(mockKbProjectOverviewRes())
+}
+
+/**
+ * 获取知识库管理页入库待办列表（分页）
+ * @param params - 分页参数
+ */
+export function getKbIntakeTodoList(
+  params: KbIntakeTodoQueryParams,
+): Promise<ApiResponse<PageResult<KbIntakeTodoItem>>> {
+  // TODO: replace with → return request.get('/api/knowledge/projects/intake-todos', { params })
+  return Promise.resolve(getMockKbIntakeTodoListPage(params))
 }
 
 /**
@@ -241,6 +277,54 @@ export function getKbProjectDirectoryTree(
 }
 
 /**
+ * 获取知识库项目目录中单个文件的详情
+ * @param params - 项目 ID、版本 ID、文件节点 ID
+ */
+export function getKbProjectFileDetail(
+  params: KbProjectFileDetailQueryParams,
+): Promise<ApiResponse<KbProjectFileDetail>> {
+  if (!params.kbProjectId || !params.versionId || !params.fileNodeId) {
+    return Promise.reject(new Error('文件详情参数不完整'))
+  }
+
+  const detail = getMockKbProjectFileDetail(params)
+  if (!detail) {
+    return Promise.reject(new Error('未找到该文件详情'))
+  }
+
+  // TODO: replace with → return request.get(`/api/knowledge/projects/${params.kbProjectId}/versions/${params.versionId}/directory/files/${params.fileNodeId}`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: detail,
+  })
+}
+
+/**
+ * 导出知识库项目目录文件元数据（获取下载链接）
+ * @param params - 项目 ID、版本 ID、文件节点 ID
+ */
+export function exportKbProjectFileMetadata(
+  params: KbProjectFileMetadataExportParams,
+): Promise<ApiResponse<KbProjectFileMetadataExportResult>> {
+  if (!params.kbProjectId || !params.versionId || !params.fileNodeId) {
+    return Promise.reject(new Error('导出参数不完整'))
+  }
+
+  const result = getMockKbProjectFileMetadataExport(params)
+  if (!result) {
+    return Promise.reject(new Error('未找到该文件，无法导出'))
+  }
+
+  // TODO: replace with → return request.post(`/api/knowledge/projects/${params.kbProjectId}/versions/${params.versionId}/directory/files/${params.fileNodeId}/export-metadata`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: result,
+  })
+}
+
+/**
  * 获取知识库开源项目详情
  * @param kbProjectId - 项目 ID
  */
@@ -319,6 +403,28 @@ export function fetchKbVersionUpdate(
 }
 
 /**
+ * 恢复已归档的知识库版本（重新激活）
+ * @param params - 项目 ID、版本 ID
+ */
+export function restoreKbVersion(
+  params: RestoreKbVersionParams,
+): Promise<ApiResponse<null>> {
+  try {
+    mockRestoreKbVersion(params.kbProjectId, params.versionId)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '恢复失败'
+    return Promise.reject(new Error(message))
+  }
+
+  // TODO: replace with → return request.post(`/api/knowledge/projects/${params.kbProjectId}/versions/${params.versionId}/restore`)
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: null,
+  })
+}
+
+/**
  * 上传版本更新包（后端异步处理，前端不刷新列表）
  * @param kbProjectId - 知识库项目 ID
  * @param params - 更新包文件
@@ -343,6 +449,14 @@ export function getKnowledgeCoverageOverview(): Promise<
 > {
   // TODO: replace with → return request.get('/api/knowledge/coverage/overview')
   return Promise.resolve(mockKnowledgeCoverageOverviewRes)
+}
+
+/**
+ * 获取季度更新管理页概览
+ */
+export function getKbQuarterUpdateOverview(): Promise<ApiResponse<KbQuarterUpdateOverview>> {
+  // TODO: replace with → return request.get('/api/knowledge/quarter-updates/overview')
+  return Promise.resolve(mockKbQuarterUpdateOverviewRes)
 }
 
 /**

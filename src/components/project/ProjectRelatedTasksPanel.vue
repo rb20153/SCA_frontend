@@ -1,12 +1,7 @@
 <template>
   <div class="related-tasks-panel">
     <div class="create-bar">
-      <a-button type="primary" @click="handleCreateTask">
-        <template #icon>
-          <PlusOutlined />
-        </template>
-        创建检测任务
-      </a-button>
+      <DetectTaskCreateBar variant="picker" @created="onTaskCreated" />
     </div>
 
     <PageLoading :loading="loading && taskList.length === 0">
@@ -30,18 +25,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { PlusOutlined } from '@ant-design/icons-vue'
+import { watch } from 'vue'
 import { getProjectRelatedTasks } from '@/api/project'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
+import DetectTaskCreateBar from '@/components/detect/DetectTaskCreateBar.vue'
 import DetectTaskTable from '@/components/detect/DetectTaskTable.vue'
 import { usePaginatedList } from '@/composables/usePaginatedList'
-import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import type { DetectTask } from '@/types/detect'
 import type { Project } from '@/types/project'
 import { verifyProjectRelatedTasks } from '@/utils/projectDisplay'
+import { DETECT_AUTONOMY_LIST_PATH } from '@/utils/taskDisplay'
 
 const props = defineProps<{
   /** 当前项目，用于请求关联任务并二次校验项目名 */
@@ -50,18 +44,13 @@ const props = defineProps<{
   visible: boolean
 }>()
 
-const router = useRouter()
-const { withFrom } = useRouteWithFrom()
-
 /** 检测任务页路径（携带 from 便于返回） */
-const detectTasksPath = computed(() => {
-  const target = withFrom('/detect/tasks')
-  return typeof target === 'string' ? target : target.path ?? '/detect/tasks'
-})
+const detectTasksPath = DETECT_AUTONOMY_LIST_PATH
 
-/** 跳转检测任务页 */
-function handleCreateTask() {
-  router.push(withFrom('/detect/tasks'))
+/** 创建任务成功后刷新关联任务列表 */
+async function onTaskCreated() {
+  pagination.current = 1
+  await loadPage()
 }
 
 const {

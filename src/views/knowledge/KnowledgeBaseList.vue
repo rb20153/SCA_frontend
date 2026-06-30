@@ -1,5 +1,7 @@
 <template>
   <div class="page-container">
+    <KbProjectOverviewSection ref="overviewSectionRef" />
+
     <div class="page-actions">
       <a-button type="primary" @click="addVisible = true">
         <template #icon>
@@ -61,6 +63,7 @@ import PageLoading from '@/components/common/PageLoading.vue'
 import KbProjectAddModal from '@/components/knowledge/KbProjectAddModal.vue'
 import KbProjectDeleteModal from '@/components/knowledge/KbProjectDeleteModal.vue'
 import KbProjectEditModal from '@/components/knowledge/KbProjectEditModal.vue'
+import KbProjectOverviewSection from '@/components/knowledge/KbProjectOverviewSection.vue'
 import KbProjectQueryBar from '@/components/knowledge/KbProjectQueryBar.vue'
 import KbProjectTable from '@/components/knowledge/KbProjectTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
@@ -72,6 +75,7 @@ import {
 
 const route = useRoute()
 
+const overviewSectionRef = ref<InstanceType<typeof KbProjectOverviewSection> | null>(null)
 const addVisible = ref(false)
 const editVisible = ref(false)
 const editingProject = ref<KbProject | null>(null)
@@ -95,6 +99,11 @@ const {
     immediate: false,
   },
 )
+
+/** 刷新顶部分类图与入库待办 */
+async function refreshOverviewSection() {
+  await overviewSectionRef.value?.refresh()
+}
 
 /** 从覆盖统计待补全清单跳转时，自动按项目名称筛选 */
 function applyRouteProjectFilter() {
@@ -121,8 +130,8 @@ function openDeleteModal(project: KbProject) {
   deleteVisible.value = true
 }
 
-/** 编辑成功后更新列表项 */
-function onEditSuccess(updated: KbProject) {
+/** 编辑成功后更新列表项，并刷新顶部概览区 */
+async function onEditSuccess(updated: KbProject) {
   editingProject.value = null
 
   const index = kbProjectList.value.findIndex(
@@ -131,15 +140,17 @@ function onEditSuccess(updated: KbProject) {
   if (index >= 0) {
     kbProjectList.value[index] = updated
   }
+
+  await refreshOverviewSection()
 }
 
-/** 删除成功后更新列表；若当前页删空且非第一页则回退一页 */
+/** 删除成功后更新列表；若当前页删空且非第一页则回退一页，并刷新概览区 */
 async function onDeleteSuccess() {
   const deletedId = deletingProject.value?.kbProjectId
   deletingProject.value = null
 
   if (!deletedId) {
-    await loadPage()
+    await Promise.all([loadPage(), refreshOverviewSection()])
     return
   }
 
@@ -151,8 +162,11 @@ async function onDeleteSuccess() {
 
   if (kbProjectList.value.length === 0 && (pagination.current ?? 1) > 1) {
     pagination.current = (pagination.current ?? 1) - 1
-    await loadPage()
+    await Promise.all([loadPage(), refreshOverviewSection()])
+    return
   }
+
+  await refreshOverviewSection()
 }
 </script>
 

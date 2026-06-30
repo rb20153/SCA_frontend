@@ -34,7 +34,7 @@ const KB_PROJECT_SEEDS: KbProjectSeed[] = [
   },
   {
     projectName: 'fmt',
-    category: 'toolchain',
+    category: 'general_dependency',
     collectMode: 'upload_package',
     latestVersion: '10.2.1',
     versionCount: 4,
@@ -72,7 +72,7 @@ const KB_PROJECT_SEEDS: KbProjectSeed[] = [
   },
   {
     projectName: 'protobuf',
-    category: 'toolchain',
+    category: 'general_dependency',
     collectMode: 'cloud_repo',
     latestVersion: '25.3',
     versionCount: 9,
@@ -81,13 +81,23 @@ const KB_PROJECT_SEEDS: KbProjectSeed[] = [
   },
   {
     projectName: 'VTK',
-    category: 'toolchain',
+    category: 'pre_post_processing',
     collectMode: 'upload_package',
     latestVersion: '9.3.0',
     versionCount: 11,
     referencedProjectCount: 13,
     tags: '可视化',
     updatedAt: '2026-05-22T13:20:00+08:00',
+  },
+  {
+    projectName: 'Gmsh',
+    category: 'pre_post_processing',
+    collectMode: 'cloud_repo',
+    latestVersion: '4.12.1',
+    versionCount: 7,
+    referencedProjectCount: 10,
+    tags: '网格划分',
+    updatedAt: '2026-05-19T15:30:00+08:00',
   },
 ]
 

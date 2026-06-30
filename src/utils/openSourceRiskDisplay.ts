@@ -12,7 +12,7 @@ import { formatProjectDateTime } from '@/utils/projectDisplay'
 export const OPEN_SOURCE_RISK_DETAIL_TABS: PageNavTabItem[] = [
   { key: 'components', label: '组件清单' },
   { key: 'vulnerabilities', label: '漏洞风险' },
-  { key: 'sbom', label: 'SBOM导出与对比' },
+  { key: 'sbom', label: 'SBOM导出' },
 ] satisfies PageNavTabItem[]
 
 /** 从 DetectTask 组装详情页顶部展示字段 */

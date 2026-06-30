@@ -26,8 +26,8 @@
               v-if="!tasksLoading && recentTasks.length === 0"
               title="暂无最近任务"
               hint-before="还没有检测任务记录，前往"
-              link-to="/detect/tasks"
-              link-text="检测任务"
+              link-to="/detect/autonomy"
+              link-text="自主率检测"
               hint-after="创建并执行扫描"
             />
             <DetectTaskTable v-else :tasks="recentTasks" :pagination="false" />

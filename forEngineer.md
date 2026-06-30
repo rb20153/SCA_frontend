@@ -5,6 +5,274 @@
 
 ---
 
+## [2026-06-30] 策略版本导出与回滚
+
+### 改了什么
+
+- **已发布** 行「导出」→ **`PolicyVersionExportModal`**（策略导出）：导出范围（策略参数+规则集 / 仅策略参数 / 仅规则集）、格式（JSON/YAML）；确定后 `exportPolicyVersion`，下载并 toast 关闭
+- **历史** 行「回滚」→ **`PolicyVersionRollbackModal`**：提示审计说明 + 输入版本号确认；确认后 `rollbackPolicyVersion`，toast 并刷新列表
+- mock：回滚时原已发布降为历史，目标历史升为已发布
+
+---
+
+## [2026-06-30] 策略版本发布审批抽屉
+
+### 改了什么
+
+- 待审批行去掉 **催办**；**审批** 打开右侧 **`PolicyVersionApprovalDrawer`**
+- 抽屉顶部：申请版本、申请人、变更摘要（各一行）；下方复用 **`PolicyVersionDiffPanels`**（无导出按钮）
+- **发布审批** 表单：结论（通过/驳回，默认通过）、审批意见、生效时间（立即生效/下次发布窗口）
+- 底部 **取消 / 提交审批**；提交调用 `submitPolicyVersionApproval`，成功后 toast 并刷新列表
+- 差异对比 UI 抽成 **`PolicyVersionDiffPanels`**，供弹窗与抽屉共用
+
+### 注意事项
+
+- mock：驳回会移除待审批版本；通过+立即生效会将原已发布降为历史、待审批升为已发布
+- 通过+下次发布窗口 mock 仅提示，版本状态暂不变
+
+---
+
+## [2026-06-30] 策略版本差异对比弹窗
+
+### 改了什么
+
+- **`PolicyVersionDiffModal`**：点击「差异」打开；左右两栏等高，复用 **`CodeSnippetBlock`** 展示旧/新版本策略摘要；仅保留「导出差异报告」与右上角关闭，无影响评估/取消/确定
+- 对比配对（`utils/policyVersionDiff.ts` + mock）：
+  - 待审批 ↔ 已发布
+  - 历史 ↔ 已发布
+  - 已发布 ↔ 待审批；无待审批则 ↔ 最新历史
+- **`PolicyVersionActionCell`**：已发布去掉回滚；历史增加回滚（占位）；差异已接弹窗
+- API：`getPolicyVersionDiff`、`exportPolicyVersionDiffReport`（mock 返回 Blob 下载链接）
+
+### 注意事项
+
+- 无法解析对比对象时弹窗内展示 warning，不报错 toast
+- 联调后 diff/export 接口应返回真实摘要文本与文件 URL
+
+---
+
+## [2026-06-30] 策略编辑器发布申请 + 版本与审批页
+
+### 改了什么
+
+- **`PolicyEditor`**：去掉「保存草稿」，仅保留「提交发布申请」；弹窗填写版本号与变更摘要；编辑已有策略时版本号须大于当前生效版本；提交携带 JSON 配置与 `editorId`（来自 `authStore.userInfo`）
+- **`PolicyPublishApplyModal`**：版本格式校验 + 变更摘要必填；默认建议下一版本号
+- **`PolicyGovernance`**：顶部 4 项 `StatCardRow`（策略名、当前生效版本、待审批数、最近变更）；统计卡片与版本列表之间 **「更新策略」** 按钮，复用 `PolicyEntryWizardModal`（策略编辑器 / 导入策略）；下方 `PolicyVersionTable` 分页列表
+- **`PolicyVersionActionCell`**：按状态展示操作链接（差异已接弹窗；历史含回滚占位；已发布无回滚）
+- API/mock：`getPolicyEditorContent` 返回 `{ configText, currentVersion }`；`submitPolicyPublishApplication`、`getPolicyGovernanceOverview`、`getPolicyVersionList`；mock 在 `policyVersionList.ts`
+
+### 怎么用
+
+1. 策略列表 → 添加/编辑 → 策略编辑器改 JSON → 点「提交发布申请」
+2. 填写版本号与摘要 → 确定 → toast 成功后回列表
+3. 列表「版本/审批」进入版本页 → 点 **「更新策略」** 选编辑器或导入 → 修改后提交发布申请
+
+### 注意事项
+
+- 配置内 `name` 字段（策略名称）必填，否则无法打开/提交弹窗
+- 新建策略 `policyId=new` 时不校验版本大于当前；编辑时与 mock 中已发布版本比较
+- 版本列表操作列后续再接差异对比、审批等接口
+
+---
+
+## [2026-06-30] 开源风险 · SBOM 导出 Tab
+
+### 改了什么
+
+- Tab 文案改为 **SBOM导出**（去掉「与对比」）
+- **`OpenSourceRiskSbomPanel`**：左 1/4 卡片选标准格式（SPDX 默认 / CycloneDX）与文件格式（JSON 默认 / XML）；右 3/4 选输出粒度（项目/模块/包）+ **`RiskSbomPreviewTable`** 清单预览（`ListTable`，3 条/页）
+- 左下角 **导出 SBOM**：`exportOpenSourceRiskSbom` 提交配置，mock 返回 `downloadUrl` 后 `triggerReportDownload` 下载
+- 预览：`getOpenSourceRiskSbomPreview`；mock 在 `openSourceRiskSbom.ts`
+
+### 注意事项
+
+- 切换粒度会重置分页并重新拉预览
+- 联调后 export 接口应返回真实文件 URL；preview 列定义与原型三种粒度一致
+
+---
+
+## [2026-06-30] 开源风险 · 漏洞风险列表操作（详情 / 处置 / 复核）
+
+### 改了什么
+
+- **`RiskVulnerabilityTable`**：按 `processingStatus` 展示操作——待处理「详情+处置」、需复核「详情+复核」、已验证仅「详情」
+- **`RiskVulnerabilityDetailDrawer`**：右侧抽屉统一展示；待处理含修复建议 + 未登记提示；需复核含「待复核处置方案」；已验证含处置结果 + **`ChainTimeline`** 时间线
+- **`RiskVulnerabilityRegisterModal`**：CVE/组件只读展示；处置方式四选一；计划完成日默认今日；负责人 **`UserSearchInput`**；处置说明必填；提交后状态变需复核
+- **`RiskVulnerabilityReviewModal`**：展示登记信息与复核结论（通过/驳回）+ 复核意见；通过→已验证，驳回→待处理
+- API/mock：`getOpenSourceRiskVulnerabilityDetail`、`registerOpenSourceRiskVulnerabilityDisposition`、`reviewOpenSourceRiskVulnerabilityDisposition`（`openSourceRiskVulnerabilityDetail.ts`）
+
+### 怎么用
+
+1. 开源风险详情 → 漏洞风险 Tab → 待处理行点「处置」登记，或点「详情」看 CVE/CVSS/修复建议
+2. 登记成功后列表状态变为「需复核」，点「复核」提交审计结论
+3. 复核通过后变为「已验证」，详情抽屉可看最终方式与时间线
+
+### 注意事项
+
+- mock 阶段登记人 `registeredBy` 暂用负责人姓名；联调后应由登录用户写入
+- 所有处置方式提交后均进入「需复核」（与原型部分文案不同，按产品要求实现）
+- 静态 seed：`CVE-2024-3094` 默认需复核、`CVE-2024-2201` 等默认已验证，便于演示三种抽屉内容
+
+---
+
+## [2026-06-30] background.md §9 需规验收清单 + 原型 M03-S07
+
+### 改了什么
+
+- **`background.md` §9**：从《需求规格说明书.docx》提炼功能/验收/非功能/自主率附录检查点，供后期代码与联调对照
+- **`prototype.html`**：季度更新改为独立页 **M03-S07-P01**（侧栏菜单 + 知识库列表跳转链接）；执行计划 8 态 + 操作列 + 新建计划弹窗 + 批次详情抽屉
+
+### 注意事项
+
+- 需规正文页面表仍写 27 页，以 **background §4 + 原型 28 页** 为准（含 M03-S07）
+- 前端实现季度执行计划列表时对照 **§9.3** 与原型 `#/M03-S07-P01`
+
+---
+
+## [2026-06-30] 知识库 · 季度更新管理页（骨架）
+
+### 改了什么
+
+- 新增 **`KbQuarterUpdateManage.vue`**（`/knowledge/quarter-updates`），与覆盖统计、漏洞知识库同级侧栏菜单
+- 顶部 **`StatCardRow`** 4 项：`getKbQuarterUpdateOverview` → 最近季度 / 新增项目 / 上传包 / 云端拉取
+- mock：`quarterUpdateOverview.ts`；映射 **`mapKbQuarterUpdateToStatCards`**（`utils/statCard.ts`）
+- 下方业务内容暂未实现，后续可在此页扩展批次列表与操作
+
+### 注意事项
+
+- 路由需放在 `knowledge/:kbProjectId/*` 之前，避免 `quarter-updates` 被误匹配为项目 ID
+- 联调时替换 `getKbQuarterUpdateOverview` 为 `GET /api/knowledge/quarter-updates/overview`
+
+---
+
+## [2026-06-30] 知识库管理页 · 顶部分类图 + 入库待办
+
+### 改了什么
+
+- 移除 **`StatCardRow`** 五卡统计，改为 **`KbProjectOverviewSection`** 双栏（高度对齐漏洞知识库风险摘要）
+- **`KbProjectCategoryPiePanel`**：`getKbProjectOverview` + `useECharts` 普通扇形图（非玫瑰图），标题含入库总数，hover 显示分类与数量
+- **`KbIntakeTodoPanel`** / **`KbIntakeTodoTable`**：`getKbIntakeTodoList`，4 条/页，列：项目 / 状态 / 详情
+- mock：`kbIntakeTodoList.ts`；类型 `KbIntakeTodoItem` / `KbIntakeTodoStatus`
+
+### 注意事项
+
+- 扇形图仅在 `useECharts` composable 内 init/dispose，遵守 chart-lifecycle 规则
+- 编辑/删除项目后调用 `overviewSectionRef.refresh()` 刷新两模块
+
+---
+
+## [2026-06-30] 知识库 · 版本管理操作列交互
+
+### 改了什么
+
+- **`KbVersionActionCell`**：索引构建中仅「构建日志」（无项目目录）；已就绪保留目录+更新说明；已归档保留目录+恢复
+- **`KbVersionUpdateNotesModal`** / **`KbVersionRestoreModal`**：更新说明展示、恢复确认弹窗
+- **`restoreKbVersion()`**：mock 提交恢复请求，**不刷新列表状态**
+- **构建日志**：`router-link` 至 `/system/logs?traceId=...`，日志页自动填 TraceID 并查询
+- **`KbVersion`** 扩展 `indexBuildTraceId`、`updateNotes`；mock 与 `logList` 增加 OpenFOAM 索引构建 Trace 样例
+
+### 注意事项
+
+- 恢复成功后仅 toast，列表仍显示「已归档」（待后端异步生效后由刷新/轮询更新）
+- 索引构建中若无 `indexBuildTraceId` 仍跳转日志页但不带筛选
+- **mock 状态规则**：至多 1 条 `indexing`（最新候选）、1 条 `ready`（当前基线）、其余 `archived`；OpenFOAM 为 v2406-rc1 / v2312 / 历史归档
+
+---
+
+## [2026-06-30] 知识库 · 项目目录文件详情（M03-S03-P01 · 下部）
+
+### 改了什么
+
+- **`KbProjectFileDetailPanel.vue`**：右侧文件详情面板，选中树节点时请求详情；含 desc-grid 字段、指纹与来源摘要表、导出元数据按钮（无「查看来源证据」）
+- **`KbProjectFingerprintSummaryTable.vue`**：复用 `ListTable`，无分页，列：维度 / 命中数 / 最高置信度 / 说明
+- **`projectDirectoryFileDetail.ts`**：mock 详情与导出；`createFields.H` 等对齐原型数据，其余文件走兜底生成
+- **`getKbProjectFileDetail()` / `exportKbProjectFileMetadata()`**：`api/knowledge.ts`
+- **`KbProjectDirectory.vue`**：挂载详情面板；目录树加载后由 `LinuxStyleFileTree` 默认选中首个文件并触发详情请求
+- **`kbProjectDirectoryDisplay.ts`**：来源候选分号拼接、最近更新时间行、置信度格式化
+
+### 怎么实现的
+
+- 页面传 `kbProjectId`、`versionId`、`fileNodeId` 给面板；`watch` 三者变化时 `getKbProjectFileDetail`
+- 导出点击调 `exportKbProjectFileMetadata`，用 `triggerReportDownload` 下载 mock JSON
+- 路径 / MD5 / SHA1 / 来源候选 / 最近更新使用 `desc-item--full` 独占一行
+
+### 注意事项
+
+- mock 导出为浏览器 Blob URL，刷新后旧 URL 失效属正常
+- 真实接口对接时仅需改 `api/knowledge.ts` 两处 TODO
+- **2026-06-30 补充**：「导出元数据」移至文件详情卡片右上角 `#extra`；指纹摘要表改为 `ListTable` 前端分页，每页 3 行
+
+---
+
+## [2026-06-30] 检测分析 · 自主率 / 开源风险拆分为两个列表页
+
+### 改了什么
+
+- **路由**：`/detect/autonomy`（自主率检测）、`/detect/risk`（开源风险检测）；结果页改为 `/detect/autonomy/:taskId/result`、`/detect/risk/:taskId`
+- **旧路由兼容**：`/detect/tasks` 及原结果路径 301 式 redirect 到新路径
+- **`AutonomyDetectTaskList.vue`** / **`OpenSourceRiskTaskList.vue`**：独立页面（非共用组件 props），避免路由切换时列表类型不刷新
+- 删除 **`DetectTaskListPage.vue`**；`AdminLayout` 的 `router-view` 增加 `:key="route.path"`
+- **列表差异**：无「检测类型」列/筛选项；自主率列名为「模式」，开源风险列名为「来源」
+- **创建入口**：各页顶部按钮直接打开对应创建弹窗（不再二次选类型）
+- **侧栏**：「检测任务」拆为「自主率检测」「开源风险检测」两项
+
+### 注意事项
+
+- 首页最近任务、项目关联任务仍展示两种类型（保留检测类型列）
+- 结果页跳转仍走 `getTaskResultRoute()`（按 taskType 选路由 name）
+
+---
+
+## [2026-06-30] 列表操作列 · 删除链接统一标红
+
+### 改了什么
+
+- **`DetectTaskActionCell.vue`**：检测任务列表「删除」操作补充 `list-table-link--danger`（此前为默认蓝色）
+- **`styles/list-table.css`**：将 `list-table-link` / `--danger` 等列表操作样式从 `ListTable.vue` 抽到全局，`main.ts` 引入
+
+### 已覆盖的删除操作（均为红色 `#ff4d4f`）
+
+项目 / 策略 / 报告 / 报告模板 / 知识库开源项目 / 用户 / 角色 / 部门 / 项目交付物 / 检测任务
+
+### 注意事项
+
+- 破坏性但文案非「删除」的操作（如成员「移除」、组件「忽略」）沿用 `--danger`，与删除视觉一致
+- 内置角色等不可删场景不展示删除链接
+
+---
+
+## [2026-06-30] 知识库管理 · 顶部 5 项统计卡片
+
+### 改了什么
+
+- **`KnowledgeBaseList.vue`**：顶部接入 `StatCardRow`（5 列）：入库总数 + 仿真框架/数值计算/前后处理/通用依赖分类计数
+- **`getKbProjectOverview()`**：新增概览 API，计划对接 `GET /api/knowledge/projects/overview`
+- **`kbProjectOverview.ts`**：mock 按 `MOCK_ALL_KB_PROJECTS` 动态汇总，删除/改分类后刷新卡片数字一致
+- **`mapKbProjectOverviewToStatCards()`**：概览数据 → 通用 `StatCardItem` 映射
+
+### 注意事项
+
+- 统计卡片为全库汇总，不受列表筛选条件影响
+- 编辑改分类、删除项目后会重新请求 overview
+
+---
+
+## [2026-06-30] 知识库管理 · 开源项目分类调整为四类
+
+### 改了什么
+
+- **`KbProjectCategory`**：由「仿真框架 / 数值计算 / 工具链」改为「仿真框架 / 数值计算 / 前后处理 / 通用依赖」
+- **`knowledgeDisplay.ts` / `knowledgeQuery.ts`**：分类标签、颜色、筛选/编辑下拉选项同步更新（`KbProjectQueryBar` 等组件自动生效）
+- **`knowledgeList.ts`**：mock 种子数据按新分类重映射（如 VTK/Gmsh → 前后处理，fmt/protobuf → 通用依赖）
+- **`coverageCategoryStats.ts` / `coverageCollectionMethodStats.ts`**：覆盖统计 mock 分类文案与项目数分布对齐
+
+### 注意事项
+
+- 后端枚举值：`simulation_framework` / `numerical_computing` / `pre_post_processing` / `general_dependency`
+- 原 `toolchain` 已废弃，联调时需与后端确认迁移映射
+
+---
+
 ## [2026-06-29] 报告模板 · 保存后回列表 + 系统模板只读查看
 
 ### 改了什么

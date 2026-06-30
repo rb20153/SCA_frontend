@@ -57,6 +57,20 @@ export function getTaskLogListRoute(task: DetectTask) {
   }
 }
 
+/** 自主率 / 开源风险分类列表路由 */
+export const DETECT_AUTONOMY_LIST_PATH = '/detect/autonomy'
+export const DETECT_RISK_LIST_PATH = '/detect/risk'
+
+/** 自主率检测结果页路径 */
+export function getAutonomyDetectResultPath(taskId: string): string {
+  return `${DETECT_AUTONOMY_LIST_PATH}/${taskId}/result`
+}
+
+/** 开源风险检测结果页路径 */
+export function getOpenSourceRiskDetailPath(taskId: string): string {
+  return `${DETECT_RISK_LIST_PATH}/${taskId}`
+}
+
 /** 根据检测类型返回对应结果页路由 */
 export function getTaskResultRoute(task: DetectTask) {
   if (task.taskType === 'autonomy') {
@@ -131,7 +145,7 @@ export const DETECT_TASK_TABLE_NO_PROJECT_SCROLL_X =
   COL_WIDTH.elapsed +
   COL_WIDTH.action
 
-/** 检测任务列表页 scroll.x（含来源/模式列与完整操作列） */
+/** 检测任务列表页 scroll.x（含检测类型、来源/模式列与完整操作列） */
 export const DETECT_TASK_LIST_SCROLL_X =
   COL_WIDTH.taskName +
   COL_WIDTH.taskType +
@@ -141,3 +155,17 @@ export const DETECT_TASK_LIST_SCROLL_X =
   COL_WIDTH.progress +
   COL_WIDTH.elapsed +
   COL_WIDTH.actionFull
+
+/** 分类列表页 scroll.x（无检测类型列，含模式/来源列与完整操作列） */
+export const DETECT_TASK_SPLIT_LIST_SCROLL_X =
+  COL_WIDTH.taskName +
+  COL_WIDTH.project +
+  COL_WIDTH.sourceMode +
+  COL_WIDTH.status +
+  COL_WIDTH.progress +
+  COL_WIDTH.elapsed +
+  COL_WIDTH.actionFull
+
+/** 无项目列且无检测类型列的任务表格 scroll.x */
+export const DETECT_TASK_TABLE_NO_PROJECT_NO_TYPE_SCROLL_X =
+  DETECT_TASK_TABLE_NO_PROJECT_SCROLL_X - COL_WIDTH.taskType
