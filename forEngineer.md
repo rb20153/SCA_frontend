@@ -5,6 +5,28 @@
 
 ---
 
+## [2026-06-30] 知识库 · 季度更新管理页（列表）
+
+### 改了什么
+
+- **`KbQuarterUpdateManage.vue`**：顶部 4 项统计 + **`KbQuarterUpdateQueryBar`** + 分页列表
+- 筛选：季度（**`AsyncOptionsSelect`** + `getKbQuarterUpdateQuarterOptions`，默认全部）、状态、采集方式、摘要关键词
+- 表格 **`KbQuarterUpdateRecordTable`**：项目名、季度、摘要、采集方式、状态、负责人、更新时间；无操作列
+- mock：`quarterUpdateRecordList.ts`（12 条，支持筛选/分页）、`quarterUpdateQuarterOptions.ts`
+- API：`getKbQuarterUpdateList`、`getKbQuarterUpdateQuarterOptions`
+
+### 怎么用
+
+- 路由 `/knowledge/quarter-updates`；进入后默认查全部季度记录
+- 摘要关键词仅匹配 **summary** 字段（mock 大小写不敏感包含）
+
+### 注意事项
+
+- 记录由系统在版本管理等操作后写入，本页只读；联调替换为 `GET .../records` 与 `GET .../quarters`
+- 采集方式展示用短文案（云端拉取/上传包），与知识库项目列表的「云端仓库拉取」等区分
+
+---
+
 ## [2026-06-30] 策略版本导出与回滚
 
 ### 改了什么

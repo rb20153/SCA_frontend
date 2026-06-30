@@ -20,6 +20,8 @@ import type {
   CreateKbProjectResult,
   KnowledgeCoverageOverview,
   KbQuarterUpdateOverview,
+  KbQuarterUpdateListQueryParams,
+  KbQuarterUpdateRecord,
   FetchKbVersionUpdateResult,
   KbProjectSelectOption,
   KbVersion,
@@ -60,6 +62,8 @@ import { getMockCoveragePendingListPage } from '@/mock/modules/knowledge/coverag
 import { mockCoverageUpdateTrendWeeksRes } from '@/mock/modules/knowledge/coverageUpdateTrend'
 import { mockKnowledgeCoverageOverviewRes } from '@/mock/modules/knowledge/coverageOverview'
 import { mockKbQuarterUpdateOverviewRes } from '@/mock/modules/knowledge/quarterUpdateOverview'
+import { getMockKbQuarterUpdateListPage } from '@/mock/modules/knowledge/quarterUpdateRecordList'
+import { mockKbQuarterUpdateQuarterOptionsRes } from '@/mock/modules/knowledge/quarterUpdateQuarterOptions'
 import { mockVulnKnowledgeOverviewRes } from '@/mock/modules/knowledge/vulnKnowledgeOverview'
 import { getMockVulnItemExportResult } from '@/mock/modules/knowledge/vulnItemExport'
 import { getMockVulnItemDetail, getMockVulnItemListPage } from '@/mock/modules/knowledge/vulnItemList'
@@ -457,6 +461,33 @@ export function getKnowledgeCoverageOverview(): Promise<
 export function getKbQuarterUpdateOverview(): Promise<ApiResponse<KbQuarterUpdateOverview>> {
   // TODO: replace with → return request.get('/api/knowledge/quarter-updates/overview')
   return Promise.resolve(mockKbQuarterUpdateOverviewRes)
+}
+
+/**
+ * 获取季度更新记录已有季度下拉选项
+ */
+export function getKbQuarterUpdateQuarterOptions(): Promise<ApiResponse<string[]>> {
+  // TODO: replace with → return request.get('/api/knowledge/quarter-updates/quarters')
+  return Promise.resolve(mockKbQuarterUpdateQuarterOptionsRes)
+}
+
+/**
+ * 分页获取季度更新记录列表
+ * @param params - 季度、状态、采集方式、摘要关键词及分页
+ */
+export function getKbQuarterUpdateList(
+  params: KbQuarterUpdateListQueryParams,
+): Promise<ApiResponse<PageResult<KbQuarterUpdateRecord>>> {
+  // TODO: replace with → return request.get('/api/knowledge/quarter-updates/records', { params })
+  const { list, total } = getMockKbQuarterUpdateListPage(params)
+  const page = params.page ?? 1
+  const pageSize = params.pageSize ?? 10
+
+  return Promise.resolve({
+    code: 200,
+    message: 'ok',
+    data: { list, total, page, pageSize },
+  })
 }
 
 /**

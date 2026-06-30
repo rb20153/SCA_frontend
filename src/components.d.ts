@@ -132,6 +132,8 @@ declare module 'vue' {
     KbProjectOverviewSection: typeof import('./components/knowledge/KbProjectOverviewSection.vue')['default']
     KbProjectQueryBar: typeof import('./components/knowledge/KbProjectQueryBar.vue')['default']
     KbProjectTable: typeof import('./components/knowledge/KbProjectTable.vue')['default']
+    KbQuarterUpdateQueryBar: typeof import('./components/knowledge/KbQuarterUpdateQueryBar.vue')['default']
+    KbQuarterUpdateRecordTable: typeof import('./components/knowledge/KbQuarterUpdateRecordTable.vue')['default']
     KbVersionActionCell: typeof import('./components/knowledge/KbVersionActionCell.vue')['default']
     KbVersionFetchModal: typeof import('./components/knowledge/KbVersionFetchModal.vue')['default']
     KbVersionRestoreModal: typeof import('./components/knowledge/KbVersionRestoreModal.vue')['default']

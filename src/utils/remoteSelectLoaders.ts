@@ -1,6 +1,6 @@
 import type { SelectOption } from '@/types/common'
 import { getDetectTaskProjectOptions } from '@/api/detect'
-import { getKbProjectSelectOptions, getKbVersionSelectOptions } from '@/api/knowledge'
+import { getKbProjectSelectOptions, getKbQuarterUpdateQuarterOptions, getKbVersionSelectOptions } from '@/api/knowledge'
 import { getPolicySelectOptions } from '@/api/policy'
 import { getProfileDepartmentOptions } from '@/api/profile'
 import { getEnabledDepartmentOptions, getEnabledUserOptions } from '@/api/user'
@@ -70,6 +70,20 @@ export async function loadKbVersionSelectOptions(kbProjectId: string): Promise<S
     label: item.versionNo,
     value: item.versionId,
   }))
+}
+
+/**
+ * 加载季度更新管理 · 已有季度下拉选项（含「全部季度」）
+ */
+export async function loadKbQuarterUpdateQuarterSelectOptions(): Promise<SelectOption[]> {
+  const res = await getKbQuarterUpdateQuarterOptions()
+  return [
+    { value: '', label: '全部季度' },
+    ...res.data.map((quarter) => ({
+      label: quarter,
+      value: quarter,
+    })),
+  ]
 }
 
 /**

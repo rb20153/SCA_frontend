@@ -245,6 +245,38 @@ export interface KbQuarterUpdateOverview {
   cloudPullCount: number
 }
 
+/** 季度更新记录状态 */
+export type KbQuarterUpdateStatus = 'in_progress' | 'completed' | 'failed'
+
+/** 季度更新记录列表项（系统自动写入的操作台账） */
+export interface KbQuarterUpdateRecord {
+  recordId: string
+  projectName: string
+  quarter: string
+  summary: string
+  collectMode: KbCollectMode
+  status: KbQuarterUpdateStatus
+  ownerName: string
+  /** 操作发生时间，ISO 8601 */
+  updatedAt: string
+}
+
+/** 季度更新记录列表筛选表单 */
+export interface KbQuarterUpdateListFilters {
+  quarter: string
+  status: KbQuarterUpdateStatus | ''
+  collectMode: KbCollectMode | ''
+  summaryKeyword: string
+}
+
+/** 季度更新记录列表查询参数 */
+export interface KbQuarterUpdateListQueryParams extends PageParams {
+  quarter?: string
+  status?: KbQuarterUpdateStatus
+  collectMode?: KbCollectMode
+  summaryKeyword?: string
+}
+
 /** 分类覆盖统计行 */
 export interface CategoryCoverageStat {
   category: string
