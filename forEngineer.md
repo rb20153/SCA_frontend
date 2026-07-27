@@ -7,6 +7,23 @@
 
 ---
 
+## [2026-07-27] 分支拆分：联调代码进 dev，mock 保持纯 mock
+
+后端数据问题较多，需要随时能回到「全 mock、可演示」的版本，所以把两条线分开：
+
+| 分支 / 目录 | 内容 | 用途 |
+|---|---|---|
+| `mock` 分支（HEAD `b9fba8c`） | 全部走 mock，vite 代理指向 localhost:8080 | 演示、走查、UI 开发 |
+| `dev` 分支（`4550156`） | auth / dashboard / project / detect 已切真实接口 + 适配层 | 后端联调 |
+| `frontend-mock/`（与 `frontend/` 同级） | `mock` 分支的独立克隆，已 `npm install` | 想同时跑两个版本时用 |
+
+- 联调改动此前一直没提交，这次一次性提交到 `dev`（46 个文件）。`mock` 分支没有被动过
+- 同一个目录里切换：`cd frontend && git switch mock`（回纯 mock）/ `git switch dev`（回联调）
+- 两个版本同时跑：`frontend-mock` 里 `npm run dev`，5173 被占用时 vite 会自动用 5174
+- `API.md`、`background.md`、`problem.md` 在 git 仓库外（仓库根是 `frontend/`），两个版本共用同一份，不随分支切换
+
+---
+
 ## [2026-07-27] 漏洞库版本下拉空白 + 后端 type 取值 combined
 
 ### 漏洞库版本下拉「No data」
