@@ -69,11 +69,15 @@ export function getUserList(
 }
 
 /**
- * 获取启用状态的部门下拉选项（新增/编辑项目、用户管理等）
+ * 获取启用状态的部门下拉选项（新增/编辑项目、用户管理、登录页注册）
+ * @param silent - true 时失败不弹全局提示，交由调用方降级（注册页未登录场景用）
  */
-export async function getEnabledDepartmentOptions(): Promise<ApiResponse<DepartmentOption[]>> {
+export async function getEnabledDepartmentOptions(
+  silent = false,
+): Promise<ApiResponse<DepartmentOption[]>> {
   const res = await request.get<ApiResponse<unknown>>('/api/system/departments/options', {
     params: { status: 'enabled' },
+    silent,
   })
   return { ...res, data: normalizeDepartmentOptionList(res.data) }
 }

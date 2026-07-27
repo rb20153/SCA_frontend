@@ -12,6 +12,19 @@ const request: AxiosInstance = axios.create({
 /** 未授权业务码：body.code 或 HTTP 401 均视为需重新登录（登录页除外） */
 const UNAUTHORIZED_CODE = 401
 
+/**
+ * 扩展请求配置
+ * `silent: true` 时失败不弹全局提示，由调用方自行降级（如注册页部门下拉拉不到时改手填）
+ */
+export interface RequestConfig extends AxiosRequestConfig {
+  silent?: boolean
+}
+
+/** 读取本次请求是否要求静默失败 */
+function isSilentRequest(config: unknown): boolean {
+  return (config as RequestConfig | undefined)?.silent === true
+}
+
 /** 判断当前是否在登录页（登录失败 401 不应清 token 并整页跳转） */
 function isOnLoginPage(): boolean {
   return window.location.pathname === '/login'
@@ -48,7 +61,9 @@ request.interceptors.response.use(
     const res = response.data as ApiResponse<unknown>
     // HTTP 2xx 但业务码非成功：全局弹错并 reject（成功码见 isApiSuccessCode）
     if (!isApiSuccessCode(res.code)) {
-      message.error(res.message || '操作失败')
+      if (!isSilentRequest(response.config)) {
+        message.error(res.message || '操作失败')
+      }
       if (res.code === UNAUTHORIZED_CODE && !isOnLoginPage()) {
         redirectToLogin()
       }
@@ -73,7 +88,9 @@ request.interceptors.response.use(
             ? backendMsg ?? '请求资源不存在'
             : backendMsg ?? '网络异常，请稍后重试'
 
-    message.error(msg)
+    if (!isSilentRequest(error.config)) {
+      message.error(msg)
+    }
 
     if (isAuthError && !onLoginPage) {
       redirectToLogin()
@@ -89,10 +106,10 @@ request.interceptors.response.use(
  * api 函数按 `return request.get('/api/xxx')` 写即可通过 TS 检查（T 由函数返回类型上下文推断）
  */
 interface RequestMethods {
-  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>
-  post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>
-  put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>
-  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>
+  get<T = unknown>(url: string, config?: RequestConfig): Promise<T>
+  post<T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<T>
+  put<T = unknown>(url: string, data?: unknown, config?: RequestConfig): Promise<T>
+  delete<T = unknown>(url: string, config?: RequestConfig): Promise<T>
 }
 
 export default request as RequestMethods

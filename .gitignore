@@ -13,6 +13,9 @@ dist-ssr
 *.tsbuildinfo
 *.local
 
+# 误克隆/嵌套的本地仓库目录，勿纳入主仓库
+SCA_frontend/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

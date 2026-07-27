@@ -7,6 +7,123 @@
 
 ---
 
+## [2026-07-27] 首页卡片去掉环比 + 开源风险列表 API 开发环境探测
+
+### 首页统计卡片不展示「增长 xx」
+
+- `statCard.ts` → `mapDashboardStatsToStatCards()`：不再映射 `growth` / `growthSuffix`
+- 只影响首页 `/dashboard` 顶部 4 张卡；其他页面（知识库、策略治理等）的 StatCard 不变
+
+### 开源风险列表该打哪个 API？
+
+**Apifox / openapi 口径**（你截图里接口说明那一行）：
+
+- `自主率检测列表 /detect/autonomy`、`开源风险检测列表 /detect/risk` 指的是**前端页面路由**
+- 列表 **HTTP 接口只有一个**：`GET /api/detect/tasks`
+- 两个页面靠 query `taskType=autonomy` 或 `taskType=open-source-risk` 区分
+
+所以 Network 里看到 `http://localhost:5173/api/detect/tasks?...&taskType=open-source-risk` **路径本身是对的**，
+不是 `/api/detect/risks`（openapi / API_detail 里都没有这条）。
+
+若列表仍不对，更可能是：后端忽略 `taskType`、或返回 `type: combined`（已在 `detectAdapter` 兜底）。
+
+### 开源风险列表 API（2026-07-27 联调探测结论）
+
+- 列表接口仍是 **`GET /api/detect/tasks`**，`/api/detect/risks`、`/api/detect/risk`、`/api/detect/risk/tasks` 均 404
+- 传 `taskType=open-source-risk` / `type=risk` 等 query 时，后端仍返回 `type: autonomy` 的任务（样本 2 条全是 autonomy）
+- 前端路径 `/api/detect/tasks?taskType=open-source-risk` **没错**；数据不对是后端未按类型过滤/标注，已在 `detectAdapter` 按页面类型兜底展示
+- 曾加过 `detectListApiProbe.ts` 开发环境 console 探测，结论确认后**已删除**
+
+---
+
+## [2026-07-27] 首页卡片只出一张的补丁 + 注册页部门下拉降级手填
+
+### 一、首页只显示「项目数」，任务数/漏洞数/平均自主率还是空
+
+上一轮把 overview 适配成「数组形态」和「平铺计数形态」二选一，漏了后端的真实形态：
+`data.stats` 是**一个单卡片对象**（openapi 里 `stats` 声明的就是 object 而非 array）。
+代码命中「单对象」分支后直接 `return`，只产出那一张卡，另外三张的平铺计数被跳过了。
+
+改为**合并**策略：先把 `stats` 里声明的卡片按 key 建索引，再按 `OVERVIEW_STAT_DEFS`
+逐张取——有声明用声明的，没有就从平铺计数补。四张卡片顺序固定，缺谁补谁。
+
+实测 6 种形态（`normalizeDashboardOverview`）：
+
+| 后端形态 | 结果 |
+|---|---|
+| 平铺计数 + `stats: {}` | 4 张齐 |
+| 平铺计数 + `stats` 单卡片 | 4 张齐，声明的那张用后端 label/growth |
+| 平铺计数，无 `stats` | 4 张齐 |
+| 平铺计数 + `stats` 按 key 分组 | 4 张齐，分组值优先 |
+| 契约数组（mock 形态） | 原样，行为不变 |
+| 空响应 | 空数组，不报错 |
+
+### 二、注册页部门下拉「缺失 token」
+
+openapi 里 `/api/system/departments/options` 明确写了 `security: []`（描述也写着
+「无需登录仅注册页」），后端目前仍校验 token，未登录直接 401。**前端无法真正修复**，
+只能降级：
+
+- `request.ts`：新增 `RequestConfig.silent`，为 `true` 时失败不弹全局 message，
+  交调用方自己处理（避免注册页糊一个「缺失token」在脸上）
+- `api/user.ts` / `remoteSelectLoaders.ts`：`getEnabledDepartmentOptions(silent?)`
+  与 `loadEnabledDepartmentSelectOptions(silent?)` 透传该开关，默认 `false`，其他页面行为不变
+- `LoginPage.vue`：切到注册模式时 `prefetchOptions()` 先探一次；拉不到就把部门那一项
+  从 `AsyncOptionsSelect` 换成 `a-input` 手填，提示「部门列表暂时获取不到，请手动填写部门名称」
+
+### 注意事项
+
+- 注册接口收的本来就是**部门名称字符串**（`department`，不是 ID），所以手填能正常注册，
+  不是临时糊的兜底
+- 校验规则同时挂了 `departmentId`（下拉）和 `departmentName`（手填）两条；
+  `a-form-item` 只有渲染出来才注册校验，所以不会互相干扰
+- 后端把 `departments/options` 改成免登录后，注册页会自动恢复成下拉，前端不用再改
+- 后端未按契约放行该接口的问题已记入 **`problem.md` #5**
+- `silent` 这个开关是通用的，以后遇到「失败要自己降级、不要全局弹窗」的请求都能用
+
+---
+
+## [2026-07-27] 首页统计卡片空白：后端把计数平铺返回，没按 stats 数组给
+
+### 现象
+
+`GET /api/dashboard/overview` 明明返回了数据，首页顶部 4 张卡片却什么都不显示。
+
+### 原因
+
+契约里 `data.stats` 应该是卡片数组 `[{ key, label, value, growth }]`，后端实际返回的是平铺计数：
+
+```json
+{ "projectCount": 3, "taskCount": 2, "vulnerabilityCount": 1, "averageAutonomyRate": 99.61,
+  "alertCount": 1, "fingerprintCount": 23057, "knowledgeRepoCount": 300,
+  "engineVersion": "engine-aero-commercial", "kbSnapshot": { ... }, "stats": { ... } }
+```
+
+`normalizeDashboardOverview` 只认数组和带 `key` 的对象，两者都不匹配就返回了 `{ stats: [] }`，
+`StatCardRow` 拿到空数组自然渲染不出任何卡片（也不会报错，所以是静默空白）。
+
+### 改了什么
+
+- **`src/utils/dashboardAdapter.ts`**：重写 `normalizeDashboardOverview`，同时兼容两种形态
+  - 后端按契约给数组 → 逐项走 `normalizeStatItem` 校验后直接用
+  - 后端给平铺计数 → 按 `OVERVIEW_STAT_DEFS` 拼 4 张卡片（项目数 / 任务数 / 漏洞数 / 平均自主率）
+  - 取值兼容多个字段名（如 `averageAutonomyRate` / `avgAutonomyRate` / `autonomyRate`），
+    也支持 `stats` 里按卡片 key 分组的子对象形态
+- **`src/types/dashboard.ts`**：`DashboardStatItem.growth` 改为可选
+- **`src/api/dashboard.ts`**：overview 泛型放宽为 `ApiResponse<unknown>`，适配由 adapter 兜底
+
+### 注意事项
+
+- 后端目前**不返回环比增量**，所以卡片下方的「较上月 +N」那行会自动隐藏（`growth` 为
+  `undefined` 时 `StatCard` 不渲染增长行）。后端补 `projectGrowth` 之类字段后会自动出现
+- 数值统一 `Math.round(v * 100) / 100`，避免 99.61 变成 99.61000000000001
+- 漏洞数 > 0 时仍走警告色（黄色），与 mock 阶段一致
+- 后端多给的 `alertCount` / `fingerprintCount` / `knowledgeRepoCount` / `engineVersion` /
+  `kbSnapshot` 首页暂时用不上，没有映射进卡片
+- 这属于后端没按 openapi 契约返回，但前端已兼容，未记进 `problem.md`
+
+---
+
 ## [2026-07-27] 分支拆分：联调代码进 dev，mock 保持纯 mock
 
 后端数据问题较多，需要随时能回到「全 mock、可演示」的版本，所以把两条线分开：

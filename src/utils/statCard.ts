@@ -13,6 +13,7 @@ import dayjs from 'dayjs'
 
 /**
  * 将首页概览统计项转为通用 StatCardItem
+ * 首页不展示环比增量，只保留主数值
  * @param items - 首页 dashboard overview 返回的 stats
  */
 export function mapDashboardStatsToStatCards(items: DashboardStatItem[]): StatCardItem[] {
@@ -20,8 +21,6 @@ export function mapDashboardStatsToStatCards(items: DashboardStatItem[]): StatCa
     key: item.key,
     label: item.label,
     value: `${item.value}${item.suffix ?? ''}`,
-    growth: item.growth,
-    growthSuffix: item.growthSuffix,
     warnValue: item.warnValue,
   }))
 }

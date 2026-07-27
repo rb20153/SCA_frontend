@@ -7,9 +7,10 @@ import { getEnabledDepartmentOptions } from '@/api/user'
 
 /**
  * 加载启用部门下拉选项
+ * @param silent - true 时请求失败不弹全局提示，由调用方降级处理（注册页用）
  */
-export async function loadEnabledDepartmentSelectOptions(): Promise<SelectOption[]> {
-  const res = await getEnabledDepartmentOptions()
+export async function loadEnabledDepartmentSelectOptions(silent = false): Promise<SelectOption[]> {
+  const res = await getEnabledDepartmentOptions(silent)
   return res.data.map((item) => ({
     label: item.departmentName,
     value: item.departmentId,

@@ -18,7 +18,7 @@ export const RECENT_TASKS_LIMIT = 10
 
 /** 获取首页顶部统计卡片数据 */
 export async function getDashboardOverview(): Promise<ApiResponse<DashboardOverview>> {
-  const res = await request.get<ApiResponse<{ stats?: unknown }>>('/api/dashboard/overview')
+  const res = await request.get<ApiResponse<unknown>>('/api/dashboard/overview')
   return { ...res, data: normalizeDashboardOverview(res.data) }
 }
 

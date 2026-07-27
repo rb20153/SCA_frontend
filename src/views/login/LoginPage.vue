@@ -84,14 +84,29 @@
           />
         </a-form-item>
 
-        <a-form-item name="departmentId" label="部门">
+        <a-form-item v-if="!departmentLoadFailed" name="departmentId" label="部门">
           <AsyncOptionsSelect
             ref="departmentSelectRef"
             v-model="registerForm.departmentId"
             size="large"
             placeholder="请选择部门"
             select-class="login-select-full"
-            :load-options="loadEnabledDepartmentSelectOptions"
+            :load-options="loadRegisterDepartmentOptions"
+          />
+        </a-form-item>
+
+        <!-- 部门列表拉取失败时降级为手填，保证注册流程不被阻断 -->
+        <a-form-item
+          v-else
+          name="departmentName"
+          label="部门"
+          extra="部门列表暂时获取不到，请手动填写部门名称"
+        >
+          <a-input
+            v-model:value="registerForm.departmentName"
+            size="large"
+            placeholder="请输入部门名称，如：研发部"
+            allow-clear
           />
         </a-form-item>
 
@@ -136,13 +151,14 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { nextTick, reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance } from 'ant-design-vue'
 import { useAuthStore } from '@/stores/auth'
 import { login, checkUsernameAvailable, register } from '@/api/auth'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
+import type { SelectOption } from '@/types/common'
 import { getRememberMePreference } from '@/utils/tokenStorage'
 import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 
@@ -186,9 +202,28 @@ const registerForm = reactive({
   realName: '',
   phone: '',
   departmentId: undefined as string | undefined,
+  /** 部门下拉不可用时手填的部门名称 */
+  departmentName: '',
   password: '',
   confirmPassword: '',
 })
+
+/** 部门下拉是否已确认拉不到（拉到过一次就不再降级） */
+const departmentLoadFailed = ref(false)
+
+/**
+ * 注册页部门下拉数据源
+ * 该接口按契约无需登录，但后端目前仍校验 token，未登录会 401；
+ * 失败时静默降级为手填输入框，避免注册流程被卡死
+ */
+async function loadRegisterDepartmentOptions(): Promise<SelectOption[]> {
+  try {
+    return await loadEnabledDepartmentSelectOptions(true)
+  } catch {
+    departmentLoadFailed.value = true
+    return []
+  }
+}
 
 async function checkUsernameExists(_rule: unknown, value: string) {
   if (!value || value.length < 4) return Promise.resolve()
@@ -237,6 +272,7 @@ const registerRules = {
     },
   ],
   departmentId: [{ required: true, message: '请选择部门', trigger: 'change' }],
+  departmentName: [{ required: true, message: '请输入部门名称', trigger: 'blur' }],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
     { validator: checkPasswordStrength, trigger: 'change' },
@@ -247,17 +283,29 @@ const registerRules = {
   ],
 }
 
-/** 提交注册信息，部门名称由下拉选项解析后传给接口 */
+/**
+ * 提交注册信息
+ * 接口收的是部门名称而非 ID：下拉可用时取选中项 label，降级手填时取输入框内容
+ */
 async function handleRegister() {
-  const departmentId = registerForm.departmentId
-  if (!departmentId) {
-    message.warning('请选择部门')
-    return
-  }
-  const departmentName = departmentSelectRef.value?.getSelectedLabel()
-  if (!departmentName) {
-    message.warning('所选部门无效，请重新选择')
-    return
+  let departmentName: string | undefined
+
+  if (departmentLoadFailed.value) {
+    departmentName = registerForm.departmentName.trim()
+    if (!departmentName) {
+      message.warning('请输入部门名称')
+      return
+    }
+  } else {
+    if (!registerForm.departmentId) {
+      message.warning('请选择部门')
+      return
+    }
+    departmentName = departmentSelectRef.value?.getSelectedLabel()
+    if (!departmentName) {
+      message.warning('所选部门无效，请重新选择')
+      return
+    }
   }
 
   loading.value = true
@@ -286,6 +334,8 @@ function switchMode(target: PageMode) {
     departmentSelectRef.value?.resetOptions()
   } else {
     loginFormRef.value?.resetFields()
+    // 进注册页就先探一次部门接口，拉不到时直接渲染手填输入框，不用等用户点开下拉
+    void nextTick(() => departmentSelectRef.value?.prefetchOptions())
   }
 }
 </script>

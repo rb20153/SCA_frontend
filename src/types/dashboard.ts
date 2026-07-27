@@ -5,8 +5,8 @@ export interface DashboardStatItem {
   value: number
   /** 数值后缀，如平均自主率为 `%` */
   suffix?: string
-  /** 环比增量：个数或百分点，负数表示下降 */
-  growth: number
+  /** 环比增量：个数或百分点，负数表示下降；后端未返回时不展示增长率行 */
+  growth?: number
   /** 增长文案单位，平均自主率传 `%` */
   growthSuffix?: string
   /** 主数值是否使用警告色（如漏洞数） */
