@@ -1,4 +1,5 @@
 import type { ApiResponse, PageResult } from '@/types/common'
+import request from '@/utils/request'
 import type {
   CreateUserParams,
   DepartmentOption,
@@ -8,7 +9,6 @@ import type {
   SystemUser,
   UpdateUserParams,
   UserDetail,
-  UserOption,
   UserQueryParams,
   UserSearchCandidate,
 } from '@/types/user'
@@ -23,13 +23,10 @@ import {
   MOCK_USER_PASSWORDS,
   createMockUserId,
   filterMockUserList,
-  getMockEnabledDepartmentOptions,
   getMockEnabledRoleOptions,
-  getMockEnabledUserOptions,
   getMockRoleFilterOptions,
   isMockUsernameTaken,
   registerMockUsername,
-  searchMockUsers,
 } from '@/mock/modules/system/userList'
 import { MOCK_ALL_DEPARTMENTS } from '@/mock/modules/system/departmentList'
 import { MOCK_ALL_ROLES } from '@/mock/modules/system/roleList'
@@ -40,6 +37,7 @@ import {
 } from '@/mock/modules/system/userProjects'
 import { MOCK_REGISTERED_USERNAMES } from '@/mock/modules/auth/users'
 import { isValidPhone, isValidUsername } from '@/utils/userValidation'
+import { normalizeUserSearchList, normalizeDepartmentOptionList } from '@/utils/userAdapter'
 
 const DEFAULT_PAGE_SIZE = 10
 
@@ -71,40 +69,24 @@ export function getUserList(
 }
 
 /**
- * 获取启用状态的部门下拉选项（新增/编辑用户弹窗打开时调用）
+ * 获取启用状态的部门下拉选项（新增/编辑项目、用户管理等）
  */
-export function getEnabledDepartmentOptions(): Promise<ApiResponse<DepartmentOption[]>> {
-  // TODO: replace with → return request.get('/api/system/departments/options', { params: { status: 'enabled' } })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockEnabledDepartmentOptions(),
+export async function getEnabledDepartmentOptions(): Promise<ApiResponse<DepartmentOption[]>> {
+  const res = await request.get<ApiResponse<unknown>>('/api/system/departments/options', {
+    params: { status: 'enabled' },
   })
+  return { ...res, data: normalizeDepartmentOptionList(res.data) }
 }
 
 /**
  * 搜索启用用户（姓名/用户名，不限项目）
  * @param keyword - 搜索关键词
  */
-export function searchUsers(keyword: string): Promise<ApiResponse<UserSearchCandidate[]>> {
-  // TODO: replace with → return request.get('/api/system/users/search', { params: { keyword } })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: searchMockUsers(keyword),
+export async function searchUsers(keyword: string): Promise<ApiResponse<UserSearchCandidate[]>> {
+  const res = await request.get<ApiResponse<unknown>>('/api/system/users/search', {
+    params: { keyword },
   })
-}
-
-/**
- * 获取启用用户下拉选项（项目负责人选择等）
- */
-export function getEnabledUserOptions(): Promise<ApiResponse<UserOption[]>> {
-  // TODO: replace with → return request.get('/api/system/users/options', { params: { status: 'enabled' } })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockEnabledUserOptions(),
-  })
+  return { ...res, data: normalizeUserSearchList(res.data) }
 }
 
 /**
@@ -369,7 +351,7 @@ export function resetUserPassword(
   MOCK_USER_PASSWORDS[data.userId] = data.newPassword
   appendPasswordResetSiteMessage(data.userId, data.username, data.newPassword)
 
-  // TODO: replace with → return request.post(`/api/system/users/${data.userId}/reset-password`, { password: data.newPassword })
+  // TODO: replace with → return request.post(`/api/system/users/${data.userId}/reset-password`, { newPassword: data.newPassword })
   return Promise.resolve({
     code: 200,
     message: 'ok',

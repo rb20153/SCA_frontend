@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import { message } from 'ant-design-vue'
-import type { ApiResponse } from '@/types/common'
+import { isApiSuccessCode, type ApiResponse } from '@/types/common'
 import { clearStoredToken, getStoredToken } from '@/utils/tokenStorage'
 
 const request: AxiosInstance = axios.create({
@@ -8,6 +8,27 @@ const request: AxiosInstance = axios.create({
   timeout: 30_000,
   headers: { 'Content-Type': 'application/json' },
 })
+
+/** 未授权业务码：body.code 或 HTTP 401 均视为需重新登录（登录页除外） */
+const UNAUTHORIZED_CODE = 401
+
+/** 判断当前是否在登录页（登录失败 401 不应清 token 并整页跳转） */
+function isOnLoginPage(): boolean {
+  return window.location.pathname === '/login'
+}
+
+/** 非登录页遇到 401：清 token 并跳转登录 */
+function redirectToLogin(): void {
+  clearStoredToken()
+  window.location.href = '/login'
+}
+
+/** 从 axios 错误对象中提取后端 message / code */
+function parseErrorBody(error: unknown): { code?: number; message?: string } {
+  const data = (error as { response?: { data?: ApiResponse<unknown> } })?.response?.data
+  if (!data || typeof data !== 'object') return {}
+  return { code: data.code, message: data.message }
+}
 
 // ─── Request interceptor ─────────────────────────────────────────────────────
 request.interceptors.request.use(
@@ -25,32 +46,54 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   (response) => {
     const res = response.data as ApiResponse<unknown>
-    // Business error (code !== 200)
-    if (res.code !== 200) {
+    // HTTP 2xx 但业务码非成功：全局弹错并 reject（成功码见 isApiSuccessCode）
+    if (!isApiSuccessCode(res.code)) {
       message.error(res.message || '操作失败')
+      if (res.code === UNAUTHORIZED_CODE && !isOnLoginPage()) {
+        redirectToLogin()
+      }
       return Promise.reject(new Error(res.message))
     }
-    // Return the full ApiResponse so callers can access .data
     return res as never
   },
   (error) => {
-    const status = error.response?.status
+    const status = error.response?.status as number | undefined
+    const { code: bodyCode, message: backendMsg } = parseErrorBody(error)
+    const onLoginPage = isOnLoginPage()
+    const isAuthError = status === UNAUTHORIZED_CODE || bodyCode === UNAUTHORIZED_CODE
+
     const msg =
-      status === 401 ? '登录已过期，请重新登录' :
-      status === 403 ? '权限不足' :
-      status === 404 ? '请求资源不存在' :
-      error.response?.data?.message ?? '网络异常，请稍后重试'
+      isAuthError
+        ? onLoginPage
+          ? backendMsg ?? '用户名或密码错误'
+          : backendMsg ?? '登录已过期，请重新登录'
+        : status === 403
+          ? backendMsg ?? '权限不足'
+          : status === 404
+            ? backendMsg ?? '请求资源不存在'
+            : backendMsg ?? '网络异常，请稍后重试'
 
     message.error(msg)
 
-    if (status === 401) {
-      clearStoredToken()
-      window.location.href = '/login'
+    if (isAuthError && !onLoginPage) {
+      redirectToLogin()
     }
 
     return Promise.reject(error)
   },
 )
 
-export default request
+/**
+ * 收窄后的请求方法类型：响应拦截器已把 AxiosResponse 解包为 ApiResponse<T>，
+ * 这里让 get/post/put/delete 直接返回 Promise<T>，
+ * api 函数按 `return request.get('/api/xxx')` 写即可通过 TS 检查（T 由函数返回类型上下文推断）
+ */
+interface RequestMethods {
+  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>
+  post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>
+  put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>
+}
+
+export default request as RequestMethods
 export type { AxiosRequestConfig }

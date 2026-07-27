@@ -111,7 +111,7 @@ const activeTab = ref<ReportTemplateEditorTabKey>('content')
 const boundProjectName = ref<string | undefined>(undefined)
 const exportPanelRef = ref<InstanceType<typeof ReportTemplateExportPanel> | null>(null)
 
-const form = reactive<ReportTemplateEditorForm>(createEmptyReportTemplateEditorForm())
+let form = reactive<ReportTemplateEditorForm>(createEmptyReportTemplateEditorForm())
 const markdownContent = ref('')
 const templateVariables = ref<ReportTemplateDetail['variables']>([])
 const exportSettings = ref<ReportTemplateExportSettings>(createEmptyReportTemplateExportSettings())

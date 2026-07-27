@@ -16,7 +16,7 @@ export const mockLoginRes: ApiResponse<{ token: string; userInfo: UserInfo }> = 
   data: {
     token: 'mock-token-admin',
     userInfo: {
-      userId: 'u001',
+      userId: 'user-001',
       username: 'admin',
       realName: '管理员',
       role: 'admin',
@@ -40,7 +40,7 @@ export const mockUserList: ApiResponse<{ list: UserInfo[]; total: number }> = {
   data: {
     list: [
       {
-        userId: 'u001',
+        userId: 'user-001',
         username: 'admin',
         realName: '管理员',
         role: 'admin',
@@ -48,7 +48,7 @@ export const mockUserList: ApiResponse<{ list: UserInfo[]; total: number }> = {
         department: '检测中心',
       },
       {
-        userId: 'u002',
+        userId: 'user-002',
         username: 'analyst01',
         realName: '张分析员',
         role: 'analyst',
@@ -56,7 +56,7 @@ export const mockUserList: ApiResponse<{ list: UserInfo[]; total: number }> = {
         department: '研发部',
       },
       {
-        userId: 'u003',
+        userId: 'user-003',
         username: 'auditor01',
         realName: '李审计员',
         role: 'auditor',
@@ -64,7 +64,7 @@ export const mockUserList: ApiResponse<{ list: UserInfo[]; total: number }> = {
         department: '合规部',
       },
       {
-        userId: 'u004',
+        userId: 'user-004',
         username: 'viewer01',
         realName: '王只读',
         role: 'viewer',

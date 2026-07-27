@@ -38,8 +38,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // 联调后端服务器；浏览器只访问同源 5173，由 vite 转发，规避 CORS
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://8.130.55.127',
         changeOrigin: true,
       },
     },

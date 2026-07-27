@@ -20,6 +20,7 @@
           :projects="projectList"
           :loading="loading"
           :pagination="pagination"
+          @edit="openEditModal"
           @delete="openDeleteModal"
         />
       </PageLoading>
@@ -28,6 +29,14 @@
     <ProjectCreateWizardModal
       v-model:open="formVisible"
       @success="onCreateSuccess"
+    />
+
+    <ProjectFormModal
+      v-if="editingProject"
+      v-model:open="editVisible"
+      :project-id="editingProject.projectId"
+      :project="editingProject"
+      @success="onEditSuccess"
     />
 
     <ProjectDeleteModal
@@ -48,6 +57,7 @@ import PageLoading from '@/components/common/PageLoading.vue'
 import ProjectCreateBar from '@/components/project/ProjectCreateBar.vue'
 import ProjectDeleteModal from '@/components/project/ProjectDeleteModal.vue'
 import ProjectCreateWizardModal from '@/components/project/ProjectCreateWizardModal.vue'
+import ProjectFormModal from '@/components/project/ProjectFormModal.vue'
 import ProjectQueryBar from '@/components/project/ProjectQueryBar.vue'
 import ProjectTable from '@/components/project/ProjectTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
@@ -58,7 +68,9 @@ import {
 } from '@/utils/projectQuery'
 
 const formVisible = ref(false)
+const editVisible = ref(false)
 const deleteVisible = ref(false)
+const editingProject = ref<Project | null>(null)
 const deletingProject = ref<Project | null>(null)
 
 const {
@@ -80,6 +92,18 @@ const {
 
 /** 创建成功后刷新列表，留在当前页 */
 async function onCreateSuccess() {
+  await loadPage()
+}
+
+/** 打开编辑弹窗 */
+function openEditModal(project: Project) {
+  editingProject.value = project
+  editVisible.value = true
+}
+
+/** 编辑成功后刷新当前页 */
+async function onEditSuccess() {
+  editingProject.value = null
   await loadPage()
 }
 

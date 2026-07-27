@@ -57,6 +57,18 @@ export interface UpdateProjectParams {
   owner: string
   department: string
 }
+
+export interface ProjectFormValues {
+  projectName: string
+  description: string
+  owner: string
+  department: string
+  /** 列表行携带的负责人 ID，编辑回填用 */
+  ownerUserId?: string
+  /** 列表行携带的部门 ID，编辑回填用 */
+  departmentId?: string
+}
+
 export interface ProjectPolicyBindingInput {
   policyId: string
   /** 相似度阈值 0–100 */
@@ -96,17 +108,16 @@ export interface ProjectPolicyBinding extends ProjectPolicyBindingInput {
 
 /** 项目详情 · 基本信息 Tab 可编辑字段 */
 export interface UpdateProjectBasicInfoParams {
+  /** 项目名称，仅关联任务数为 0 时可改；不传表示不修改 */
+  projectName?: string
   description: string
+  /** 负责人姓名，后端按姓名存储 */
+  owner: string
   ownerUserId: string
+  /** 部门名称，后端按名称存储 */
+  department: string
   departmentId: string
   status: ProjectStatus
-}
-
-export interface ProjectFormValues {
-  projectName: string
-  description: string
-  owner: string
-  department: string
 }
 
 /** 项目内角色：负责人 / 普通成员 */

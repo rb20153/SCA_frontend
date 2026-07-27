@@ -1,7 +1,15 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { getCurrentUser } from '@/api/auth'
-import { clearStoredToken, getStoredToken, setStoredToken } from '@/utils/tokenStorage'
+import { mergeUserInfoWithCache, normalizeMeUser, type MeUserRaw } from '@/utils/authUser'
+import {
+  clearStoredToken,
+  getRememberMePreference,
+  getStoredToken,
+  getStoredUserInfo,
+  setStoredToken,
+  setStoredUserInfo,
+} from '@/utils/tokenStorage'
 
 export interface UserInfo {
   userId: string
@@ -28,21 +36,29 @@ export const useAuthStore = defineStore('auth', () => {
     setStoredToken(t, remember)
   }
 
-  /** 写入用户信息到 Pinia（仅内存，刷新后需通过 fetchUserInfo 恢复） */
-  function setUserInfo(info: UserInfo) {
-    userInfo.value = info
+  /**
+   * 写入用户信息到 Pinia，并同步缓存（与 token 同 remember 策略）
+   * login.userInfo 可能含 displayName 等扩展字段，入库前规范化
+   */
+  function setUserInfo(info: UserInfo | MeUserRaw) {
+    const normalized = normalizeMeUser(info)
+    userInfo.value = normalized
+    setStoredUserInfo(normalized, getRememberMePreference())
   }
 
   /**
-   * 凭 token 拉取当前用户信息（用于页面刷新后恢复顶栏姓名等）
-   * 联调时 getCurrentUser 会走真实 /api/auth/me，此处无需改动
+   * 凭 token 拉取 /me 恢复用户信息；若 /me 的 realName 退化为 username，用登录缓存兜底
    */
   async function fetchUserInfo() {
     const res = await getCurrentUser()
-    userInfo.value = res.data
+    const cached = getStoredUserInfo<UserInfo>()
+    userInfo.value = mergeUserInfoWithCache(res.data, cached)
+    if (userInfo.value) {
+      setStoredUserInfo(userInfo.value, getRememberMePreference())
+    }
   }
 
-  /** 清除登录态：Pinia 状态 + 两处 storage 中的 token */
+  /** 清除登录态：Pinia 状态 + token / userInfo 缓存 */
   function logout() {
     token.value = ''
     userInfo.value = null

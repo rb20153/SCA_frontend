@@ -4,8 +4,16 @@
       <a-form layout="vertical" class="project-basic-form">
         <a-row :gutter="24">
           <a-col :xs="24" :md="12">
-            <a-form-item label="项目名称">
-              <a-input :value="project.projectName" disabled />
+            <a-form-item label="项目名称" :required="projectNameEditable">
+              <a-input
+                v-model:value="form.projectName"
+                :disabled="!projectNameEditable"
+                placeholder="请输入项目名称"
+                allow-clear
+              />
+              <p v-if="!projectNameEditable" class="project-basic-hint">
+                已有 {{ project.taskCount }} 个关联任务，项目名称不可修改
+              </p>
             </a-form-item>
           </a-col>
           <a-col :xs="24" :md="12">
@@ -64,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { updateProjectBasicInfo } from '@/api/project'
 import { searchUsers } from '@/api/user'
@@ -90,11 +98,15 @@ const selectedOwner = ref<UserSearchCandidate | null>(null)
 const ownerSearchRef = ref<InstanceType<typeof UserSearchInput> | null>(null)
 const departmentSelectRef = ref<InstanceType<typeof AsyncOptionsSelect> | null>(null)
 
-const form = reactive<Omit<UpdateProjectBasicInfoParams, 'ownerUserId'>>({
+const form = reactive({
+  projectName: '',
   description: '',
   departmentId: '',
-  status: 'in_progress',
+  status: 'in_progress' as UpdateProjectBasicInfoParams['status'],
 })
+
+/** 仅当项目没有关联任务时允许改名，避免历史任务与项目名不一致 */
+const projectNameEditable = computed(() => (props.project.taskCount ?? 0) === 0)
 
 /** 搜索负责人（不限项目成员） */
 async function searchOwnerUsers(keyword: string) {
@@ -102,18 +114,70 @@ async function searchOwnerUsers(keyword: string) {
   return res.data
 }
 
-/** 将项目数据同步到表单与负责人输入框 */
-function syncFormFromProject() {
-  form.description = props.project.description
-  form.departmentId = props.project.departmentId
-  form.status = props.project.status
-  selectedOwner.value = null
-  ownerSearchRef.value?.setDisplayName(props.project.owner)
+/** 判断部门 ID 是否被后端误写成 projectId */
+function isInvalidDepartmentId(deptId: string): boolean {
+  const trimmed = deptId.trim()
+  if (!trimmed) return true
+  if (trimmed === props.project.projectId) return true
+  return trimmed.startsWith('proj-')
 }
 
-/** 预加载部门下拉，保证当前部门名称正确展示 */
-async function prefetchDepartmentOptions() {
-  await departmentSelectRef.value?.prefetchOptions()
+/** 用项目数据回填部门下拉（seedOption 展示名称，避免显示 proj-xxx） */
+async function applyDepartmentFromProject() {
+  const deptName = (props.project.department ?? '').trim()
+  let deptId = (props.project.departmentId ?? '').trim()
+  if (isInvalidDepartmentId(deptId)) {
+    deptId = ''
+  }
+
+  departmentSelectRef.value?.resetOptions()
+
+  if (deptId) {
+    departmentSelectRef.value?.seedOption({
+      value: deptId,
+      label: deptName || deptId,
+    })
+    form.departmentId = deptId
+    return
+  }
+
+  if (deptName) {
+    const options = await departmentSelectRef.value?.prefetchOptions()
+    const matched = options?.find((item) => item.label === deptName)
+    if (matched) {
+      form.departmentId = matched.value
+      return
+    }
+    departmentSelectRef.value?.seedOption({ value: deptName, label: deptName })
+    form.departmentId = deptName
+    return
+  }
+
+  form.departmentId = ''
+}
+
+/** 将项目数据同步到表单与负责人/部门控件 */
+async function syncFormFromProject() {
+  form.projectName = props.project.projectName
+  form.description = props.project.description
+  form.status = props.project.status
+
+  const ownerUserId = props.project.ownerUserId?.trim()
+  if (ownerUserId && props.project.owner) {
+    selectedOwner.value = {
+      userId: ownerUserId,
+      realName: props.project.owner,
+      username: '',
+      departmentName: props.project.department,
+      roleName: '',
+    }
+  } else {
+    selectedOwner.value = null
+    ownerSearchRef.value?.setDisplayName(props.project.owner)
+  }
+
+  await nextTick()
+  await applyDepartmentFromProject()
 }
 
 /** 解析提交用的负责人 ID：新选用户优先，未改负责人时保留原 ID */
@@ -130,6 +194,12 @@ function resolveOwnerUserId(): string | undefined {
 
 /** 校验并提交基本信息更新 */
 async function handleSubmit() {
+  const projectName = form.projectName.trim()
+  if (projectNameEditable.value && !projectName) {
+    message.warning('请输入项目名称')
+    return
+  }
+
   const ownerUserId = resolveOwnerUserId()
   if (!ownerUserId) {
     message.warning('请从列表中选择负责人')
@@ -140,16 +210,35 @@ async function handleSubmit() {
     return
   }
 
+  // 后端按名称存储负责人/部门，提交后用本地提交值回填，避免响应缺字段导致显示回退
+  const ownerName = selectedOwner.value?.realName ?? props.project.owner
+  const submittedDepartmentId = form.departmentId
+  const submittedDepartmentName =
+    departmentSelectRef.value?.getSelectedLabel()?.trim() || props.project.department
+
   submitting.value = true
   try {
     const res = await updateProjectBasicInfo(props.project.projectId, {
+      projectName: projectNameEditable.value ? projectName : undefined,
       description: form.description.trim(),
+      owner: ownerName,
       ownerUserId,
-      departmentId: form.departmentId,
+      department: submittedDepartmentName,
+      departmentId: submittedDepartmentId,
       status: form.status,
     })
     message.success('基本信息已更新')
-    emit('updated', res.data)
+    // 响应字段缺失时用提交值兜底；status 以响应为准，便于暴露后端未持久化的情况
+    emit('updated', {
+      ...res.data,
+      projectName: res.data.projectName || projectName || props.project.projectName,
+      description: res.data.description || form.description.trim(),
+      owner: res.data.owner || ownerName,
+      departmentId: isInvalidDepartmentId(res.data.departmentId)
+        ? submittedDepartmentId
+        : res.data.departmentId,
+      department: res.data.department || submittedDepartmentName,
+    })
   } finally {
     submitting.value = false
   }
@@ -157,21 +246,19 @@ async function handleSubmit() {
 
 /** 取消修改，恢复为当前项目数据 */
 function handleCancel() {
-  syncFormFromProject()
+  void syncFormFromProject()
 }
 
 watch(
   () => props.project,
   () => {
-    syncFormFromProject()
-    void prefetchDepartmentOptions()
+    void syncFormFromProject()
   },
   { deep: true },
 )
 
 onMounted(() => {
-  syncFormFromProject()
-  void prefetchDepartmentOptions()
+  void syncFormFromProject()
 })
 </script>
 
@@ -194,5 +281,11 @@ onMounted(() => {
 
 .project-basic-select {
   width: 100%;
+}
+
+.project-basic-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
 }
 </style>

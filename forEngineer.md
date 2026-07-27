@@ -5,6 +5,438 @@
 
 ---
 
+---
+
+## [2026-07-27] 漏洞库版本下拉空白 + 后端 type 取值 combined
+
+### 漏洞库版本下拉「No data」
+
+后端 `GET /api/detect/tasks/risk/vuln-db-versions` 返回的 `version` 和 `label` **都是空串**，能用的值在 `id` / `name` 里：
+
+```json
+{ "id": "nvd-2026.06", "name": "NVD 2026.06", "status": "ready", "version": "", "label": "" }
+```
+
+原来的适配用 `item.version ?? item.value ?? ''`，`??` 只挡 `null`/`undefined`，空串照样通过，然后被「version 为空就丢弃」的过滤全部剔掉，所以下拉是空的。**不是请求时机问题**（弹窗打开时拉取是对的）。
+
+改动：`detectAdapter.ts` 增加 `firstNonEmpty()`，漏洞库版本按 `version → value → id` 取第一个非空值，label 按 `label → name → version`；项目下拉同样处理。现在会渲染成 `NVD 2026.06` / `离线漏洞知识库`，提交给后端的 `vulnDbVersion` 是 `nvd-2026.06` 这种 id。
+
+> 如果后端期望收到的是别的值（比如真正的版本号 `2026.06`），需要让后端把 `version` 字段填上，前端会自动优先用它。
+
+### 任务列表 type 返回 `combined`
+
+后端任务对象没有 `taskType`，只有 `type`，且出现了 openapi 里没定义的取值 `combined`（自主率+风险一起跑）。前端处理：识别不出的类型按当前列表页的类型兜底，所以 `combined` 任务在自主率页和开源风险页都会出现；只有明确是另一类（如 `type: "autonomy"`）的行才会在风险页被过滤掉。
+
+其他字段差异（已在适配层兼容）：`name`（无 `taskName`）、`status: "completed"`、`scanMode: "full"`、分页体同时有 `records` 和 `list`。
+
+---
+
+## [2026-07-27] 开源风险列表混入自主率任务的兜底处理
+
+### 原因
+
+后端 `GET /api/detect/tasks` 目前对 `taskType` 查询条件不可靠：要么忽略该条件把自主率任务一起返回，要么任务对象里干脆不带 `taskType`。而前端原来的 `normalizeDetectTask` 在拿不到类型时**固定回退成 `autonomy`**，于是 `/detect/risk` 页面出现两个症状：
+
+- 「来源」列全部显示成自主率的扫描模式（全量扫描等）
+- 点「查看结果」跳到自主率结果页，而不是开源风险详情页
+
+后端只有 `GET /api/detect/tasks` 这一个列表接口（`openapi.yaml` 里没有 `/api/detect/risk/tasks`），两个列表页靠 `taskType` 区分，所以修在前端。
+
+### 改动
+
+- `detectAdapter.normalizeDetectTask(raw, fallbackTaskType)`：明确识别 `autonomy` / `open-source-risk`（含 `risk`、`opensource` 别名），识别不出来时用调用方传的类型兜底，而不是一律当自主率
+- `detectAdapter.normalizeDetectTaskPage(raw, expectedTaskType)`：传了期望类型时，剔除类型对不上的行，`total` 按本页剔除数量同步减掉
+- `api/detect.ts` → `getTaskList()`：把 `params.taskType` 传给上面两个函数
+
+后端把 `taskType` 过滤修好后，这个过滤自然就不会命中任何行，不需要回头删代码。
+
+### 注意
+
+- 只对 `taskType` 做了这种保护，**状态筛选没做**：类型是页面级不变量（错了会导致跳错结果页），而状态是用户主动选的条件，过滤掉反而会掩盖后端问题。后端状态筛选的异常已记在 `problem.md` #3
+- 因为 `total` 用的是后端返回值减本页剔除数，后端修好之前分页总数可能偏大，翻到后面可能出现空页
+
+---
+
+## [2026-07-27] 自主率检测页 API 联调（检测任务 9 接口）
+
+### 改了什么
+
+`src/api/detect.ts` 中检测任务相关函数全部切 `request.*`，mock import 已移除：
+
+| 函数 | 接口 | 说明 |
+|---|---|---|
+| `getTaskList` | `GET /api/detect/tasks` | 自主率/开源风险列表共用，空筛选值不下发 |
+| `getTaskDetail` | `GET /api/detect/tasks/:taskId` | 详情兜底 + 动作回查 |
+| `getDetectTaskProjectOptions` | `GET /api/detect/tasks/project-options` | 创建弹窗关联项目下拉 |
+| `getRiskDetectVulnDbVersions` | `GET /api/detect/tasks/risk/vuln-db-versions` | 风险创建弹窗漏洞库版本 |
+| `createDetectTask` | `POST /api/detect/tasks` | **multipart**（openapi 只定义了 multipart） |
+| `updateDetectTask` | `PUT /api/detect/tasks/:taskId` | 编辑弹窗 |
+| `deleteTask` | `DELETE /api/detect/tasks/:taskId` | body 带 `{ taskId }` |
+| `pauseTask` / `resumeTask` | `POST .../pause`·`/resume` | body 带 `{ taskId }` |
+| `terminateTask` | `POST .../terminate` | body 带 `{ reason }` |
+
+新增 `src/utils/detectAdapter.ts`：任务字段规范化（`completed→success`、`scanMode/dataSource→sourceMode`、`id/name` 别名、耗时由 createdAt/updatedAt 兜底）、分页规范化、项目/漏洞库下拉规范化、query 空值剔除。原 `dashboardAdapter.normalizeRecentDetectTask` 迁到这里，`dashboardAdapter` / `projectAdapter` 改为复用，避免三处各写一份映射。
+
+`buildCreateDetectTaskFormData` 从「只支持 import-sbom」扩展为自主率 + 开源风险统一构建，`isImportSbomDetectTask` 随之删除。
+
+### 怎么验证
+
+1. `/detect/autonomy` 列表加载、任务名称/项目/状态筛选、翻页
+2. 创建任务三步向导：项目下拉应来自后端；提交后列表回到第 1 页刷新
+3. 行内操作：编辑 / 暂停 / 继续 / 终止（填原因）/ 删除
+4. `/detect/risk` 列表与创建同样已切真实接口（共用一套接口）
+
+### 注意
+
+- **multipart 必须显式带 `Content-Type: multipart/form-data`**：`request.ts` 默认头是 `application/json`，axios 会把 FormData 序列化成 JSON，所以 `createDetectTask` 用 `MULTIPART_CONFIG` 覆盖。`project.ts` 的两个上传函数暂未加，联调上传时若报错先补这个头
+- 自主率创建向导额外传了 `executionMode` / `workerCount` / `autoRetryEnabled` / `retryCount`，openapi 未定义这几个字段，后端若忽略属预期；需要落库要让后端补
+- 暂停/继续/终止的响应体后端可能只回片段（openapi 里 terminate 的 data 写的是 `{ reason }`），api 层用 `resolveTaskActionResult` 判断：没带 `taskId` 就回查一次详情，保证列表行状态能刷新
+- 检测结果页、开源风险详情页等仍是 mock，但已去掉「任务不存在」的 `findMockTask` 校验——列表现在返回真实 taskId，再校验会整页报错；mock 生成器本身按 taskId 派生数据，任意 ID 都能出数
+- 列表运行中任务目前没有轮询，进度要手动刷新
+
+---
+
+## [2026-07-27] 项目详情 API 联调启动 + 列表 5 接口标已对接
+
+### 列表页（已对接）
+
+- `getProjectList` / `updateProject` / `deleteProject` / `getPolicySelectOptions` / `searchUsers` → **已对接**
+
+### 详情页（联调中）
+
+`project.ts` 以下函数已切真实 API，mock import 已移除：
+
+| 函数 | 接口 |
+|---|---|
+| `getProjectDetail` | `GET /api/projects/:id` |
+| `updateProjectBasicInfo` | `PUT /api/projects/:id/basic-info` |
+| `getProjectRelatedTasks` | `GET /api/projects/:id/tasks` |
+| `getProjectMemberList` 等成员 5 个 | `/members` / `/member-candidates` / `/transfer-owner` |
+| 交付物 5 个 | `/deliverables` 及 upload/download |
+| 策略绑定 2 个 | `/policy-binding` |
+
+适配层：`projectAdapter` 新增 member/deliverable/policy/task 规范化；策略绑定复用 `policyAdapter` 字段映射。
+
+### 怎么验证
+
+1. 列表页：查询/编辑/删除/策略下拉/搜用户（应已正常）
+2. 点进项目详情 → 刷新 URL 应能 `getProjectDetail` 兜底
+3. 逐 Tab：基本信息、交付物、策略、成员、关联任务
+
+### 注意
+
+- `basic-info` 提交 status 用**英文枚举**（详情接口返回的也是英文，中文仅用于列表 query）
+- `basic-info` 同时提交 `owner` / `department` **名称** + ID：后端 `ownerUserId` 实际存的是用户名、`departmentId` 被写成 projectId，只传 ID 不会持久化
+- 详情页项目名称：`taskCount === 0` 时可编辑，有关联任务时只读并提示
+- 关联任务二次校验去掉 `projectName` 比对（后端任务项不返回该字段，否则整列表被过滤为空）
+- 部门下拉 `getEnabledDepartmentOptions` 此前已切真实 API（与列表页共用）
+- 更新基本信息后过滤后端误写的 `departmentId=projectId`；策略 Tab 空状态居中，policy-binding 空时从项目详情 `policy` 兜底
+- 需要后端修的问题记在**仓库上层目录 `problem.md`**（目前 2 条：basic-info 改状态/负责人/部门不落库、新建项目选的策略未落库），含对应的前端兼容代码位置，后端修完可按表移除兼容逻辑
+- `problem.md` 只在**我明确要求时**才追加条目（规则见 `.cursor/skills/record-problem/SKILL.md`）；其余联调中发现的后端异常（成功码 0/200 混用、分页字段重复、dashboard 字段名不符等）只在本文件「注意」里留痕 + 前端做兼容
+
+---
+
+## [2026-07-27] 编辑项目弹窗负责人/部门回填
+
+### 原因
+
+- 部门回填错误地走了 `prefetchOptions()`（调部门接口按 label 匹配），而编辑应**直接用列表行数据**
+- `destroy-on-close` 下 `departmentSelectRef` 未挂载时 `seedOption` 被跳过
+- 后端可能只返回 `department` / `departmentName`，无 `departmentId`
+
+### 改动
+
+- `ProjectList` 直接把列表行 `Project` 对象传给 `ProjectFormModal`
+- `applyDepartmentFromList`：`seedOption({ value, label })` 来自列表，不请求接口
+- `waitForSelectorRefs` 等待下拉组件挂载后再 seed
+- `projectAdapter.readProjectDepartmentFields` 兼容 `departmentName` / `deptId` / 嵌套对象
+
+### 验证
+
+列表点「编辑」→ 所属部门应显示与列表一致的部门名称（即使未展开下拉）。
+
+---
+
+## [2026-07-27] 策略默认参数字段映射修复
+
+### 原因
+
+`GET /api/policies/:id/detect-params` 返回字段与前端表单不一致，导致「排除目录」「最小匹配长度」不回填：
+
+| 后端实际 | 前端表单 |
+|---|---|
+| `excludeDirs` | `excludeDirectories` |
+| `minMatchLines` | `minMatchLength` |
+| `similarityThreshold: 0.85` | 0–100 整数（85） |
+
+### 改动
+
+`policyAdapter.ts` 的 `normalizePolicyDetectParams` 增加别名解析与相似度 0–1→0–100 换算。
+
+### 验证
+
+新建项目选策略 → 排除目录应出现 `node_modules` 等，最小匹配长度应为 10，相似度应为 85。
+
+---
+
+## [2026-07-27] 项目列表 6 接口联调
+
+### 改了什么
+
+- `src/api/project.ts`：`getProjectList` / `createProject` / `updateProject` / `deleteProject` 切 `request.*`（详情/成员等仍 mock）
+- `src/api/policy.ts`：`getPolicySelectOptions` 切真实 API
+- `src/api/user.ts`：`searchUsers` 切真实 API
+- 新增适配层：`pageResultAdapter` / `projectAdapter` / `policyAdapter` / `userAdapter`
+
+### 怎么验证
+
+1. `/projects` 列表加载、筛选、分页
+2. 新增项目三步向导（策略下拉、负责人搜索）
+3. 编辑项目、删除项目（输入名称确认）
+
+### 注意
+
+- 删除项目 DELETE 带 body `{ projectId }`（与 openapi 一致）
+- 创建项目若含文件类交付物，需确认后端是否接受 JSON 或需 multipart
+- 项目详情页仍 mock，从列表点进详情刷新可能数据不一致
+
+---
+
+## [2026-07-27] 首页 dashboard 后端字段适配
+
+### 原因
+
+后端返回结构与前端 mock/openapi 不一致，导致图表空白、任务列显示「—」：
+
+| 接口 | 后端实际 | 前端期望 |
+|---|---|---|
+| autonomy-trend | `points` 为**单个对象**（含 overallRate） | `points` 为 `{ date, avgRate }[]` |
+| vulnerability-distribution | items 含 `name/value` | `level/count` 数组 |
+| recent-tasks | `status: completed`、`scanMode: full` | `status: success`、`sourceMode: full-scan` |
+
+### 改动
+
+- 新增 `src/utils/dashboardAdapter.ts`，在 `dashboard.ts` 各函数返回前做 normalize
+- 趋势：对象转单点数组，空 date 补当天，avgRate 取 overallRate 等字段
+- 漏洞：兼容 HIGH/high、value/count，补齐三档
+- 任务：`completed`→`success`，`scanMode`→`sourceMode`，elapsed 可由 updatedAt-createdAt 推算
+
+### 注意
+
+- 若趋势图只有 1 个点，是后端尚未返回 30 天序列，需后端补全 points 数组
+- 耗时仍为「—」时，检查后端 `elapsedMs` 或 createdAt/updatedAt 是否合理
+
+---
+
+## [2026-07-27] /me 刷新姓名对齐 + 首页 dashboard 联调
+
+### 改了什么
+
+- **`src/utils/authUser.ts`**（新）：`normalizeMeUser` 剥离 JWT 字段，优先 `displayName` 作 `realName`；`mergeUserInfoWithCache` 在 /me 把 realName 填成 username 时用登录缓存兜底
+- **`src/api/auth.ts`**：`getCurrentUser` 返回前走 `normalizeMeUser`
+- **`src/stores/auth.ts`**：`setUserInfo` 规范化并写入 storage；`fetchUserInfo` 合并缓存
+- **`src/utils/tokenStorage.ts`**：新增 `sca_user_info` 与 token 同介质缓存
+- **`src/api/dashboard.ts`**：4 个函数切 `request.get`（overview / recent-tasks / autonomy-trend / vulnerability-distribution）
+
+### 怎么验证
+
+1. admin 登录 → 顶栏应显示 **Contract User**
+2. F5 刷新 → 仍显示 **Contract User**（不再变成 admin）
+3. 进 `/dashboard` → 4 张统计卡、趋势图、环图、最近任务应拉真实数据（需已登录）
+
+---
+
+## [2026-07-27] auth 联调实测（admin 账号）
+
+### 实测结果（`http://8.130.55.127/api`）
+
+| 接口 | code | 结论 |
+|---|---|---|
+| `POST /auth/login` | **0** | 通过，返回 `data.token` + `data.userInfo` |
+| `GET /auth/me` | **0** | 通过，Bearer token 可恢复用户信息 |
+| `GET /auth/check-username` | **200** | 仍用旧码，拦截器已通过 `isApiSuccessCode` 临时兼容 |
+
+### 注意事项
+
+- 登录页用 `admin` / 上述密码应能正常进 dashboard；刷新后顶栏用户信息由 `/auth/me` 恢复
+- 请后端把 `check-username` 也改成 `code:0`，改完后可删 `API_LEGACY_SUCCESS_CODE` 兼容
+
+---
+
+## [2026-07-27] 拦截器对齐后端业务码：成功 code=0
+
+### 改了什么
+
+- `src/types/common.ts`：新增 `API_SUCCESS_CODE = 0`
+- `src/utils/request.ts`：成功判定由 `code === 200` 改为 `code === 0`；HTTP 2xx 但 `code !== 0` 全局弹错并 reject；HTTP 401 或 body `code === 401` 统一走未授权处理（登录页只提示，其他页清 token 跳登录）
+- `.cursor/rules/api-layer.mdc`：文档示例同步为 `code: 0`
+
+### 为什么这么做
+
+后端约定成功业务码为 `0`，失败可能是 `401` 等（有时 HTTP 状态也是 401，如登录密码错误）。
+
+### 注意事项
+
+- **mock 数据仍是 `code: 200`**：mock 走 `Promise.resolve`，不经过 axios 拦截器，未改动的模块不受影响
+- 已切真实接口的 auth 等模块，后端必须返回 `code: 0` 才算成功；若个别接口仍返回 `200`，会被拦截器当失败处理，需后端统一
+- curl 实测 `check-username` 曾返回 `code: 200`，若联调仍报错请让后端确认是否已全部切到 `0`
+
+---
+
+## [2026-07-27] 联调启动：接入真实后端（auth 4 接口先行）
+
+### 改了什么
+
+- `.env.development` / `.env.production`：`VITE_API_BASE_URL` 由 `/api` 改为**空**——api 函数内路径已带 `/api` 前缀，原配置会拼成 `/api/api/xxx`
+- `vite.config.ts`：`/api` 代理目标由 `localhost:8080` 改为后端服务器 `http://8.130.55.127`，浏览器只访问同源 5173，规避 CORS
+- `src/utils/request.ts`：① 导出类型收窄为 `RequestMethods`（get/post/put/delete 直接返回 `Promise<T>`），后续切接口按 TODO 注释原样写 `return request.get(...)` 即可通过 TS 检查；② 401 处理适配：登录页上的 401 是"密码错误"，展示后端 message 且不跳转；其他页面 401 才清 token 跳登录
+- `src/api/auth.ts`：`login` / `getCurrentUser` / `checkUsernameAvailable` / `register` 4 个函数删除 mock import，切换为真实 `request.*` 调用
+
+### 为什么这么做
+
+后端已按 `openapi.yaml` 完成全部接口并部署在 `http://8.130.55.127/api`，联调从 auth 开始（所有接口都依赖 Bearer token）。
+
+### 怎么实现的
+
+- curl 实测验证：`check-username` 返回 `{code:200, message, data:{available, exists}, success, traceId, timestamp}`——比约定多了 `success/traceId/timestamp` 附加字段，拦截器只看 `code`，不受影响
+- 登录失败后端返回 **HTTP 401**（而非 HTTP 200 + 业务码 401），无 token 访问 `/api/auth/me` 同样 HTTP 401，因此拦截器按"是否在登录页"区分两种 401 场景
+
+### 注意事项 / 已知限制
+
+- auth 4 接口状态为「联调中」：代码已切换，**登录页需要真实账号自测通过后**在 `API.md` 改「已对接」
+- `src/mock/modules/auth/users.ts` 暂不能删：`api/user.ts` 与 system 模块 mock 仍引用它
+- 其余 11 个 api 模块仍为 mock，按 API.md 清单分批切换；切换写法与 auth 相同（照抄函数内 TODO 注释）
+- 存量 `vue-tsc` 报错约 879 行（a-table 泛型、form rules 类型等），与本次改动无关，本次新改文件 0 报错
+
+---
+
+## [2026-06-30] API_detail → OpenAPI 3.0.3（Apifox 导入）
+
+### 改了什么
+
+- 新增 `scripts/openapi/` 解析器 + schema 构建器 + `scripts/generate_openapi.py`
+- 从 `API_detail.md` 生成根目录 **`openapi.yaml`**（OpenAPI 3.0.3，166 operations）及 **`openapi_generation_report.md`**
+- 统一 ApiResponse 包装（code/message/data）、bearerAuth、PageResult_*、multipart binary、downloadUrl 响应、nullable null
+
+### 怎么用
+
+```bash
+pip install pyyaml
+python scripts/generate_openapi.py
+```
+
+Apifox：**项目设置 → 导入 → OpenAPI** → 选择仓库根目录 `openapi.yaml`。环境 baseURL 在 Apifox 中配置（servers 默认为 `/`）。
+
+`API_detail.md` 更新后重新运行上述命令即可同步。
+
+### 注意事项
+
+- 免登录 4 条：login / check-username / register / departments/options（见报告 §7）
+- 报告 §3 列出仅靠 JSON 示例推断、无 response 字段表的接口（多为 `data: null` 删除类）
+- 与 `python -m scripts.api_detail.generate` 独立；建议先更新 API_detail 再生成 OpenAPI
+
+---
+
+## [2026-06-30] API_detail 空响应 `{}` 补全与动作返回约定
+
+### 改了什么
+
+- **新建 `scripts/api_detail/response_specs.py`**：为 §6 policy、§7 report、§8 reportTemplate、§9 system、§11 profile 共 45 个接口补全 `response_example` + 完整 `response_table`；§5 knowledge / §10 user 补全字段表
+- **统一动作返回约定**（写入 `common.py` §0）：状态变更→资源对象；纯动作→`null`；导出→`downloadUrl+fileName`；异步→`taskId/parseTaskId/versionId`
+- **Request 修正**：无 query/body 的 GET/DELETE 文档写「无」，不再写 `{}`
+- **`check_api_detail.py` 扩展**：禁止 Response `data: {}`、字段表「见 types/xxx.ts」占位、无参 GET/DELETE 的 `{}` request
+
+### 怎么用
+
+```bash
+python -m scripts.api_detail.generate
+python scripts/check_api_detail.py   # 165 函数 + 契约三态校验
+```
+
+### 注意事项
+
+- 后端按 `frontend/src/types/*.ts` 与 `API_detail.md` 实现即可，本次为文档与生成器补全，未改前端 API 函数签名
+- `query_specs.py` 管 Request/部分 Response；`response_specs.py` 管 Response 示例与字段表，两者均在生成后 merge
+
+---
+
+## [2026-06-30] 字段缺失补全与高中风险契约修复
+
+### 改了什么
+
+- **API_detail 生成器**：补全 §3.8/§4.18/§4.27/§4.28/§4.30/§5.27/§7.5 Response 字段；§4.1 增加 startTime/endTime；§4.4 import-sbom multipart 说明；part1 userId 示例统一为 `user-00x`
+- **query_specs.py**：新增 `5.27`（VulnRiskSummary）、`7.5`（ReportDownloadStatus 含 rejected）；完善 `5.4` tags 语义、`9.9`/`10.10` notes
+- **multipart 联调准备**：新建 `frontend/src/utils/formDataBuilders.ts`；`knowledge`/`policy`/`project`/`detect` 共 8 个 API 函数在 mock 阶段构建 FormData（TODO 注释保留真实 request）
+- **types**：`CreateAiParseTaskParams.packageFile`；`AiParseStartModal` 提交时传入文件
+- **删除死代码**：`getEnabledUserOptions`、`loadEnabledUserSelectOptions`（无页面引用）；`check_api_detail.py` 165 函数 1:1 对齐
+- **中风险 UI**：`ReportList` 增加 `approvalState === 'rejected'` 重新提交分支；`ReportGenerateModal` 仅展示 `published` 模板；`getRecentTasks(limit)` mock 使用 limit；auth mock userId 对齐 `user-002` 系列；`report-004` mock 演示驳回态
+
+### 怎么用
+
+- 联调 multipart：api 层已有 `buildXxxFormData()`，切换真实接口时将 `void formData` 改为 `return request.post(..., formData)`
+- 报告下载驳回演示：列表中 `report-004` 点击下载会走 rejected 分支
+- 重新生成契约：`python -m scripts.api_detail.generate` → `python scripts/check_api_detail.py`
+
+### 注意事项
+
+- mock 阶段仍 `Promise.resolve`，FormData 仅构建不发送
+- 负责人选择已统一用 `searchUsers`，勿再恢复 `getEnabledUserOptions`
+
+---
+
+## [2026-06-30] P0/P1 API 契约对齐（API_detail + 少量前端）
+
+### 改了什么
+
+- **文档生成器**：`scripts/api_detail/part2_detect.py` 对齐 detect §4.1/4.11–4.24/4.29 字段与枚举；新增 `scripts/api_detail/query_specs.py` 集中维护 P1 Query/Body override
+- **知识库/策略/报告/系统**：part3/part4 循环调用 `apply_override()`，补全 §5.1/5.4/5.9 等 P0 响应字段及 §6.1/7.1/9.2/10.1 等筛选 Query
+- **全局约定**：`common.py` 增加 auth.role ↔ RBAC roleCode 映射表；预览用 `url`、下载用 `downloadUrl` 区分说明
+- **前端契约修复**：
+  - `ReportDownloadInfo.url` → `downloadUrl`（types / mock / `ReportDownloadModal.vue`）
+  - `getRecentTasks(limit?)` 签名与 §2.2 文档一致
+  - `resetUserPassword` TODO 注释改为 `{ newPassword }`
+  - auth mock admin `userId`: `user-001`（与 `userList.ts` 一致）
+- 重新生成 **`API_detail.md`**（8702 行，166 条）
+
+### 怎么用
+
+- 后端联调以 **`API_detail.md`** 为准；字段名与 `frontend/src/types/` 一致
+- 改接口契约：优先改 `scripts/api_detail/*.py` 或 `query_specs.py`，再 `python -m scripts.api_detail.generate`
+- 校验：`python scripts/check_api_detail.py`
+
+### 注意事项
+
+- `getEnabledUserOptions` 已删除（无引用；负责人用 `searchUsers`）
+- multipart：api 已通过 `formDataBuilders.ts` 构建 FormData，mock 仍 resolve
+- 报告在线预览 §7.4 仍用 `ReportPreview.url`，与下载 `downloadUrl` 不同
+
+---
+
+## [2026-06-30] 新增 API_detail.md 后端联调详细接口文档
+
+### 改了什么
+
+- 167 条 endpoint（166 函数 + saveReportTemplate 拆 POST/PUT）；不含 `getEnabledUserOptions`（无页面调用）
+- 每条含：页面/场景、path、method、Request、Response、备注（后端）
+- 第 0 章全局约定：`code: 200`、Bearer 鉴权、分页、multipart、downloadUrl
+- 附录接口索引表（Method + Path + api 函数 + 章节号）
+- 生成器源码：`scripts/api_detail/`（`python -m scripts.api_detail.generate` 可重新生成）
+- 校验脚本：`scripts/check_api_detail.py`（核对 166 函数全覆盖）
+
+### 怎么用
+
+- **后端开发**：直接看 `API_detail.md`；联调进度仍看 `API.md`
+- **前端改接口**：改 `src/api/` + types 后，同步更新 `API.md` 与 `API_detail.md`（或改 generator 后重新 generate）
+- 复用接口（如 `getDetectTaskProjectOptions`）在「页面/场景」列合并列举，不重复写多条
+
+### 注意事项
+
+- 成功码沿用现有 **`code: 200`**，与 axios 拦截器一致
+- 部分 knowledge/policy 条目 Response 示例较简，完整字段以 `frontend/src/types/` 为准
+- `getNewReportTemplateEditorDetail` path 为 draft-preview（待定）
+
+---
+
 ## [2026-06-30] 知识库 · 季度更新管理页（列表）
 
 ### 改了什么

@@ -1,4 +1,9 @@
 import type { ApiResponse, PageResult } from '@/types/common'
+import {
+  buildCreateKbProjectFormData,
+  buildImportOfflineVulnPackageFormData,
+  buildUploadKbVersionPackageFormData,
+} from '@/utils/formDataBuilders'
 import type { FileTreeData } from '@/types/fileTree'
 import type {
   KbProject,
@@ -177,7 +182,9 @@ export function createKbProject(
     return Promise.reject(new Error('项目名称不能为空'))
   }
 
-  // TODO: replace with FormData / JSON → request.post('/api/knowledge/projects', ...)
+  const formData = buildCreateKbProjectFormData(params)
+  void formData
+  // TODO: replace with → return request.post('/api/knowledge/projects', formData)
   return Promise.resolve({
     code: 200,
     message: 'ok',
@@ -437,7 +444,9 @@ export function uploadKbVersionPackage(
   kbProjectId: string,
   params: UploadKbVersionPackageParams,
 ): Promise<ApiResponse<UploadKbVersionPackageResult>> {
-  // TODO: replace with FormData → request.post(`/api/knowledge/projects/${kbProjectId}/versions/upload-package`, formData)
+  const formData = buildUploadKbVersionPackageFormData(params)
+  void formData
+  // TODO: replace with → return request.post(`/api/knowledge/projects/${kbProjectId}/versions/upload-package`, formData)
   return Promise.resolve({
     code: 200,
     message: 'ok',
@@ -687,7 +696,9 @@ export function importOfflineVulnPackage(
     return Promise.reject(new Error('请输入来源标签'))
   }
 
-  // TODO: replace with FormData → request.post('/api/knowledge/vulnerabilities/sources/import-offline', formData)
+  const formData = buildImportOfflineVulnPackageFormData(params)
+  void formData
+  // TODO: replace with → return request.post('/api/knowledge/vulnerabilities/sources/import-offline', formData)
   return Promise.resolve({
     code: 200,
     message: 'ok',

@@ -1,4 +1,9 @@
+import request from '@/utils/request'
 import type { ApiResponse, PageParams, PageResult } from '@/types/common'
+import {
+  buildAddProjectSourceDeliverableFormData,
+  buildUploadProjectBinaryDeliverableFormData,
+} from '@/utils/formDataBuilders'
 import type { DetectTask } from '@/types/detect'
 import type {
   AddProjectMemberParams,
@@ -21,81 +26,28 @@ import type {
   UpdateProjectBasicInfoParams,
   UpdateProjectParams,
 } from '@/types/project'
-import { getTaskList } from '@/api/detect'
-import { MOCK_ALL_PROJECTS } from '@/mock/modules/project/projectList'
-import { MOCK_ALL_DEPARTMENTS } from '@/mock/modules/system/departmentList'
-import { findMockEnabledUserByRealName, findMockUserById } from '@/mock/modules/system/userList'
 import {
-  createMockDeliverableDownload,
-  getMockProjectDeliverablePage,
-  mockAppendProjectDeliverablesFromCreate,
-  mockDeleteProjectDeliverable,
-  mockUploadProjectBinaryDeliverable,
-  mockAddProjectSourceDeliverable,
-} from '@/mock/modules/project/projectDeliverables'
-import {
-  getMockProjectMemberPage,
-  mockAddProjectMember,
-  mockInitProjectOwnerMember,
-  mockRemoveProjectMember,
-  mockTransferProjectOwner,
-  searchMockProjectMemberCandidates,
-} from '@/mock/modules/project/projectMembers'
-import { mockSetProjectPolicyBinding, getMockProjectPolicyBinding } from '@/mock/modules/project/projectPolicyBindings'
-
-// TODO: replace with: import request from '@/utils/request'
-
-const DEFAULT_PAGE_SIZE = 10
-
-function parseDateTime(value: string): number {
-  return new Date(value.replace(' ', 'T')).getTime()
-}
-
-/** mock 阶段按筛选条件过滤项目列表 */
-function filterMockProjects(params: ProjectQueryParams): Project[] {
-  let list = [...MOCK_ALL_PROJECTS]
-
-  const projectName = params.projectName?.trim()
-  if (projectName) {
-    list = list.filter((item) => item.projectName.includes(projectName))
-  }
-
-  const owner = params.owner?.trim()
-  if (owner) {
-    list = list.filter((item) => item.owner.includes(owner))
-  }
-
-  if (params.status) {
-    list = list.filter((item) => item.status === params.status)
-  }
-
-  if (params.createdAtStart) {
-    const start = parseDateTime(params.createdAtStart)
-    list = list.filter((item) => new Date(item.createdAt).getTime() >= start)
-  }
-
-  if (params.createdAtEnd) {
-    const end = parseDateTime(params.createdAtEnd)
-    list = list.filter((item) => new Date(item.createdAt).getTime() <= end)
-  }
-
-  return list.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )
-}
+  normalizeProject,
+  normalizeProjectDeliverableDownload,
+  normalizeProjectDeliverablePage,
+  normalizeProjectMember,
+  normalizeProjectMemberCandidateList,
+  normalizeProjectMemberList,
+  normalizeProjectMemberPage,
+  normalizeProjectPage,
+  normalizeProjectPolicyBinding,
+  normalizeProjectRelatedTaskPage,
+  projectBasicInfoParamsToApi,
+  projectQueryParamsToApi,
+} from '@/utils/projectAdapter'
 
 /**
  * 获取项目详情
  * @param projectId - 项目 ID
  */
-export function getProjectDetail(projectId: string): Promise<ApiResponse<Project>> {
-  const project = MOCK_ALL_PROJECTS.find((item) => item.projectId === projectId)
-  if (!project) {
-    return Promise.reject(new Error('项目不存在'))
-  }
-
-  // TODO: replace with → return request.get(`/api/projects/${projectId}`)
-  return Promise.resolve({ code: 200, message: 'ok', data: project })
+export async function getProjectDetail(projectId: string): Promise<ApiResponse<Project>> {
+  const res = await request.get<ApiResponse<unknown>>(`/api/projects/${projectId}`)
+  return { ...res, data: normalizeProject(res.data as Record<string, unknown>) }
 }
 
 /**
@@ -103,31 +55,28 @@ export function getProjectDetail(projectId: string): Promise<ApiResponse<Project
  * @param projectId - 项目 ID
  * @param params - 分页参数
  */
-export function getProjectRelatedTasks(
+export async function getProjectRelatedTasks(
   projectId: string,
   params: PageParams,
 ): Promise<ApiResponse<PageResult<DetectTask>>> {
-  // TODO: replace with → return request.get(`/api/projects/${projectId}/tasks`, { params })
-  return getTaskList({
-    page: params.page,
-    pageSize: params.pageSize,
-    projectId,
+  const res = await request.get<ApiResponse<unknown>>(`/api/projects/${projectId}/tasks`, {
+    params,
   })
+  return { ...res, data: normalizeProjectRelatedTaskPage(res.data) }
 }
 
 /**
  * 获取项目成员列表（分页）
  * @param params - 项目 ID 与分页参数
  */
-export function getProjectMemberList(
+export async function getProjectMemberList(
   params: ProjectMemberQueryParams,
 ): Promise<ApiResponse<PageResult<ProjectMember>>> {
-  // TODO: replace with → return request.get(`/api/projects/${params.projectId}/members`, { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockProjectMemberPage(params),
+  const { projectId, ...query } = params
+  const res = await request.get<ApiResponse<unknown>>(`/api/projects/${projectId}/members`, {
+    params: query,
   })
+  return { ...res, data: normalizeProjectMemberPage(res.data) }
 }
 
 /**
@@ -135,16 +84,15 @@ export function getProjectMemberList(
  * @param projectId - 项目 ID
  * @param keyword - 姓名或用户名关键词
  */
-export function searchProjectMemberCandidates(
+export async function searchProjectMemberCandidates(
   projectId: string,
   keyword: string,
 ): Promise<ApiResponse<ProjectMemberCandidate[]>> {
-  // TODO: replace with → return request.get(`/api/projects/${projectId}/member-candidates`, { params: { keyword } })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: searchMockProjectMemberCandidates(projectId, keyword),
-  })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/projects/${projectId}/member-candidates`,
+    { params: { keyword } },
+  )
+  return { ...res, data: normalizeProjectMemberCandidateList(res.data) }
 }
 
 /**
@@ -152,16 +100,14 @@ export function searchProjectMemberCandidates(
  * @param projectId - 项目 ID
  * @param data - 要添加的用户 ID
  */
-export function addProjectMember(
+export async function addProjectMember(
   projectId: string,
   data: AddProjectMemberParams,
 ): Promise<ApiResponse<ProjectMember>> {
-  try {
-    const member = mockAddProjectMember(projectId, data.userId)
-    // TODO: replace with → return request.post(`/api/projects/${projectId}/members`, data)
-    return Promise.resolve({ code: 200, message: 'ok', data: member })
-  } catch (error) {
-    return Promise.reject(error instanceof Error ? error : new Error('添加失败'))
+  const res = await request.post<ApiResponse<unknown>>(`/api/projects/${projectId}/members`, data)
+  return {
+    ...res,
+    data: normalizeProjectMember(res.data as Record<string, unknown>),
   }
 }
 
@@ -170,17 +116,15 @@ export function addProjectMember(
  * @param projectId - 项目 ID
  * @param data - 新负责人用户 ID
  */
-export function transferProjectOwner(
+export async function transferProjectOwner(
   projectId: string,
   data: TransferProjectOwnerParams,
 ): Promise<ApiResponse<ProjectMember[]>> {
-  try {
-    const list = mockTransferProjectOwner(projectId, data.userId)
-    // TODO: replace with → return request.post(`/api/projects/${projectId}/transfer-owner`, data)
-    return Promise.resolve({ code: 200, message: 'ok', data: list })
-  } catch (error) {
-    return Promise.reject(error instanceof Error ? error : new Error('更换失败'))
-  }
+  const res = await request.post<ApiResponse<unknown>>(
+    `/api/projects/${projectId}/transfer-owner`,
+    data,
+  )
+  return { ...res, data: normalizeProjectMemberList(res.data) }
 }
 
 /**
@@ -192,28 +136,22 @@ export function removeProjectMember(
   projectId: string,
   userId: string,
 ): Promise<ApiResponse<null>> {
-  try {
-    mockRemoveProjectMember(projectId, userId)
-    // TODO: replace with → return request.delete(`/api/projects/${projectId}/members/${userId}`)
-    return Promise.resolve({ code: 200, message: 'ok', data: null })
-  } catch (error) {
-    return Promise.reject(error instanceof Error ? error : new Error('移除失败'))
-  }
+  return request.delete(`/api/projects/${projectId}/members/${userId}`)
 }
 
 /**
  * 获取项目交付物列表（分页）
  * @param params - 项目 ID 与分页参数
  */
-export function getProjectDeliverableList(
+export async function getProjectDeliverableList(
   params: ProjectDeliverableQueryParams,
 ): Promise<ApiResponse<PageResult<ProjectDeliverable>>> {
-  // TODO: replace with → return request.get(`/api/projects/${params.projectId}/deliverables`, { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockProjectDeliverablePage(params),
-  })
+  const { projectId, ...query } = params
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/projects/${projectId}/deliverables`,
+    { params: query },
+  )
+  return { ...res, data: normalizeProjectDeliverablePage(res.data) }
 }
 
 /**
@@ -221,17 +159,14 @@ export function getProjectDeliverableList(
  * @param projectId - 项目 ID
  * @param deliverableId - 交付物 ID
  */
-export function getProjectDeliverableDownload(
+export async function getProjectDeliverableDownload(
   projectId: string,
   deliverableId: string,
 ): Promise<ApiResponse<ProjectDeliverableDownloadResult>> {
-  try {
-    const data = createMockDeliverableDownload(projectId, deliverableId)
-    // TODO: replace with → return request.post(`/api/projects/${projectId}/deliverables/${deliverableId}/download`)
-    return Promise.resolve({ code: 200, message: 'ok', data })
-  } catch (error) {
-    return Promise.reject(error instanceof Error ? error : new Error('下载失败'))
-  }
+  const res = await request.post<ApiResponse<unknown>>(
+    `/api/projects/${projectId}/deliverables/${deliverableId}/download`,
+  )
+  return { ...res, data: normalizeProjectDeliverableDownload(res.data) }
 }
 
 /**
@@ -243,13 +178,7 @@ export function deleteProjectDeliverable(
   projectId: string,
   deliverableId: string,
 ): Promise<ApiResponse<null>> {
-  try {
-    mockDeleteProjectDeliverable(projectId, deliverableId)
-    // TODO: replace with → return request.delete(`/api/projects/${projectId}/deliverables/${deliverableId}`)
-    return Promise.resolve({ code: 200, message: 'ok', data: null })
-  } catch (error) {
-    return Promise.reject(error instanceof Error ? error : new Error('删除失败'))
-  }
+  return request.delete(`/api/projects/${projectId}/deliverables/${deliverableId}`)
 }
 
 /**
@@ -257,16 +186,12 @@ export function deleteProjectDeliverable(
  * @param projectId - 项目 ID
  * @param params - 二进制文件
  */
-export function uploadProjectBinaryDeliverable(
+export async function uploadProjectBinaryDeliverable(
   projectId: string,
   params: UploadProjectBinaryDeliverableParams,
 ): Promise<ApiResponse<UploadProjectBinaryDeliverableResult>> {
-  // TODO: replace with FormData → request.post(`/api/projects/${projectId}/deliverables/upload-binary`, formData)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: mockUploadProjectBinaryDeliverable(projectId, params.file),
-  })
+  const formData = buildUploadProjectBinaryDeliverableFormData(params)
+  return request.post(`/api/projects/${projectId}/deliverables/upload-binary`, formData)
 }
 
 /**
@@ -274,137 +199,49 @@ export function uploadProjectBinaryDeliverable(
  * @param projectId - 项目 ID
  * @param params - 来源方式、凭据或压缩包、扫描路径前缀
  */
-export function addProjectSourceDeliverable(
+export async function addProjectSourceDeliverable(
   projectId: string,
   params: AddProjectSourceDeliverableParams,
 ): Promise<ApiResponse<AddProjectSourceDeliverableResult>> {
-  // TODO: replace with FormData / JSON → request.post(`/api/projects/${projectId}/deliverables/add-source`, ...)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: mockAddProjectSourceDeliverable(projectId, params),
-  })
+  const formData = buildAddProjectSourceDeliverableFormData(params)
+  return request.post(`/api/projects/${projectId}/deliverables/add-source`, formData)
 }
 
 /**
  * 获取项目列表（分页 + 筛选）
  * @param params - 分页与筛选参数
  */
-export function getProjectList(
+export async function getProjectList(
   params: ProjectQueryParams,
 ): Promise<ApiResponse<PageResult<Project>>> {
-  const page = params.page ?? 1
-  const pageSize = params.pageSize ?? DEFAULT_PAGE_SIZE
-
-  const sorted = filterMockProjects(params)
-  const start = (page - 1) * pageSize
-  const list = sorted.slice(start, start + pageSize)
-
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: {
-      list,
-      total: sorted.length,
-      page,
-      pageSize,
-    },
+  const res = await request.get<ApiResponse<unknown>>('/api/projects', {
+    params: projectQueryParamsToApi(params),
   })
+  return { ...res, data: normalizeProjectPage(res.data) }
 }
 
 /**
  * 创建项目（向导：基本信息 + 策略绑定 + 交付物）
  * @param data - 完整创建参数
  */
-export function createProject(data: CreateProjectWizardParams): Promise<ApiResponse<Project>> {
-  const projectName = data.projectName.trim()
-  const owner = data.owner.trim()
-
-  if (!projectName) {
-    return Promise.reject(new Error('项目名称不能为空'))
-  }
-  if (!owner || !data.ownerUserId) {
-    return Promise.reject(new Error('负责人不能为空'))
-  }
-  if (!data.policy.policyId) {
-    return Promise.reject(new Error('请选择检测策略'))
-  }
-
-  const ownerUser = findMockUserById(data.ownerUserId)
-  if (!ownerUser || ownerUser.status !== 'enabled') {
-    return Promise.reject(new Error('请选择有效的负责人'))
-  }
-
-  const department = MOCK_ALL_DEPARTMENTS.find((item) => item.departmentId === data.departmentId)
-  if (!department || department.status !== 'enabled') {
-    return Promise.reject(new Error('请选择有效的所属部门'))
-  }
-
-  const project: Project = {
-    projectId: `proj-${String(MOCK_ALL_PROJECTS.length + 1).padStart(3, '0')}`,
-    projectName,
-    description: data.description.trim(),
-    owner: ownerUser.realName,
-    ownerUserId: ownerUser.userId,
-    department: department.departmentName,
-    departmentId: department.departmentId,
-    status: 'in_progress',
-    taskCount: 0,
-    lastScanAt: null,
-    createdAt: new Date().toISOString(),
-  }
-
-  MOCK_ALL_PROJECTS.unshift(project)
-  mockSetProjectPolicyBinding(project.projectId, data.policy)
-  mockInitProjectOwnerMember(project.projectId, ownerUser.userId)
-  mockAppendProjectDeliverablesFromCreate(project.projectId, ownerUser.realName, data.deliverables)
-
-  // TODO: replace with → return request.post('/api/projects', data)
-  return Promise.resolve({ code: 200, message: 'ok', data: project })
+export async function createProject(
+  data: CreateProjectWizardParams,
+): Promise<ApiResponse<Project>> {
+  const res = await request.post<ApiResponse<unknown>>('/api/projects', data)
+  return { ...res, data: normalizeProject(res.data as Record<string, unknown>) }
 }
 
 /**
- * 更新项目基本信息
+ * 更新项目基本信息（列表编辑弹窗）
  * @param projectId - 项目 ID
  * @param data - 可编辑字段
  */
-export function updateProject(
+export async function updateProject(
   projectId: string,
   data: UpdateProjectParams,
 ): Promise<ApiResponse<Project>> {
-  const index = MOCK_ALL_PROJECTS.findIndex((item) => item.projectId === projectId)
-  if (index < 0) {
-    return Promise.reject(new Error('项目不存在'))
-  }
-
-  const projectName = data.projectName.trim()
-  const owner = data.owner.trim()
-
-  if (!projectName) {
-    return Promise.reject(new Error('项目名称不能为空'))
-  }
-  if (!owner) {
-    return Promise.reject(new Error('负责人不能为空'))
-  }
-
-  const departmentName = data.department.trim()
-  const ownerUser = findMockEnabledUserByRealName(owner)
-  const department = MOCK_ALL_DEPARTMENTS.find((item) => item.departmentName === departmentName)
-
-  const updated: Project = {
-    ...MOCK_ALL_PROJECTS[index],
-    projectName,
-    description: data.description.trim(),
-    owner,
-    ownerUserId: ownerUser?.userId ?? MOCK_ALL_PROJECTS[index].ownerUserId,
-    department: departmentName,
-    departmentId: department?.departmentId ?? MOCK_ALL_PROJECTS[index].departmentId,
-  }
-
-  MOCK_ALL_PROJECTS[index] = updated
-
-  // TODO: replace with → return request.put(`/api/projects/${projectId}`, data)
-  return Promise.resolve({ code: 200, message: 'ok', data: updated })
+  const res = await request.put<ApiResponse<unknown>>(`/api/projects/${projectId}`, data)
+  return { ...res, data: normalizeProject(res.data as Record<string, unknown>) }
 }
 
 /**
@@ -412,51 +249,51 @@ export function updateProject(
  * @param projectId - 项目 ID
  * @param data - 说明、负责人、部门、状态
  */
-export function updateProjectBasicInfo(
+export async function updateProjectBasicInfo(
   projectId: string,
   data: UpdateProjectBasicInfoParams,
 ): Promise<ApiResponse<Project>> {
-  const index = MOCK_ALL_PROJECTS.findIndex((item) => item.projectId === projectId)
-  if (index < 0) {
-    return Promise.reject(new Error('项目不存在'))
+  const res = await request.put<ApiResponse<unknown>>(
+    `/api/projects/${projectId}/basic-info`,
+    projectBasicInfoParamsToApi(data),
+  )
+  const departmentLabel =
+    typeof (res.data as Record<string, unknown> | null)?.department === 'string'
+      ? String((res.data as Record<string, unknown>).department)
+      : undefined
+  return {
+    ...res,
+    data: normalizeProject(res.data as Record<string, unknown>, {
+      fallbackDepartmentId: data.departmentId,
+      fallbackDepartment: departmentLabel,
+    }),
   }
-
-  const ownerUser = findMockUserById(data.ownerUserId)
-  if (!ownerUser || ownerUser.status !== 'enabled') {
-    return Promise.reject(new Error('请选择有效的负责人'))
-  }
-
-  const department = MOCK_ALL_DEPARTMENTS.find((item) => item.departmentId === data.departmentId)
-  if (!department || department.status !== 'enabled') {
-    return Promise.reject(new Error('请选择有效的所属部门'))
-  }
-
-  const updated: Project = {
-    ...MOCK_ALL_PROJECTS[index],
-    description: data.description.trim(),
-    owner: ownerUser.realName,
-    ownerUserId: ownerUser.userId,
-    department: department.departmentName,
-    departmentId: department.departmentId,
-    status: data.status,
-  }
-
-  MOCK_ALL_PROJECTS[index] = updated
-
-  // TODO: replace with → return request.put(`/api/projects/${projectId}/basic-info`, data)
-  return Promise.resolve({ code: 200, message: 'ok', data: updated })
 }
 
 /**
  * 获取项目已绑定的检测策略
  * @param projectId - 项目 ID
  */
-export function getProjectPolicyBinding(
+export async function getProjectPolicyBinding(
   projectId: string,
 ): Promise<ApiResponse<ProjectPolicyBinding | null>> {
-  const binding = getMockProjectPolicyBinding(projectId) ?? null
-  // TODO: replace with → return request.get(`/api/projects/${projectId}/policy-binding`)
-  return Promise.resolve({ code: 200, message: 'ok', data: binding })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/projects/${projectId}/policy-binding`,
+    { params: { projectId }, data: { projectId } },
+  )
+  let binding = normalizeProjectPolicyBinding(res.data)
+  if (binding) {
+    return { ...res, data: binding }
+  }
+
+  // 部分后端仅在项目详情/创建响应中返回 policy，policy-binding GET 为空时兜底
+  const detailRes = await request.get<ApiResponse<unknown>>(`/api/projects/${projectId}`)
+  const detailRaw = detailRes.data as Record<string, unknown>
+  binding =
+    normalizeProjectPolicyBinding(detailRaw.policy) ??
+    normalizeProjectPolicyBinding(detailRaw)
+
+  return { ...res, data: binding }
 }
 
 /**
@@ -464,27 +301,19 @@ export function getProjectPolicyBinding(
  * @param projectId - 项目 ID
  * @param data - 策略 ID 与阈值等参数
  */
-export function updateProjectPolicyBinding(
+export async function updateProjectPolicyBinding(
   projectId: string,
   data: ProjectPolicyBindingInput,
 ): Promise<ApiResponse<ProjectPolicyBinding>> {
-  const project = MOCK_ALL_PROJECTS.find((item) => item.projectId === projectId)
-  if (!project) {
-    return Promise.reject(new Error('项目不存在'))
+  const res = await request.put<ApiResponse<unknown>>(
+    `/api/projects/${projectId}/policy-binding`,
+    data,
+  )
+  const binding = normalizeProjectPolicyBinding(res.data)
+  if (!binding) {
+    return Promise.reject(new Error('策略绑定响应无效'))
   }
-  if (!data.policyId) {
-    return Promise.reject(new Error('请选择检测策略'))
-  }
-
-  const binding = mockSetProjectPolicyBinding(projectId, {
-    policyId: data.policyId,
-    similarityThreshold: data.similarityThreshold,
-    minMatchLength: data.minMatchLength,
-    excludeDirectories: [...data.excludeDirectories],
-  })
-
-  // TODO: replace with → return request.put(`/api/projects/${projectId}/policy-binding`, data)
-  return Promise.resolve({ code: 200, message: 'ok', data: binding })
+  return { ...res, data: binding }
 }
 
 /**
@@ -492,11 +321,5 @@ export function updateProjectPolicyBinding(
  * @param projectId - 要删除的项目 ID
  */
 export function deleteProject(projectId: string): Promise<ApiResponse<null>> {
-  const index = MOCK_ALL_PROJECTS.findIndex((item) => item.projectId === projectId)
-  if (index >= 0) {
-    MOCK_ALL_PROJECTS.splice(index, 1)
-  }
-
-  // TODO: replace with → return request.delete(`/api/projects/${projectId}`)
-  return Promise.resolve({ code: 200, message: 'ok', data: null })
+  return request.delete(`/api/projects/${projectId}`, { data: { projectId } })
 }

@@ -14,8 +14,11 @@ export const MOCK_REPORT_EXPORT_POLICY: ReportExportPolicyPreview = {
   watermarkPreview: '机密｜zhangsan｜飞控仿真V2｜2026-05-18｜禁止外传',
 }
 
+/** 审批被驳回的报告 ID（演示 rejected 分支） */
+const REPORT_IDS_REJECTED = new Set(['report-004'])
+
 /** 需要下载审批的报告 ID（对应原型「飞控V2周检报告」） */
-const REPORT_IDS_REQUIRE_APPROVAL = new Set(['report-003'])
+const REPORT_IDS_REQUIRE_APPROVAL = new Set(['report-003', 'report-004'])
 
 /** 已审批通过、可正常下载的报告 ID（演示审批通过后路径） */
 const REPORT_IDS_APPROVED = new Set(['report-005'])
@@ -30,6 +33,9 @@ const REPORT_IDS_PENDING_REVIEW = new Set<string>()
 function resolveApprovalState(reportId: string): ReportDownloadApprovalState {
   if (!REPORT_IDS_REQUIRE_APPROVAL.has(reportId)) {
     return 'not_required'
+  }
+  if (REPORT_IDS_REJECTED.has(reportId)) {
+    return 'rejected'
   }
   if (REPORT_IDS_APPROVED.has(reportId)) {
     return 'approved'
@@ -89,14 +95,14 @@ export function createMockReportDownload(
 
   if (params.includeEvidenceChain) {
     return {
-      url: `/mock/reports/${reportId}-with-evidence.zip`,
+      downloadUrl: `/mock/reports/${reportId}-with-evidence.zip`,
       fileName: `${safeName}.zip`,
     }
   }
 
   const ext = FORMAT_EXT[params.format]
   return {
-    url: `/mock/reports/${reportId}.${ext}`,
+    downloadUrl: `/mock/reports/${reportId}.${ext}`,
     fileName: `${safeName}.${ext}`,
   }
 }

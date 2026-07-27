@@ -53,7 +53,7 @@ const emit = defineEmits<{
 
 const submitting = ref(false)
 const scanPathPrefix = ref('')
-const form = reactive<SourceIngestFormState>(createDefaultSourceIngestForm())
+let form = reactive<SourceIngestFormState>(createDefaultSourceIngestForm())
 
 const ingestFormRef = ref<InstanceType<typeof SourceIngestForm> | null>(null)
 

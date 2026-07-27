@@ -1,4 +1,9 @@
+import request from '@/utils/request'
 import type { ApiResponse, PageResult } from '@/types/common'
+import {
+  buildCreateAiParseTaskFormData,
+  buildCreateDetectTaskFormData,
+} from '@/utils/formDataBuilders'
 import type { FileTreeData } from '@/types/fileTree'
 import type {
   DetectTask,
@@ -36,12 +41,14 @@ import type {
   AutonomySourceHitItem,
   AutonomySourceHitQueryParams,
 } from '@/types/detect'
-import { MOCK_ALL_DETECT_TASKS } from '@/mock/modules/detect/taskList'
 import {
-  getMockDetectTaskProjectOptions,
-  getMockVulnDbVersionOptions,
-  mockCreateDetectTask,
-} from '@/mock/modules/detect/taskCreateOptions'
+  detectTaskQueryParamsToApi,
+  hasDetectTaskBody,
+  normalizeDetectTask,
+  normalizeDetectTaskPage,
+  normalizeDetectTaskProjectOptions,
+  normalizeVulnDbVersionOptions,
+} from '@/utils/detectAdapter'
 import { getMockOpenSourceRiskDetailSummary } from '@/mock/modules/detect/openSourceRiskDetail'
 import { getMockAutonomyDetectResultOverview } from '@/mock/modules/detect/autonomyResult'
 import { getMockAutonomyDetectEvidenceTree } from '@/mock/modules/detect/autonomyEvidenceTree'
@@ -72,118 +79,84 @@ import {
 } from '@/mock/modules/detect/aiParseTasks'
 import { getMockAiParseResultDetail } from '@/mock/modules/detect/aiParseResultDetail'
 
-// TODO: replace with: import request from '@/utils/request'
-
-const DEFAULT_PAGE_SIZE = 10
-
-function findMockTask(taskId: string): DetectTask | undefined {
-  return MOCK_ALL_DETECT_TASKS.find((t) => t.taskId === taskId)
-}
-
-function filterMockTasks(params: TaskQueryParams): DetectTask[] {
-  let list = [...MOCK_ALL_DETECT_TASKS]
-
-  const taskName = params.taskName?.trim()
-  if (taskName) {
-    list = list.filter((t) => t.taskName.includes(taskName))
-  }
-
-  if (params.taskType) {
-    list = list.filter((t) => t.taskType === params.taskType)
-  }
-
-  const projectName = params.projectName?.trim()
-  if (projectName) {
-    list = list.filter((t) => t.projectName.includes(projectName))
-  }
-
-  if (params.projectId) {
-    list = list.filter((t) => t.projectId === params.projectId)
-  }
-
-  if (params.status) {
-    list = list.filter((t) => t.status === params.status)
-  }
-
-  return list.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )
-}
+/** multipart 请求头：显式声明后 axios 才会保留 FormData（默认 JSON 头会被序列化） */
+const MULTIPART_CONFIG = { headers: { 'Content-Type': 'multipart/form-data' } }
 
 /**
- * mock 阶段分页：按筛选条件过滤后按 createdAt 倒序切片
- * 联调时改为 request.get('/api/detect/tasks', { params })
+ * 获取检测任务列表（自主率 / 开源风险共用）
+ * @param params - 筛选与分页参数，空值不下发
  */
-export function getTaskList(params: TaskQueryParams): Promise<ApiResponse<PageResult<DetectTask>>> {
-  const page = params.page ?? 1
-  const pageSize = params.pageSize ?? DEFAULT_PAGE_SIZE
-
-  const sorted = filterMockTasks(params)
-  const start = (page - 1) * pageSize
-  const list = sorted.slice(start, start + pageSize)
-
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: {
-      list,
-      total: sorted.length,
-      page,
-      pageSize,
-    },
+export async function getTaskList(
+  params: TaskQueryParams,
+): Promise<ApiResponse<PageResult<DetectTask>>> {
+  const res = await request.get<ApiResponse<unknown>>('/api/detect/tasks', {
+    params: detectTaskQueryParamsToApi(params),
   })
+  return { ...res, data: normalizeDetectTaskPage(res.data, params.taskType || undefined) }
 }
 
 /**
  * 获取创建检测任务时的关联项目下拉选项
  */
-export function getDetectTaskProjectOptions(): Promise<ApiResponse<DetectTaskProjectOption[]>> {
-  // TODO: replace with → return request.get('/api/detect/tasks/project-options')
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockDetectTaskProjectOptions(),
-  })
+export async function getDetectTaskProjectOptions(): Promise<
+  ApiResponse<DetectTaskProjectOption[]>
+> {
+  const res = await request.get<ApiResponse<unknown>>('/api/detect/tasks/project-options')
+  return { ...res, data: normalizeDetectTaskProjectOptions(res.data) }
 }
 
 /**
  * 获取开源风险检测可选的漏洞库版本列表
  */
-export function getRiskDetectVulnDbVersions(): Promise<ApiResponse<VulnDbVersionOption[]>> {
-  // TODO: replace with → return request.get('/api/detect/tasks/risk/vuln-db-versions')
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockVulnDbVersionOptions(),
-  })
+export async function getRiskDetectVulnDbVersions(): Promise<ApiResponse<VulnDbVersionOption[]>> {
+  const res = await request.get<ApiResponse<unknown>>('/api/detect/tasks/risk/vuln-db-versions')
+  return { ...res, data: normalizeVulnDbVersionOptions(res.data) }
 }
 
 /**
  * 创建检测任务（自主率 / 开源风险）
- * @param data - 按 taskType 区分的创建参数
+ * @param data - 按 taskType 区分的创建参数，统一以 multipart 提交
  */
-export function createDetectTask(data: CreateDetectTaskParams): Promise<ApiResponse<DetectTask>> {
+export async function createDetectTask(
+  data: CreateDetectTaskParams,
+): Promise<ApiResponse<DetectTask>> {
   if (!data.taskName.trim()) {
     return Promise.reject(new Error('请输入任务名称'))
   }
 
-  // TODO: replace with → return request.post('/api/detect/tasks', data)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: mockCreateDetectTask(data),
-  })
+  const res = await request.post<ApiResponse<unknown>>(
+    '/api/detect/tasks',
+    buildCreateDetectTaskFormData(data),
+    MULTIPART_CONFIG,
+  )
+  return { ...res, data: normalizeDetectTask((res.data ?? {}) as Record<string, unknown>) }
 }
 
 /** 获取任务详情 */
-export function getTaskDetail(taskId: string): Promise<ApiResponse<DetectTask>> {
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}`)
-  const task = findMockTask(taskId)
-  if (!task) {
-    return Promise.reject(new Error('任务不存在'))
-  }
-  return Promise.resolve({ code: 200, message: 'ok', data: task })
+export async function getTaskDetail(taskId: string): Promise<ApiResponse<DetectTask>> {
+  const res = await request.get<ApiResponse<unknown>>(`/api/detect/tasks/${taskId}`)
+  return { ...res, data: normalizeDetectTask((res.data ?? {}) as Record<string, unknown>) }
 }
+
+/**
+ * 暂停/继续/终止/编辑等操作后统一取回任务主体
+ * 后端部分动作接口只回 `{ reason }` 之类的片段，此时回查详情，保证列表行能正确刷新
+ * @param taskId - 任务 ID
+ * @param res - 动作接口原始响应
+ */
+async function resolveTaskActionResult(
+  taskId: string,
+  res: ApiResponse<unknown>,
+): Promise<ApiResponse<DetectTask>> {
+  if (hasDetectTaskBody(res.data)) {
+    return { ...res, data: normalizeDetectTask(res.data) }
+  }
+  const detail = await getTaskDetail(taskId)
+  return { ...res, data: detail.data }
+}
+
+// 以下结果/详情类接口仍为 mock：任务列表已接真实后端，taskId 不再落在 mock 任务池里，
+// 因此不再校验任务是否存在，mock 生成器按 taskId 派生数据即可
 
 /**
  * 获取自主率检测结果 · 顶部总体摘要
@@ -194,9 +167,6 @@ export function getTaskDetail(taskId: string): Promise<ApiResponse<DetectTask>> 
 export function getAutonomyDetectResultOverview(
   taskId: string,
 ): Promise<ApiResponse<AutonomyDetectResultOverview>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/overview`)
   return Promise.resolve({
     code: 200,
@@ -213,9 +183,6 @@ export function getAutonomyDetectResultOverview(
 export function getAutonomyDetectEvidenceTree(
   taskId: string,
 ): Promise<ApiResponse<FileTreeData>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/evidence-tree`)
   return Promise.resolve({
     code: 200,
@@ -235,9 +202,6 @@ export function getAutonomyDetectFileDetail(
   fileId: string,
   fileName: string,
 ): Promise<ApiResponse<AutonomyFileDetail>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   const detail = getMockAutonomyFileDetail(taskId, fileId, fileName)
   if (!detail) {
     return Promise.reject(new Error('文件详情不存在'))
@@ -259,9 +223,6 @@ export function getAutonomyDetectSourceHitList(
   taskId: string,
   params: AutonomySourceHitQueryParams,
 ): Promise<ApiResponse<PageResult<AutonomySourceHitItem>>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/source-hits`, { params })
   return Promise.resolve({
     code: 200,
@@ -277,9 +238,6 @@ export function getAutonomyDetectSourceHitList(
 export function getOpenSourceRiskDetailSummary(
   taskId: string,
 ): Promise<ApiResponse<OpenSourceRiskDetailSummary>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/summary`)
   return Promise.resolve({
     code: 200,
@@ -297,9 +255,6 @@ export function getOpenSourceRiskComponentList(
   taskId: string,
   params: OpenSourceRiskComponentQueryParams,
 ): Promise<ApiResponse<PageResult<OpenSourceRiskComponent>>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/components`, { params })
   return Promise.resolve({
     code: 200,
@@ -314,9 +269,6 @@ export function getOpenSourceRiskComponentList(
  * @returns 依赖图数据，节点复用组件清单 ID，便于点击打开详情抽屉
  */
 export function getRiskComponentGraph(taskId: string): Promise<ApiResponse<RiskComponentGraph>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/component-graph`)
   return Promise.resolve({
     code: 200,
@@ -334,9 +286,6 @@ export function getOpenSourceRiskComponentDetail(
   taskId: string,
   componentId: string,
 ): Promise<ApiResponse<OpenSourceRiskComponentDetail>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   const detail = getMockOpenSourceRiskComponentDetail(taskId, componentId)
   if (!detail) {
     return Promise.reject(new Error('组件不存在'))
@@ -360,9 +309,6 @@ export function ignoreOpenSourceRiskComponent(
   componentId: string,
   data: IgnoreOpenSourceRiskComponentParams,
 ): Promise<ApiResponse<null>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   const ok = mockIgnoreOpenSourceRiskComponent(taskId, componentId, data.reason)
   if (!ok) {
     return Promise.reject(new Error('组件不存在'))
@@ -380,9 +326,6 @@ export function revokeOpenSourceRiskComponentIgnore(
   taskId: string,
   componentId: string,
 ): Promise<ApiResponse<null>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   const ok = mockRevokeOpenSourceRiskComponentIgnore(taskId, componentId)
   if (!ok) {
     return Promise.reject(new Error('组件未忽略或不存在'))
@@ -400,9 +343,6 @@ export function getOpenSourceRiskVulnerabilityList(
   taskId: string,
   params: OpenSourceRiskVulnerabilityQueryParams,
 ): Promise<ApiResponse<PageResult<OpenSourceRiskVulnerability>>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/vulnerabilities`, { params })
   return Promise.resolve({
     code: 200,
@@ -420,9 +360,6 @@ export function getOpenSourceRiskVulnerabilityDetail(
   taskId: string,
   vulnerabilityId: string,
 ): Promise<ApiResponse<OpenSourceRiskVulnerabilityDetail>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   const detail = getMockOpenSourceRiskVulnerabilityDetail(taskId, vulnerabilityId)
   if (!detail) {
     return Promise.reject(new Error('漏洞不存在'))
@@ -442,9 +379,6 @@ export function registerOpenSourceRiskVulnerabilityDisposition(
   vulnerabilityId: string,
   data: RegisterOpenSourceRiskVulnerabilityDispositionParams,
 ): Promise<ApiResponse<null>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   const ok = mockRegisterOpenSourceRiskVulnerabilityDisposition(taskId, vulnerabilityId, data)
   if (!ok) {
     return Promise.reject(new Error('当前状态不可登记处置'))
@@ -464,9 +398,6 @@ export function reviewOpenSourceRiskVulnerabilityDisposition(
   vulnerabilityId: string,
   data: ReviewOpenSourceRiskVulnerabilityDispositionParams,
 ): Promise<ApiResponse<null>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   const ok = mockReviewOpenSourceRiskVulnerabilityDisposition(taskId, vulnerabilityId, data)
   if (!ok) {
     return Promise.reject(new Error('当前状态不可复核'))
@@ -492,9 +423,6 @@ export function getOpenSourceRiskSbomPreview(
     >
   >
 > {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/sbom/preview`, { params })
   return Promise.resolve({
     code: 200,
@@ -512,9 +440,6 @@ export function exportOpenSourceRiskSbom(
   taskId: string,
   data: ExportOpenSourceRiskSbomParams,
 ): Promise<ApiResponse<ExportOpenSourceRiskSbomResult>> {
-  if (!findMockTask(taskId)) {
-    return Promise.reject(new Error('任务不存在'))
-  }
   // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/risk/sbom/export`, data)
   return Promise.resolve({
     code: 200,
@@ -545,7 +470,9 @@ export function getAiParseTaskList(
 export function createAiParseTask(
   data: CreateAiParseTaskParams,
 ): Promise<ApiResponse<AiParseTask>> {
-  // TODO: replace with → return request.post('/api/detect/ai-parse/tasks', data)
+  const formData = buildCreateAiParseTaskFormData(data)
+  void formData
+  // TODO: replace with → return request.post('/api/detect/ai-parse/tasks', formData)
   const task = mockCreateAiParseTask(data)
   return Promise.resolve({ code: 200, message: 'ok', data: task })
 }
@@ -597,66 +524,52 @@ export function submitAiParseFallback(
   return Promise.resolve({ code: 200, message: 'ok', data: task })
 }
 
-/** 编辑检测任务（排队中 / 运行中的自主率任务） */
-export function updateDetectTask(
+/**
+ * 编辑检测任务（排队中 / 运行中的自主率任务）
+ * @param taskId - 任务 ID
+ * @param data - 任务名称、扫描模式、重试次数
+ */
+export async function updateDetectTask(
   taskId: string,
   data: UpdateDetectTaskParams,
 ): Promise<ApiResponse<DetectTask>> {
-  // TODO: replace with → return request.put(`/api/detect/tasks/${taskId}`, data)
-  const task = findMockTask(taskId)
-  if (!task) {
-    return Promise.reject(new Error('任务不存在'))
-  }
-  task.taskName = data.taskName
-  task.sourceMode = data.sourceMode
-  task.retryCount = data.retryCount
-  return Promise.resolve({ code: 200, message: '保存成功', data: { ...task } })
+  const res = await request.put<ApiResponse<unknown>>(`/api/detect/tasks/${taskId}`, data)
+  return resolveTaskActionResult(taskId, res)
 }
 
-/** 删除任务 */
+/** 删除任务（DELETE 带 body `{ taskId }`，与 openapi 一致） */
 export function deleteTask(taskId: string): Promise<ApiResponse<null>> {
-  // TODO: replace with → return request.delete(`/api/detect/tasks/${taskId}`)
-  const idx = MOCK_ALL_DETECT_TASKS.findIndex((t) => t.taskId === taskId)
-  if (idx >= 0) {
-    MOCK_ALL_DETECT_TASKS.splice(idx, 1)
-  }
-  return Promise.resolve({ code: 200, message: '删除成功', data: null })
+  return request.delete(`/api/detect/tasks/${taskId}`, { data: { taskId } })
 }
 
 /** 暂停任务 */
-export function pauseTask(taskId: string): Promise<ApiResponse<DetectTask>> {
-  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/pause`)
-  const task = findMockTask(taskId)
-  if (!task) {
-    return Promise.reject(new Error('任务不存在'))
-  }
-  task.status = 'paused'
-  return Promise.resolve({ code: 200, message: '已暂停', data: { ...task } })
+export async function pauseTask(taskId: string): Promise<ApiResponse<DetectTask>> {
+  const res = await request.post<ApiResponse<unknown>>(`/api/detect/tasks/${taskId}/pause`, {
+    taskId,
+  })
+  return resolveTaskActionResult(taskId, res)
 }
 
 /** 继续任务（从已暂停恢复为运行中） */
-export function resumeTask(taskId: string): Promise<ApiResponse<DetectTask>> {
-  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/resume`)
-  const task = findMockTask(taskId)
-  if (!task) {
-    return Promise.reject(new Error('任务不存在'))
-  }
-  task.status = 'running'
-  return Promise.resolve({ code: 200, message: '已继续运行', data: { ...task } })
+export async function resumeTask(taskId: string): Promise<ApiResponse<DetectTask>> {
+  const res = await request.post<ApiResponse<unknown>>(`/api/detect/tasks/${taskId}/resume`, {
+    taskId,
+  })
+  return resolveTaskActionResult(taskId, res)
 }
 
-/** 终止任务 */
-export function terminateTask(
+/**
+ * 终止任务
+ * @param taskId - 任务 ID
+ * @param data - 终止原因（必填）
+ */
+export async function terminateTask(
   taskId: string,
   data: TerminateTaskParams,
 ): Promise<ApiResponse<DetectTask>> {
-  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/terminate`, data)
-  const task = findMockTask(taskId)
-  if (!task) {
-    return Promise.reject(new Error('任务不存在'))
-  }
-  task.status = 'terminated'
-  task.finishedAt = new Date().toISOString()
-  task.errorMsg = data.reason
-  return Promise.resolve({ code: 200, message: '已终止', data: { ...task } })
+  const res = await request.post<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/terminate`,
+    data,
+  )
+  return resolveTaskActionResult(taskId, res)
 }

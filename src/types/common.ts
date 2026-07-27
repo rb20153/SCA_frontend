@@ -1,4 +1,16 @@
 // ─── Universal API wrapper ────────────────────────────────────────────────────
+
+/** 后端统一成功业务码：HTTP 2xx 且 body.code === 0 表示成功 */
+export const API_SUCCESS_CODE = 0
+
+/** 尚未统一到 0 的遗留成功码（如 check-username）；后端全量改完后可删 */
+export const API_LEGACY_SUCCESS_CODE = 200
+
+/** 判断 HTTP 2xx 响应体的业务码是否表示成功 */
+export function isApiSuccessCode(code: number): boolean {
+  return code === API_SUCCESS_CODE || code === API_LEGACY_SUCCESS_CODE
+}
+
 export interface ApiResponse<T> {
   code: number
   message: string

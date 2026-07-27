@@ -1,6 +1,7 @@
 <template>
   <span class="action-cell">
-    <router-link :to="detailTo" class="list-table-link">项目详情</router-link>
+    <a href="#" class="list-table-link" @click.prevent="emit('edit', project)">编辑</a>
+    <router-link :to="detailTo" class="list-table-link">详情</router-link>
     <a href="#" class="list-table-link list-table-link--danger" @click.prevent="emit('delete', project)">
       删除
     </a>
@@ -17,6 +18,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  edit: [project: Project]
   delete: [project: Project]
 }>()
 

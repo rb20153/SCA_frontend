@@ -83,7 +83,7 @@ export interface CreateReportDownloadParams {
 }
 
 export interface ReportDownloadInfo {
-  url: string
+  downloadUrl: string
   fileName: string
 }
 

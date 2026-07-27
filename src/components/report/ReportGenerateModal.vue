@@ -129,12 +129,13 @@ async function loadBaseOptions() {
     ])
 
     projects.value = projectRes.data.list
-    templates.value = templateRes.data.list
+    templates.value = templateRes.data.list.filter((item) => item.status === 'published')
 
     form.projectId = projects.value[0]?.projectId ?? ''
 
+    const publishedTemplates = templates.value
     const defaultTemplate =
-      templates.value.find((item) => item.isDefault) ?? templates.value[0]
+      publishedTemplates.find((item) => item.isDefault) ?? publishedTemplates[0]
     form.templateId = defaultTemplate?.templateId ?? ''
 
     if (form.projectId) {

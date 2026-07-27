@@ -3,7 +3,7 @@ import { getDetectTaskProjectOptions } from '@/api/detect'
 import { getKbProjectSelectOptions, getKbQuarterUpdateQuarterOptions, getKbVersionSelectOptions } from '@/api/knowledge'
 import { getPolicySelectOptions } from '@/api/policy'
 import { getProfileDepartmentOptions } from '@/api/profile'
-import { getEnabledDepartmentOptions, getEnabledUserOptions } from '@/api/user'
+import { getEnabledDepartmentOptions } from '@/api/user'
 
 /**
  * 加载启用部门下拉选项
@@ -24,17 +24,6 @@ export async function loadProfileDepartmentSelectOptions(): Promise<SelectOption
   return res.data.map((item) => ({
     label: item.departmentName,
     value: item.departmentId,
-  }))
-}
-
-/**
- * 加载启用用户下拉选项（负责人选择）
- */
-export async function loadEnabledUserSelectOptions(): Promise<SelectOption[]> {
-  const res = await getEnabledUserOptions()
-  return res.data.map((item) => ({
-    label: `${item.realName}（${item.departmentName} · ${item.roleName}）`,
-    value: item.userId,
   }))
 }
 

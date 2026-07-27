@@ -54,7 +54,7 @@ const emit = defineEmits<{
 const submitting = ref(false)
 const projectId = ref<string | undefined>(undefined)
 const scanDepth = ref<AiParseScanDepth>(3)
-const sourceForm = reactive<SourceIngestFormState>(createDefaultSourceIngestForm())
+let sourceForm = reactive<SourceIngestFormState>(createDefaultSourceIngestForm())
 const ingestFormRef = ref<InstanceType<typeof SourceIngestForm> | null>(null)
 
 /** 重置弹窗表单 */
@@ -92,6 +92,7 @@ async function handleOk() {
       password: sourceForm.password,
       sshPrivateKey: sourceForm.sshPrivateKey,
       sshPassphrase: sourceForm.sshPassphrase,
+      packageFile: packageFile ?? undefined,
       packageFileName: packageFile?.name,
     })
     message.success('AI 解析任务已提交')

@@ -2,7 +2,9 @@ import {
   getMockPolicyRuleHitDetailSeed,
   getMockPolicyRuleHits,
 } from '@/mock/modules/policy/ruleHitList'
+import request from '@/utils/request'
 import type { ApiResponse, PageParams, PageResult } from '@/types/common'
+import { buildImportPolicyFormData } from '@/utils/formDataBuilders'
 import type {
   Policy,
   PolicyDetectParams,
@@ -29,11 +31,11 @@ import {
   getMockPolicyEditorConfigText,
   MOCK_NEW_POLICY_EDITOR_JSON,
 } from '@/mock/modules/policy/policyEditorConfig'
-import { getMockPolicyDetectParams } from '@/mock/modules/policy/policyDetectParams'
 import {
   exportMockPolicyVersionDiffReport,
   getMockPolicyVersionDiff,
 } from '@/mock/modules/policy/policyVersionDiff'
+import { normalizePolicyList, normalizePolicyDetectParams } from '@/utils/policyAdapter'
 import {
   getMockPolicyCurrentVersion,
   getMockPolicyGovernanceOverview,
@@ -94,15 +96,9 @@ export function getPolicyList(
 /**
  * 获取策略下拉选项（创建项目绑定策略等）
  */
-export function getPolicySelectOptions(): Promise<ApiResponse<Policy[]>> {
-  // TODO: replace with → return request.get('/api/policies/options')
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: [...MOCK_ALL_POLICIES].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    ),
-  })
+export async function getPolicySelectOptions(): Promise<ApiResponse<Policy[]>> {
+  const res = await request.get<ApiResponse<unknown>>('/api/policies/options')
+  return { ...res, data: normalizePolicyList(res.data) }
 }
 
 /**
@@ -140,12 +136,11 @@ export function getPolicyEditorContent(
  * 获取策略当前生效版本的检测参数（项目绑定默认值）
  * @param policyId - 策略 ID
  */
-export function getPolicyDetectParams(
+export async function getPolicyDetectParams(
   policyId: string,
 ): Promise<ApiResponse<PolicyDetectParams | null>> {
-  const data = getMockPolicyDetectParams(policyId)
-  // TODO: replace with → return request.get(`/api/policies/${policyId}/detect-params`)
-  return Promise.resolve({ code: 200, message: 'ok', data })
+  const res = await request.get<ApiResponse<unknown>>(`/api/policies/${policyId}/detect-params`)
+  return { ...res, data: normalizePolicyDetectParams(res.data) }
 }
 
 /**
@@ -177,8 +172,9 @@ export function getPolicyById(policyId: string): Promise<ApiResponse<Policy | nu
  * @param params - 文件、导入模式与导入前校验项
  */
 export function importPolicy(params: PolicyImportParams): Promise<ApiResponse<null>> {
-  void params.file.name
-  // TODO: replace with → FormData + request.post('/api/policies/import', formData)
+  const formData = buildImportPolicyFormData(params)
+  void formData
+  // TODO: replace with → return request.post('/api/policies/import', formData)
   return Promise.resolve({ code: 200, message: 'ok', data: null })
 }
 

@@ -89,7 +89,7 @@ async function handleOk() {
       format: formState.format,
       includeEvidenceChain: formState.includeEvidenceChain,
     })
-    triggerReportDownload(res.data.url, res.data.fileName)
+    triggerReportDownload(res.data.downloadUrl, res.data.fileName)
     message.success('已开始下载')
     visible.value = false
   } catch {

@@ -1,8 +1,12 @@
 <template>
   <div class="project-policy-panel">
-    <PageLoading :loading="loading && !bindingLoaded">
-      <a-empty v-if="!loading && !bindingLoaded" description="暂无检测策略配置" />
-      <a-spin v-else :spinning="submitting">
+    <PageLoading :loading="loading && !panelReady">
+      <a-empty
+        v-if="panelReady && !savedBinding && !form.policyId"
+        description="暂无检测策略配置"
+        class="project-policy-empty"
+      />
+      <a-spin v-if="panelReady" :spinning="submitting">
         <a-form layout="vertical" class="project-policy-form">
           <a-form-item label="检测策略" required>
             <AsyncOptionsSelect
@@ -59,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, toRef, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { getProjectPolicyBinding, updateProjectPolicyBinding } from '@/api/project'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
@@ -80,7 +84,7 @@ const props = defineProps<{
 
 const loading = ref(false)
 const submitting = ref(false)
-const bindingLoaded = ref(false)
+const panelReady = ref(false)
 const savedBinding = ref<ProjectPolicyBinding | null>(null)
 
 const policySelectRef = ref<InstanceType<typeof AsyncOptionsSelect> | null>(null)
@@ -115,7 +119,15 @@ function applyBindingToForm(binding: ProjectPolicyBinding) {
   form.minMatchLength = binding.minMatchLength
   form.excludeDirectories = [...binding.excludeDirectories]
   savedBinding.value = binding
-  bindingLoaded.value = true
+}
+
+/** 清空表单，便于首次配置策略 */
+function resetFormForNewBinding() {
+  form.policyId = ''
+  form.similarityThreshold = 0
+  form.minMatchLength = 0
+  form.excludeDirectories = []
+  savedBinding.value = null
 }
 
 /** 从服务端拉取当前项目的策略绑定 */
@@ -125,14 +137,14 @@ async function fetchBinding() {
   try {
     const res = await getProjectPolicyBinding(props.projectId)
     if (!res.data) {
-      savedBinding.value = null
-      bindingLoaded.value = false
+      resetFormForNewBinding()
       return
     }
     applyBindingToForm(res.data)
     await policySelectRef.value?.prefetchOptions()
   } finally {
     loading.value = false
+    panelReady.value = true
     await nextTick()
     skipPolicyParamsFill.value = false
   }
@@ -190,6 +202,19 @@ watch(
 <style scoped>
 .project-policy-panel {
   max-width: 640px;
+}
+
+.project-policy-empty {
+  margin: 48px auto 24px;
+  padding: 16px 0;
+}
+
+.project-policy-empty :deep(.ant-empty-image) {
+  margin-inline: auto;
+}
+
+.project-policy-empty :deep(.ant-empty-description) {
+  text-align: center;
 }
 
 .project-policy-form :deep(.ant-form-item) {

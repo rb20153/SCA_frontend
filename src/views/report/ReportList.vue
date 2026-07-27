@@ -148,6 +148,20 @@ async function handleDownloadClick(report: Report) {
         return
       }
 
+      if (approvalState === 'rejected') {
+        Modal.confirm({
+          title: '下载申请已被驳回',
+          content: '该报告下载申请已被驳回，是否重新提交申请？',
+          okText: '重新提交',
+          cancelText: '取消',
+          onOk: async () => {
+            await submitReportDownloadApplication(report.reportId)
+            message.success('已重新提交下载申请')
+          },
+        })
+        return
+      }
+
       Modal.confirm({
         title: '需要审批',
         content: '该报告下载需要审批，是否提交申请？',

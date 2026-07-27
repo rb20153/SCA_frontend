@@ -126,8 +126,6 @@ declare module 'vue' {
     KbProjectDirectoryQueryBar: typeof import('./components/knowledge/KbProjectDirectoryQueryBar.vue')['default']
     KbProjectEditModal: typeof import('./components/knowledge/KbProjectEditModal.vue')['default']
     KbProjectFileDetailPanel: typeof import('./components/knowledge/KbProjectFileDetailPanel.vue')['default']
-    KbProjectFileSourceEvidenceCard: typeof import('./components/knowledge/KbProjectFileSourceEvidenceCard.vue')['default']
-    KbProjectFileSourceEvidenceDrawer: typeof import('./components/knowledge/KbProjectFileSourceEvidenceDrawer.vue')['default']
     KbProjectFingerprintSummaryTable: typeof import('./components/knowledge/KbProjectFingerprintSummaryTable.vue')['default']
     KbProjectOverviewSection: typeof import('./components/knowledge/KbProjectOverviewSection.vue')['default']
     KbProjectQueryBar: typeof import('./components/knowledge/KbProjectQueryBar.vue')['default']

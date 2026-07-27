@@ -25,6 +25,7 @@
       <template v-else-if="column.key === 'action'">
         <ProjectActionCell
           :project="getProject(row)"
+          @edit="(project) => emit('edit', project)"
           @delete="(project) => emit('delete', project)"
         />
       </template>
@@ -54,6 +55,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
+  edit: [project: Project]
   delete: [project: Project]
 }>()
 
@@ -69,6 +71,6 @@ const columns: TableColumnsType<Project> = [
   { title: '关联任务数', key: 'taskCount', dataIndex: 'taskCount', width: 120 },
   { title: '最近扫描时间', key: 'lastScanAt', width: 170 },
   { title: '创建时间', key: 'createdAt', width: 170 },
-  { title: '操作', key: 'action', width: 120 },
+  { title: '操作', key: 'action', width: 180 },
 ]
 </script>

@@ -32,7 +32,7 @@ export const PROJECT_DETAIL_TABS: { key: ProjectDetailTabKey; label: string }[] 
 ]
 
 /** 项目列表表格横向滚动宽度 */
-export const PROJECT_TABLE_SCROLL_X = 1100
+export const PROJECT_TABLE_SCROLL_X = 1160
 
 /**
  * 格式化日期时间为列表展示（YYYY-MM-DD HH:mm）
@@ -45,13 +45,17 @@ export function formatProjectDateTime(value: string | null | undefined): string 
 }
 
 /**
- * 关联任务列表二次校验：仅保留项目 ID 与项目名称均与当前项目一致的任务
+ * 关联任务列表二次校验：剔除明显不属于当前项目的任务
+ * 后端任务项常不返回 projectName，故只按 projectId 校验，缺失 projectId 时视为本项目并补齐名称
  * @param tasks - 接口返回的任务列表
  * @param project - 当前项目详情
  */
 export function verifyProjectRelatedTasks(tasks: DetectTask[], project: Project): DetectTask[] {
-  return tasks.filter(
-    (task) =>
-      task.projectId === project.projectId && task.projectName === project.projectName,
-  )
+  return tasks
+    .filter((task) => !task.projectId || task.projectId === project.projectId)
+    .map((task) => ({
+      ...task,
+      projectId: task.projectId || project.projectId,
+      projectName: task.projectName || project.projectName,
+    }))
 }

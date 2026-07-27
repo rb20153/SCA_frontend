@@ -570,6 +570,8 @@ export interface CreateAiParseTaskParams {
   password?: string
   sshPrivateKey?: string
   sshPassphrase?: string
+  /** 上传模式下的压缩包（multipart 联调时使用） */
+  packageFile?: File
   /** 上传模式下的压缩包文件名（mock 阶段） */
   packageFileName?: string
 }
