@@ -1,35 +1,24 @@
 <template>
-  <div class="role-perm-tree">
-    <a-collapse v-model:active-key="activeKeys" :bordered="false">
-      <a-collapse-panel
-        v-for="group in PERMISSION_TREE_GROUPS"
-        :key="group.key"
-        :header="group.title"
-      >
-        <div class="perm-grid">
-          <label
-            v-for="item in group.children"
-            :key="item.key"
-            class="perm-item"
-          >
-            <a-checkbox
-              :checked="permissions[item.key]"
-              :disabled="isItemDisabled(item.key)"
-              @change="(event) => handleToggle(item.key, event.target.checked)"
-            />
-            <span class="perm-label">{{ item.label }}</span>
-          </label>
-        </div>
-      </a-collapse-panel>
-    </a-collapse>
+  <div class="role-perm-list">
+    <label
+      v-for="item in ROLE_PERMISSION_OPTIONS"
+      :key="item.key"
+      class="perm-item"
+    >
+      <a-checkbox
+        :checked="permissions[item.key]"
+        :disabled="isItemDisabled(item.key)"
+        @change="(event) => handleToggle(item.key, event.target.checked)"
+      />
+      <span class="perm-label">{{ item.label }}</span>
+    </label>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import type { RolePermissionKey, RolePermissionMap } from '@/types/system'
 import {
-  PERMISSION_TREE_GROUPS,
+  ROLE_PERMISSION_OPTIONS,
   isBuiltinPermissionDisabled,
 } from '@/utils/rolePermissions'
 
@@ -43,8 +32,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:permissions': [value: RolePermissionMap]
 }>()
-
-const activeKeys = ref<string[]>(['menu', 'op'])
 
 /** 判断某项是否禁用（内置只读角色未勾选项不可再勾选） */
 function isItemDisabled(key: RolePermissionKey): boolean {
@@ -71,34 +58,33 @@ function handleToggle(key: RolePermissionKey, checked: boolean) {
 </script>
 
 <style scoped>
-.role-perm-tree {
+.role-perm-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px 16px;
   border: 1px solid #f0f0f0;
   border-radius: 8px;
-  overflow: hidden;
-}
-
-.perm-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 16px;
+  background: #fafafa;
 }
 
 .perm-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: 4px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fff;
   cursor: pointer;
   min-width: 0;
 }
 
 .perm-item:hover {
-  background: #fafafa;
+  background: #f5f9ff;
 }
 
 .perm-label {
-  font-size: 13px;
+  font-size: 14px;
   color: rgba(0, 0, 0, 0.88);
   line-height: 1.4;
 }

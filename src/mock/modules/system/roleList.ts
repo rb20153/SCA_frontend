@@ -63,8 +63,8 @@ const ROLE_SEEDS: RoleSeed[] = [
     isBuiltin: false,
     permissions: {
       ...createDefaultCustomRolePermissions(),
-      'op.project_write': true,
-      'op.deliverable': true,
+      'project.read': true,
+      'op.task_run': true,
     },
     createdAt: '2026-02-10T14:00:00+08:00',
     boundUserCount: 0,

@@ -5,6 +5,7 @@ export {
   ALL_PERMISSION_KEYS,
   BUILTIN_ROLE_PERMISSIONS,
   PERMISSION_TREE_GROUPS,
+  ROLE_PERMISSION_OPTIONS,
   cloneRolePermissions,
   createDefaultCustomRolePermissions,
   createEmptyRolePermissions,

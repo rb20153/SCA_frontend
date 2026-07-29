@@ -255,40 +255,12 @@ export interface DepartmentMemberCheckResult {
 /** 角色启用状态 */
 export type RoleStatus = 'enabled' | 'disabled'
 
-/** RBAC 权限 Key */
+/** RBAC 权限 Key（与后端契约一致，角色抽屉仅配置以下 4 项） */
 export type RolePermissionKey =
   | 'menu.home'
-  | 'menu.project'
-  | 'menu.scan'
-  | 'menu.risk'
-  | 'menu.ai'
-  | 'menu.policy'
-  | 'menu.report'
-  | 'menu.kb'
-  | 'menu.sys_user'
-  | 'menu.sys_role'
-  | 'menu.sys_dept'
-  | 'menu.sys_log'
-  | 'menu.sys_alert'
-  | 'menu.sys_msg'
-  | 'menu.sys_profile'
-  | 'op.project_write'
-  | 'op.project_member'
-  | 'op.deliverable'
   | 'op.task_run'
-  | 'op.result_view'
-  | 'op.risk_scan'
-  | 'op.ai_parse'
-  | 'op.policy_edit'
-  | 'op.policy_approve'
-  | 'op.report_gen'
-  | 'op.report_export'
-  | 'op.kb_write'
-  | 'op.user_manage'
-  | 'op.role_manage'
-  | 'op.dept_manage'
-  | 'op.log_export'
-  | 'op.alert_handle'
+  | 'report.read'
+  | 'project.read'
 
 export type RolePermissionMap = Record<RolePermissionKey, boolean>
 

@@ -62,7 +62,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { createRole, updateRole } from '@/api/system'
 import RolePermissionTree from '@/components/system/RolePermissionTree.vue'
-import { createDefaultCustomRolePermissions } from '@/utils/rolePermissions'
+import { createDefaultCustomRolePermissions, cloneRolePermissions } from '@/utils/rolePermissions'
 import type { RoleFormValues, RolePermissionMap } from '@/types/system'
 import { ROLE_STATUS_FORM_OPTIONS } from '@/utils/roleQuery'
 import { isValidRoleCode } from '@/utils/roleValidation'
@@ -117,7 +117,7 @@ function syncFormFromProps() {
   form.status = props.initialValues?.status ?? 'enabled'
   form.remark = props.initialValues?.remark ?? ''
   form.permissions = props.initialValues?.permissions
-    ? { ...props.initialValues.permissions }
+    ? cloneRolePermissions(props.initialValues.permissions)
     : createDefaultCustomRolePermissions()
 }
 

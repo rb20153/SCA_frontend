@@ -5,6 +5,45 @@
 
 ---
 
+## [2026-07-29] 告警中心 / 日志列表 · 9 个接口切真实 API
+
+### 改了什么
+
+- `api/system.ts`：告警 6 + 日志 3 函数改 `request.*`，移除 alert/log mock 运行时依赖
+- 扩展 `systemAdapter.ts`：概览/列表/详情/处置/时间线/导出字段规范化（snake_case、级别/结果枚举）
+
+### 注意（联调）
+
+- `handleAlert` 不再传 handlerName，由后端从 token 解析
+- 日志导出 `downloadUrl` 兼容 `url` 字段
+
+---
+
+## [2026-07-29] 部门/角色管理 · 联调通过（9 接口已对接）
+
+### 改了什么
+
+- 用户实测通过：部门 5 + 角色 4 接口标「已对接」
+- 角色授权简化为 4 项；`*: true` 展开全选；UI 一行四列
+
+---
+
+## [2026-07-29] 角色管理 · 授权简化为 4 项后端权限
+
+### 改了什么
+
+- `types/system.ts`：`RolePermissionKey` 仅保留 `menu.home` / `project.read` / `op.task_run` / `report.read`
+- `rolePermissionDefs.ts` + `RolePermissionTree.vue`：去掉折叠权限树，改为 4 个平铺勾选（展示中文名 + key）
+- `RoleFormDrawer`：编辑回填用 `cloneRolePermissions` 补齐缺失 Key
+
+### 注意
+
+- 提交 create/update 时 Body 中 `permissions` 仅含上述 4 键；后端 `*: true` 表示全部勾选，adapter 会展开为 4 项 true
+- UI 一行四列展示中文名，不显示 permission key
+- 内置只读角色「未勾选项不可再勾选」规则仍保留
+
+---
+
 ## [2026-07-29] 部门/角色管理 · 9 个接口切真实 API
 
 ### 改了什么

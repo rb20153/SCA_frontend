@@ -27,174 +27,131 @@ import type {
 } from '@/types/system'
 import {
   createDepartmentParamsToApi,
+  handleAlertParamsToApi,
+  logExportParamsToApi,
+  normalizeAlertAssigneeList,
+  normalizeAlertCenterOverview,
+  normalizeAlertDetail,
+  normalizeAlertPage,
+  normalizeAlertTimeline,
   normalizeDepartment,
   normalizeDepartmentMemberCheck,
   normalizeDepartmentPage,
+  normalizeHandleAlertResult,
+  normalizeLogDetail,
+  normalizeLogExportResult,
+  normalizeLogPage,
   normalizeRole,
   normalizeRolePage,
   roleParamsToApi,
   systemQueryParamsToApi,
   updateDepartmentParamsToApi,
 } from '@/utils/systemAdapter'
-import { getMockAlertCenterOverviewRes } from '@/mock/modules/system/alertOverview'
-import { MOCK_ALERT_ASSIGNEE_OPTIONS } from '@/mock/modules/system/alertAssignees'
-import { mockHandleAlert } from '@/mock/modules/system/alertHandle'
-import { filterMockAlertList, getMockAlertDetail } from '@/mock/modules/system/alertList'
-import { getMockAlertTimeline } from '@/mock/modules/system/alertTimeline'
-import {
-  filterMockLogList,
-  getMockLogDetail,
-  getMockLogExportResult,
-} from '@/mock/modules/system/logList'
-
-const DEFAULT_PAGE_SIZE = 10
 
 /**
  * 获取告警中心页概览统计
  * @param params - 队列状态（未处理 / 已处理）
  */
-export function getAlertCenterOverview(
+export async function getAlertCenterOverview(
   params: AlertOverviewQueryParams,
 ): Promise<ApiResponse<AlertCenterOverview>> {
-  // TODO: replace with → return request.get('/api/system/alerts/overview', { params })
-  return Promise.resolve(getMockAlertCenterOverviewRes(params.status))
+  const res = await request.get<ApiResponse<unknown>>('/api/system/alerts/overview', {
+    params: { status: params.status },
+  })
+  return { ...res, data: normalizeAlertCenterOverview(res.data) }
 }
 
 /**
  * 获取告警列表（分页 + 筛选）
  * @param params - 队列状态、级别、时间、分页
  */
-export function getAlertList(
+export async function getAlertList(
   params: AlertQueryParams,
 ): Promise<ApiResponse<PageResult<AlertListItem>>> {
-  const page = params.page ?? 1
-  const pageSize = params.pageSize ?? DEFAULT_PAGE_SIZE
-
-  const sorted = filterMockAlertList(params)
-  const start = (page - 1) * pageSize
-  const list = sorted.slice(start, start + pageSize)
-
-  // TODO: replace with → return request.get('/api/system/alerts', { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: {
-      list,
-      total: sorted.length,
-      page,
-      pageSize,
-    },
+  const res = await request.get<ApiResponse<unknown>>('/api/system/alerts', {
+    params: systemQueryParamsToApi(params),
   })
+  const pageRaw = res.data ?? res
+  return { ...res, data: normalizeAlertPage(pageRaw) }
 }
 
 /**
  * 获取告警详情（抽屉打开时请求）
  * @param alertId - 告警 ID
  */
-export function getAlertDetail(alertId: string): Promise<ApiResponse<AlertDetail>> {
-  const detail = getMockAlertDetail(alertId)
-  if (!detail) {
-    return Promise.reject(new Error('告警不存在'))
-  }
-
-  // TODO: replace with → return request.get(`/api/system/alerts/${alertId}`)
-  return Promise.resolve({ code: 200, message: 'ok', data: detail })
+export async function getAlertDetail(alertId: string): Promise<ApiResponse<AlertDetail>> {
+  const res = await request.get<ApiResponse<unknown>>(`/api/system/alerts/${alertId}`)
+  return { ...res, data: normalizeAlertDetail(res.data, alertId) }
 }
 
 /**
  * 提交告警处置（未处理 Tab「处理」/「忽略本次」）
  * @param alertId - 告警 ID
  * @param data - 处置方式与附加字段
- * @param handlerName - 当前操作人姓名（mock 写入处理人；联调时由后端从 token 解析）
+ * @param _handlerName - 联调时由后端从 token 解析，前端不传
  */
-export function handleAlert(
+export async function handleAlert(
   alertId: string,
   data: HandleAlertParams,
-  handlerName: string,
+  _handlerName: string,
 ): Promise<ApiResponse<HandleAlertResult>> {
-  try {
-    const result = mockHandleAlert(alertId, data, handlerName)
-    // TODO: replace with → return request.post(`/api/system/alerts/${alertId}/handle`, data)
-    return Promise.resolve({ code: 200, message: 'ok', data: result })
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : '处置失败'
-    return Promise.reject(new Error(msg))
-  }
+  const res = await request.post<ApiResponse<unknown>>(
+    `/api/system/alerts/${alertId}/handle`,
+    handleAlertParamsToApi(data),
+  )
+  return { ...res, data: normalizeHandleAlertResult(res.data) }
 }
 
 /**
  * 获取转派复核候选人列表（处理弹窗下拉）
  */
-export function getAlertAssigneeOptions(): Promise<ApiResponse<AlertAssigneeOption[]>> {
-  // TODO: replace with → return request.get('/api/system/alerts/assignees')
-  return Promise.resolve({ code: 200, message: 'ok', data: MOCK_ALERT_ASSIGNEE_OPTIONS })
+export async function getAlertAssigneeOptions(): Promise<ApiResponse<AlertAssigneeOption[]>> {
+  const res = await request.get<ApiResponse<unknown>>('/api/system/alerts/assignees')
+  return { ...res, data: normalizeAlertAssigneeList(res.data) }
 }
 
 /**
  * 获取已处理告警的处理时间线
  * @param alertId - 告警 ID
  */
-export function getAlertTimeline(alertId: string): Promise<ApiResponse<AlertTimeline>> {
-  const timeline = getMockAlertTimeline(alertId)
-  if (!timeline) {
-    return Promise.reject(new Error('暂无处理时间线'))
-  }
-  // TODO: replace with → return request.get(`/api/system/alerts/${alertId}/timeline`)
-  return Promise.resolve({ code: 200, message: 'ok', data: timeline })
+export async function getAlertTimeline(alertId: string): Promise<ApiResponse<AlertTimeline>> {
+  const res = await request.get<ApiResponse<unknown>>(`/api/system/alerts/${alertId}/timeline`)
+  return { ...res, data: normalizeAlertTimeline(res.data, alertId) }
 }
 
 /**
  * 获取审计日志列表（分页 + 筛选）
  * @param params - TraceID、用户、模块、结果、时间范围、分页
  */
-export function getLogList(
+export async function getLogList(
   params: LogQueryParams,
 ): Promise<ApiResponse<PageResult<LogListItem>>> {
-  const page = params.page ?? 1
-  const pageSize = params.pageSize ?? DEFAULT_PAGE_SIZE
-
-  const sorted = filterMockLogList(params)
-  const start = (page - 1) * pageSize
-  const list = sorted.slice(start, start + pageSize)
-
-  // TODO: replace with → return request.get('/api/system/logs', { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: {
-      list,
-      total: sorted.length,
-      page,
-      pageSize,
-    },
+  const res = await request.get<ApiResponse<unknown>>('/api/system/logs', {
+    params: systemQueryParamsToApi(params),
   })
+  const pageRaw = res.data ?? res
+  return { ...res, data: normalizeLogPage(pageRaw) }
 }
 
 /**
  * 获取全链路日志详情（抽屉打开时请求）
  * @param logId - 日志记录 ID
  */
-export function getLogDetail(logId: string): Promise<ApiResponse<LogDetail>> {
-  const detail = getMockLogDetail(logId)
-  if (!detail) {
-    return Promise.reject(new Error('日志不存在'))
-  }
-
-  // TODO: replace with → return request.get(`/api/system/logs/${logId}`)
-  return Promise.resolve({ code: 200, message: 'ok', data: detail })
+export async function getLogDetail(logId: string): Promise<ApiResponse<LogDetail>> {
+  const res = await request.get<ApiResponse<unknown>>(`/api/system/logs/${logId}`)
+  return { ...res, data: normalizeLogDetail(res.data, logId) }
 }
 
 /**
  * 按时间范围导出系统日志，返回可下载文件链接
  * @param params - 起止时间与导出格式
  */
-export function exportLogs(params: LogExportParams): Promise<ApiResponse<LogExportResult>> {
-  // TODO: replace with → return request.post('/api/system/logs/export', params)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockLogExportResult(params),
-  })
+export async function exportLogs(params: LogExportParams): Promise<ApiResponse<LogExportResult>> {
+  const res = await request.post<ApiResponse<unknown>>(
+    '/api/system/logs/export',
+    logExportParamsToApi(params),
+  )
+  return { ...res, data: normalizeLogExportResult(res.data) }
 }
 
 /**
