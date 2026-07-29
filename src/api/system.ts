@@ -27,6 +27,7 @@ import type {
 } from '@/types/system'
 import {
   createDepartmentParamsToApi,
+  alertQueryParamsToApi,
   handleAlertParamsToApi,
   logExportParamsToApi,
   normalizeAlertAssigneeList,
@@ -69,10 +70,10 @@ export async function getAlertList(
   params: AlertQueryParams,
 ): Promise<ApiResponse<PageResult<AlertListItem>>> {
   const res = await request.get<ApiResponse<unknown>>('/api/system/alerts', {
-    params: systemQueryParamsToApi(params),
+    params: alertQueryParamsToApi(params),
   })
   const pageRaw = res.data ?? res
-  return { ...res, data: normalizeAlertPage(pageRaw) }
+  return { ...res, data: normalizeAlertPage(pageRaw, params.status) }
 }
 
 /**

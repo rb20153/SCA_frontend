@@ -7,6 +7,7 @@ import type {
   AlertLevel,
   AlertListItem,
   AlertQueryParams,
+  AlertQueueStatus,
   AlertRelatedProject,
   AlertRelatedTask,
   AlertTimeline,
@@ -159,11 +160,39 @@ function normalizeAlertLevel(raw: unknown): AlertLevel {
   return 'normal'
 }
 
-/** 规范告警队列状态 */
-function normalizeAlertStatus(raw: unknown): AlertListItem['status'] {
-  const text = String(raw ?? '').toLowerCase()
-  if (text === 'handled' || text === 'resolved' || text === 'closed' || text === 'done') {
+/** 规范告警队列状态（列表项 status 为 handled 即已处理） */
+function normalizeAlertStatus(
+  raw: unknown,
+  context?: Record<string, unknown>,
+): AlertListItem['status'] {
+  const text = String(raw ?? '').trim().toLowerCase()
+  if (
+    text === 'handled' ||
+    text === 'resolved' ||
+    text === 'closed' ||
+    text === 'done' ||
+    text === 'processed'
+  ) {
     return 'handled'
+  }
+  if (
+    text === 'pending' ||
+    text === 'unhandled' ||
+    text === 'open' ||
+    text === 'new' ||
+    text === 'active'
+  ) {
+    return 'pending'
+  }
+  if (context) {
+    const handler = pickFirstNonEmptyString(
+      context.handler,
+      context.handler_name,
+      context.handlerName,
+    )
+    if (handler) {
+      return 'handled'
+    }
   }
   return 'pending'
 }
@@ -190,42 +219,39 @@ function normalizeAlertTaskType(raw: unknown): TaskType {
 }
 
 /** 规范告警关联任务 */
-function normalizeAlertRelatedTask(raw: unknown): AlertRelatedTask | undefined {
+/** 规范告警关联任务（空对象时返回空字符串字段，供详情页展示占位文案） */
+function normalizeAlertRelatedTask(raw: unknown): AlertRelatedTask {
   if (!raw || typeof raw !== 'object') {
-    return undefined
+    return { taskId: '', taskName: '', taskType: 'autonomy' }
   }
   const obj = raw as Record<string, unknown>
-  const taskId = pickFirstNonEmptyString(obj.taskId, obj.task_id, obj.id)
-  if (!taskId) {
-    return undefined
-  }
   return {
-    taskId,
+    taskId: pickFirstNonEmptyString(obj.taskId, obj.task_id, obj.id),
     taskName: pickFirstNonEmptyString(obj.taskName, obj.task_name, obj.name),
     taskType: normalizeAlertTaskType(obj.taskType ?? obj.type),
   }
 }
 
-/** 规范告警关联项目 */
-function normalizeAlertRelatedProject(raw: unknown): AlertRelatedProject | undefined {
+/** 规范告警关联项目（空对象时返回空字符串字段） */
+function normalizeAlertRelatedProject(raw: unknown): AlertRelatedProject {
   if (!raw || typeof raw !== 'object') {
-    return undefined
+    return { projectId: '', projectName: '' }
   }
   const obj = raw as Record<string, unknown>
-  const projectId = pickFirstNonEmptyString(obj.projectId, obj.project_id, obj.id)
-  if (!projectId) {
-    return undefined
-  }
   return {
-    projectId,
+    projectId: pickFirstNonEmptyString(obj.projectId, obj.project_id, obj.id),
     projectName: pickFirstNonEmptyString(obj.projectName, obj.project_name, obj.name),
   }
 }
 
 /** 规范告警列表项 */
 export function normalizeAlertListItem(raw: Record<string, unknown>): AlertListItem {
-  const status = normalizeAlertStatus(raw.status)
-  const handledAtRaw = raw.handledAt ?? raw.handled_at ?? raw.processedAt
+  const status = normalizeAlertStatus(raw.status, raw)
+  const handledAtRaw =
+    raw.handledAt ??
+    raw.handled_at ??
+    raw.processedAt ??
+    (status === 'handled' ? raw.updated_at ?? raw.updatedAt : undefined)
   const isReadRaw = raw.isRead ?? raw.is_read ?? raw.read
 
   const item: AlertListItem = {
@@ -260,13 +286,29 @@ export function normalizeAlertListItem(raw: Record<string, unknown>): AlertListI
   return item
 }
 
-/** 规范告警分页结果 */
-export function normalizeAlertPage(raw: unknown): PageResult<AlertListItem> {
+/** 规范告警分页结果；按 Tab 请求的 status 过滤 list（兼容后端未筛队列） */
+export function normalizeAlertPage(
+  raw: unknown,
+  requestedStatus?: AlertQueueStatus,
+): PageResult<AlertListItem> {
   const page = normalizePageResult(unwrapPageRaw(raw), normalizeAlertListItem)
-  if (page.list.length > 0 && page.total < page.list.length) {
-    return { ...page, total: page.list.length }
+  if (!requestedStatus) {
+    if (page.list.length > 0 && page.total < page.list.length) {
+      return { ...page, total: page.list.length }
+    }
+    return page
   }
-  return page
+
+  const list = page.list.filter((item) => item.status === requestedStatus)
+  const removedCount = page.list.length - list.length
+  const total =
+    removedCount > 0 ? Math.max(list.length, page.total - removedCount) : page.total
+
+  return {
+    ...page,
+    list,
+    total,
+  }
 }
 
 /** 规范告警中心概览统计 */
@@ -279,40 +321,94 @@ export function normalizeAlertCenterOverview(raw: unknown): AlertCenterOverview 
   }
 }
 
+/** 规范告警处置建议（兼容 suggestions 空数组 + suggestion 字符串） */
+function normalizeAlertSuggestions(obj: Record<string, unknown>): string[] {
+  for (const candidate of [obj.suggestions, obj.suggestionList]) {
+    if (Array.isArray(candidate)) {
+      const list = candidate
+        .map((item) => String(item ?? '').trim())
+        .filter(Boolean)
+      if (list.length > 0) {
+        return list
+      }
+    }
+  }
+
+  const single = pickFirstNonEmptyString(
+    obj.suggestion,
+    obj.advice,
+    obj.handle_suggestion,
+    obj.processing_suggestion,
+  )
+  if (single) {
+    return [single]
+  }
+
+  const suggestionsRaw = obj.suggestions ?? obj.suggestionList
+  if (typeof suggestionsRaw === 'string' && suggestionsRaw.trim()) {
+    return [suggestionsRaw.trim()]
+  }
+
+  return []
+}
+
 /** 规范告警详情 */
 export function normalizeAlertDetail(raw: unknown, alertId?: string): AlertDetail {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-  const suggestionsRaw = obj.suggestions ?? obj.suggestionList ?? obj.advice
-  const suggestions = Array.isArray(suggestionsRaw)
-    ? suggestionsRaw.map((item) => String(item ?? '').trim()).filter(Boolean)
-    : typeof suggestionsRaw === 'string' && suggestionsRaw.trim()
-      ? [suggestionsRaw.trim()]
-      : []
+  const suggestions = normalizeAlertSuggestions(obj)
 
   const relatedTask = normalizeAlertRelatedTask(obj.relatedTask ?? obj.related_task ?? obj.task)
   const relatedProject = normalizeAlertRelatedProject(
     obj.relatedProject ?? obj.related_project ?? obj.project,
   )
 
-  const handledAtRaw = obj.handledAt ?? obj.handled_at
+  const handledAtRaw = obj.handledAt ?? obj.handled_at ?? obj.processedAt
   const handlerName = pickFirstNonEmptyString(obj.handlerName, obj.handler_name, obj.handler)
+  const triggerRule = pickFirstNonEmptyString(obj.triggerRule, obj.trigger_rule, obj.rule)
+  const content = pickFirstNonEmptyString(obj.content, obj.detail, obj.description)
+  const sourceModule = pickFirstNonEmptyString(
+    obj.sourceModule,
+    obj.source_module,
+    obj.module,
+    obj.source,
+  )
+  const evidence = pickFirstNonEmptyString(obj.evidence, obj.evidence_text, obj.proof)
+  const traceId = pickFirstNonEmptyString(obj.traceId, obj.trace_id, obj.traceID)
+  const handleNote = pickFirstNonEmptyString(
+    obj.handleNote,
+    obj.handle_note,
+    obj.handleRemark,
+    obj.remark,
+  )
 
   const detail: AlertDetail = {
     alertId: pickFirstNonEmptyString(obj.alertId, obj.alert_id, obj.id, alertId),
     level: normalizeAlertLevel(obj.level ?? obj.severity),
     title: pickFirstNonEmptyString(obj.title, obj.alertTitle, obj.name),
-    triggerRule: pickFirstNonEmptyString(obj.triggerRule, obj.trigger_rule, obj.rule),
-    occurredAt: String(obj.occurredAt ?? obj.occurred_at ?? obj.triggerTime ?? ''),
-    status: normalizeAlertStatus(obj.status),
-    content: String(obj.content ?? obj.detail ?? obj.description ?? ''),
+    occurredAt: String(obj.occurredAt ?? obj.occurred_at ?? obj.triggerTime ?? obj.createdAt ?? ''),
+    status: normalizeAlertStatus(obj.status, obj),
     suggestions,
+    relatedTask,
+    relatedProject,
   }
 
-  if (relatedTask) {
-    detail.relatedTask = relatedTask
+  if (triggerRule) {
+    detail.triggerRule = triggerRule
   }
-  if (relatedProject) {
-    detail.relatedProject = relatedProject
+  if (content) {
+    detail.content = content
+  }
+  if (sourceModule) {
+    detail.sourceModule = sourceModule
+  }
+  if (evidence) {
+    detail.evidence = evidence
+  }
+  if (traceId) {
+    detail.traceId = traceId
+  }
+  if (handleNote) {
+    detail.handleNote = handleNote
   }
   if (handledAtRaw !== undefined && handledAtRaw !== null && handledAtRaw !== '') {
     detail.handledAt = String(handledAtRaw)
@@ -568,6 +664,30 @@ export function normalizeRolePage(raw: unknown): PageResult<Role> {
     return { ...page, total: page.list.length }
   }
   return page
+}
+
+/**
+ * 告警列表查询参数 → 后端 query
+ * @param params - 分页、队列 status、级别、已读、日期
+ */
+export function alertQueryParamsToApi(params: AlertQueryParams): Record<string, unknown> {
+  const query: Record<string, unknown> = {
+    status: params.status,
+    page: params.page,
+    pageSize: params.pageSize,
+    current: params.page,
+    size: params.pageSize,
+  }
+  if (params.level) {
+    query.level = params.level
+  }
+  if (params.readStatus) {
+    query.readStatus = params.readStatus
+  }
+  if (params.occurredDate) {
+    query.occurredDate = params.occurredDate
+  }
+  return query
 }
 
 /**

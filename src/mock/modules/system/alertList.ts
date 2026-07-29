@@ -250,8 +250,8 @@ function registerDetailFromSeed(
     occurredAt,
     status: status === 'pending' ? 'pending' : 'handled',
     content: seed.content,
-    relatedTask: seed.relatedTask,
-    relatedProject: seed.relatedProject,
+    relatedTask: seed.relatedTask ?? { taskId: '', taskName: '', taskType: 'autonomy' },
+    relatedProject: seed.relatedProject ?? { projectId: '', projectName: '' },
     suggestions: seed.suggestions,
     handledAt:
       status === 'handled'
@@ -356,6 +356,8 @@ export function getMockAlertDetail(alertId: string): AlertDetail | null {
     status: found.status,
     content: `${found.title}：系统检测到异常，请结合来源模块「${found.sourceModule}」进一步排查。`,
     suggestions: ['查看相关模块运行日志', '确认近期配置或数据是否有变更'],
+    relatedTask: { taskId: '', taskName: '', taskType: 'autonomy' },
+    relatedProject: { projectId: '', projectName: '' },
     handledAt: found.handledAt,
     handlerName: found.handlerName,
   }

@@ -5,6 +5,55 @@
 
 ---
 
+## [2026-07-29] 告警列表 · 按 status 过滤未处理/已处理队列
+
+### 改了什么
+
+- `normalizeAlertStatus`：后端 `status: handled` 映射为已处理；兼容 `processed` / `unhandled` 等
+- `normalizeAlertPage`：按当前 Tab 请求的 `status` 过滤 list（后端返回混合数据时，handled 不进未处理 Tab）
+- `alertQueryParamsToApi`：列表 query 显式传 `status`、`page`/`current`、`pageSize`/`size`
+- `AlertTable`：状态列按列表项真实 `status` 渲染，不再只看 Tab
+
+### 注意
+
+- 若后端未按 status 筛分页 total 可能偏大，前端会按当前页剔除数扣减 total
+
+---
+
+## [2026-07-29] 告警处理 · 转派复核改用用户搜索选人
+
+### 改了什么
+
+- `AlertHandleModal.vue`：「转派复核」指派负责人由 `a-select` 改为 `UserSearchInput`
+- 调用 `searchUsers()`（`GET /api/system/users/search`），与项目负责人、漏洞登记处置等场景一致
+- 提交时仍传 `assigneeUserId`；须从搜索结果列表点选，不能只填姓名
+
+### 注意
+
+- 不再调用 `getAlertAssigneeOptions()`；该 api 函数保留但当前无页面引用
+
+---
+
+## [2026-07-29] 告警处理时间线弹窗 · 固定尺寸与内部滚动
+
+### 改了什么
+
+- `AlertTimelineModal.vue`：内容区固定高度 480px，宽 720px 不变
+- 加载中 spinner 居中显示在空白内容区；加载完成后弹窗尺寸不变
+- 时间线列表区域 `overflow-y: auto`，条目多时在模块内滚动
+
+---
+
+## [2026-07-29] 告警详情抽屉 · 对齐后端字段
+
+### 改了什么
+
+- `AlertDetail` 增 `sourceModule` / `evidence` / `traceId` / `handleNote`；`triggerRule` / `content` 改可选
+- `normalizeAlertDetail`：映射 `source_module`、`evidence`、`suggestion`（空 `suggestions` 数组时回退读 `suggestion` 字符串）、`handle_note`、`trace_id`；`relatedTask` / `relatedProject` 始终规范化
+- `AlertDetailDrawer.vue`：表格内「处理建议」紧接「证据」；未处理显示建议、不显示处理记录；已处理显示处理记录、不显示建议；移除 TraceID；表格下独立关联任务/项目模块
+
+---
+
 ## [2026-07-29] 告警中心 / 日志列表 · 9 个接口切真实 API
 
 ### 改了什么

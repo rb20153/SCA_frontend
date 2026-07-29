@@ -69,13 +69,26 @@ export interface AlertDetail {
   alertId: string
   level: AlertLevel
   title: string
-  triggerRule: string
   occurredAt: string
   status: 'pending' | 'handled'
-  content: string
-  relatedTask?: AlertRelatedTask
-  relatedProject?: AlertRelatedProject
+  /** 处置建议（后端 suggestion 字符串或 suggestions 数组） */
   suggestions: string[]
+  /** 触发规则（后端无值时不展示） */
+  triggerRule?: string
+  /** 告警正文（后端无值时不展示） */
+  content?: string
+  /** 来源模块，如检测引擎 */
+  sourceModule?: string
+  /** 证据说明 */
+  evidence?: string
+  /** 全链路 TraceID */
+  traceId?: string
+  /** 处理记录 / 处置备注 */
+  handleNote?: string
+  /** 关联任务（后端 relatedTask，可能为空对象） */
+  relatedTask: AlertRelatedTask
+  /** 关联项目（后端 relatedProject，可能为空对象） */
+  relatedProject: AlertRelatedProject
   handledAt?: string
   handlerName?: string
 }

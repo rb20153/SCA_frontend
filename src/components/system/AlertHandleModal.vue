@@ -38,11 +38,11 @@
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="指派负责人" required>
-              <a-select
-                v-model:value="assigneeUserId"
-                placeholder="请选择"
-                :options="assigneeSelectOptions"
-                class="modal-select-full"
+              <UserSearchInput
+                ref="assigneeSearchRef"
+                v-model="assignee"
+                :search-users="searchAssigneeUsers"
+                placeholder="请输入负责人姓名"
               />
             </a-form-item>
           </a-col>
@@ -132,10 +132,13 @@ import { computed, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import type { Dayjs } from 'dayjs'
 import dayjs from 'dayjs'
-import { getAlertAssigneeOptions, getAlertDetail, handleAlert } from '@/api/system'
+import { getAlertDetail, handleAlert } from '@/api/system'
+import { searchUsers } from '@/api/user'
+import UserSearchInput from '@/components/common/UserSearchInput.vue'
 import { useAuthStore } from '@/stores/auth'
 import type { AlertDisposition, AlertListItem } from '@/types/system'
 import { ALERT_DISPOSITION } from '@/types/system'
+import type { UserSearchCandidate } from '@/types/user'
 import {
   ALERT_DISPOSITION_OPTIONS,
   getAlertDispositionFollowUp,
@@ -156,13 +159,13 @@ const authStore = useAuthStore()
 const submitting = ref(false)
 const disposition = ref<AlertDisposition | undefined>(undefined)
 const remark = ref('')
-const assigneeUserId = ref<string | undefined>(undefined)
+const assignee = ref<UserSearchCandidate | null>(null)
+const assigneeSearchRef = ref<InstanceType<typeof UserSearchInput> | null>(null)
 const plannedCompleteAt = ref<Dayjs | undefined>(dayjs().add(8, 'hour'))
 const notifyAuditor = ref(true)
 const notifyTaskOwner = ref(false)
 const notifyOps = ref(false)
 const relatedTaskName = ref<string | undefined>(undefined)
-const assigneeSelectOptions = ref<{ value: string; label: string }[]>([])
 
 const dispositionOptions = ALERT_DISPOSITION_OPTIONS.map((item) => ({
   value: item.value,
@@ -176,27 +179,26 @@ const followUp = computed(() =>
     : null,
 )
 
-/** 打开弹窗时重置表单并拉取关联任务名、转派候选人 */
+/** 防抖搜索转派负责人 */
+async function searchAssigneeUsers(keyword: string): Promise<UserSearchCandidate[]> {
+  const res = await searchUsers(keyword)
+  return res.data
+}
+
+/** 打开弹窗时重置表单并拉取关联任务名 */
 async function initForm() {
   disposition.value = undefined
   remark.value = ''
-  assigneeUserId.value = undefined
+  assignee.value = null
+  assigneeSearchRef.value?.reset()
   plannedCompleteAt.value = dayjs().add(8, 'hour')
   notifyAuditor.value = true
   notifyTaskOwner.value = false
   notifyOps.value = false
   relatedTaskName.value = undefined
 
-  const [assigneeRes] = await Promise.all([
-    getAlertAssigneeOptions(),
-    props.alert ? loadRelatedTaskName(props.alert.alertId) : Promise.resolve(),
-  ])
-  assigneeSelectOptions.value = assigneeRes.data.map((item) => ({
-    value: item.userId,
-    label: item.label,
-  }))
-  if (assigneeSelectOptions.value.length > 0) {
-    assigneeUserId.value = assigneeSelectOptions.value[0].value
+  if (props.alert) {
+    await loadRelatedTaskName(props.alert.alertId)
   }
 }
 
@@ -229,9 +231,15 @@ async function handleSubmit() {
   }
   if (
     disposition.value === ALERT_DISPOSITION.TransferReview &&
-    !assigneeUserId.value
+    !assigneeSearchRef.value?.hasSelectedUser()
   ) {
-    message.warning('请选择指派负责人')
+    message.warning('请从列表中选择指派负责人')
+    return Promise.reject()
+  }
+
+  const assigneeUser = assignee.value
+  if (disposition.value === ALERT_DISPOSITION.TransferReview && !assigneeUser) {
+    message.warning('请从列表中选择指派负责人')
     return Promise.reject()
   }
 
@@ -243,7 +251,7 @@ async function handleSubmit() {
       {
         disposition: disposition.value,
         remark: remark.value.trim() || undefined,
-        assigneeUserId: assigneeUserId.value,
+        assigneeUserId: assigneeUser?.userId,
         plannedCompleteAt: plannedCompleteAt.value?.toISOString(),
         notifyAuditor: notifyAuditor.value,
         notifyTaskOwner: notifyTaskOwner.value,

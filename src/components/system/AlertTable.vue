@@ -42,7 +42,7 @@
       </template>
 
       <template v-else-if="column.key === 'status'">
-        <a-tag v-if="queueStatus === 'pending'" color="warning">未处理</a-tag>
+        <a-tag v-if="getAlert(row).status === 'pending'" color="warning">未处理</a-tag>
         <a-tag v-else color="success">已处理</a-tag>
       </template>
 
