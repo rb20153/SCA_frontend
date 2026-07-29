@@ -7,6 +7,18 @@ export function normalizePageResult<T>(
   raw: unknown,
   mapItem: (item: Record<string, unknown>) => T,
 ): PageResult<T> {
+  if (Array.isArray(raw)) {
+    const list = raw.map((item) =>
+      mapItem(item && typeof item === 'object' ? (item as Record<string, unknown>) : {}),
+    )
+    return {
+      list,
+      total: list.length,
+      page: 1,
+      pageSize: list.length || 10,
+    }
+  }
+
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
   const listRaw = obj.list ?? obj.items ?? obj.records ?? []
   const list = Array.isArray(listRaw)

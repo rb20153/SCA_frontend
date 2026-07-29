@@ -136,6 +136,8 @@ export interface AutonomyFileDetailSummary {
   /** 整体问题率 0–100 */
   overallIssueRate: number
   sourceProject: string
+  /** 来源仓库链接（可点击跳转） */
+  sourceUrl: string
   sourceVersion: string
   /** 最高置信度 0–1 */
   maxConfidence: number
@@ -160,7 +162,15 @@ export interface AutonomyCodeEvidenceItem {
   alertType: AutonomyCodeAlertType
   confidence: number
   sourceProject: string
+  /** 来源仓库链接，有值时来源项目可点击跳转 */
+  sourceUrl: string
   sourceVersion: string
+  /** 命中来源的许可证，如 GPL-3.0-only */
+  license: string
+  /** 解析摘要（篡改/相似度分析） */
+  tamperAnalysis: string
+  /** 处置建议 */
+  suggestion: string
   currentCode: AutonomyCodeDiffPane
   suspectedCode: AutonomyCodeDiffPane
 }
@@ -193,7 +203,9 @@ export interface AutonomySourceHitItem {
   /** 来源知识库项目名称 */
   kbProjectName: string
   kbVersion: string
-  /** 命中被测文件名称列表（定位时取首个） */
+  /** 命中被测文件路径（表格「命中文件」列直接展示） */
+  filePath: string
+  /** 命中被测文件名称列表（定位时按 filePath → 列表顺序尝试） */
   hitFileNames: string[]
   license: string
   riskLevel: AutonomySourceHitRiskLevel

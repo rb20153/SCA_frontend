@@ -69,8 +69,21 @@ async function fetchEvidenceTree() {
 }
 
 /**
- * 按文件名定位并高亮（来源汇总「定位」回调）
- * @param fileName - 命中文件名
+ * 按 nodeId 展开路径并选中（来源汇总「定位」，与 evidence 树 id 对齐）
+ * @param nodeId - 证据树文件节点 ID
+ */
+function locateFileByNodeId(nodeId: string): boolean {
+  const node = findFileTreeNodeById(treeNodes.value, nodeId)
+  if (!node || node.type !== 'file') {
+    return false
+  }
+  treeRef.value?.locateFile(nodeId)
+  return true
+}
+
+/**
+ * 按文件名展开路径并高亮（来源汇总「定位」回调）
+ * @param fileName - 命中文件名或路径
  * @returns 是否定位成功
  */
 function locateFileByName(fileName: string): boolean {
@@ -80,6 +93,7 @@ function locateFileByName(fileName: string): boolean {
 onMounted(fetchEvidenceTree)
 
 defineExpose({
+  locateFileByNodeId,
   locateFileByName,
 })
 </script>

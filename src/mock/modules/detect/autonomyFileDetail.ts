@@ -4,7 +4,9 @@ interface FileDetailSeed {
   fileTypeLabel: string
   issueLineRanges: string
   sourceProject: string
+  sourceUrl: string
   sourceVersion: string
+  license: string
   maxConfidence: number
   codeEvidenceCount: number
   fingerprintEvidenceCount: number
@@ -16,7 +18,9 @@ const FILE_DETAIL_SEEDS: Record<string, FileDetailSeed> = {
     fileTypeLabel: '文本文件',
     issueLineRanges: '120-132，54-58',
     sourceProject: 'OpenFOAM',
+    sourceUrl: 'https://github.com/OpenFOAM/OpenFOAM-dev',
     sourceVersion: 'v2312',
+    license: 'GPL-3.0-only',
     maxConfidence: 0.91,
     codeEvidenceCount: 2,
     fingerprintEvidenceCount: 3,
@@ -25,7 +29,9 @@ const FILE_DETAIL_SEEDS: Record<string, FileDetailSeed> = {
     fileTypeLabel: '文本文件',
     issueLineRanges: '88-95',
     sourceProject: 'Eigen',
+    sourceUrl: 'https://gitlab.com/libeigen/eigen',
     sourceVersion: '3.4.0',
+    license: 'MPL-2.0',
     maxConfidence: 0.74,
     codeEvidenceCount: 1,
     fingerprintEvidenceCount: 0,
@@ -34,7 +40,9 @@ const FILE_DETAIL_SEEDS: Record<string, FileDetailSeed> = {
     fileTypeLabel: '文本文件',
     issueLineRanges: '42-48',
     sourceProject: 'OpenFOAM',
+    sourceUrl: 'https://github.com/OpenFOAM/OpenFOAM-dev',
     sourceVersion: 'v2312',
+    license: 'GPL-3.0-only',
     maxConfidence: 0.68,
     codeEvidenceCount: 1,
     fingerprintEvidenceCount: 0,
@@ -43,7 +51,9 @@ const FILE_DETAIL_SEEDS: Record<string, FileDetailSeed> = {
     fileTypeLabel: '配置文件',
     issueLineRanges: '12-18',
     sourceProject: 'OpenFOAM',
+    sourceUrl: 'https://github.com/OpenFOAM/OpenFOAM-dev',
     sourceVersion: 'v2312',
+    license: 'GPL-3.0-only',
     maxConfidence: 0.72,
     codeEvidenceCount: 1,
     fingerprintEvidenceCount: 0,
@@ -52,7 +62,9 @@ const FILE_DETAIL_SEEDS: Record<string, FileDetailSeed> = {
     fileTypeLabel: '配置文件',
     issueLineRanges: '—',
     sourceProject: 'OpenFOAM',
+    sourceUrl: 'https://github.com/OpenFOAM/OpenFOAM-dev',
     sourceVersion: 'v2312',
+    license: 'GPL-3.0-only',
     maxConfidence: 0.55,
     codeEvidenceCount: 0,
     fingerprintEvidenceCount: 0,
@@ -75,7 +87,11 @@ function buildSolverCodeEvidences(prefix: string): AutonomyCodeEvidenceItem[] {
       alertType: 'high-similarity',
       confidence: 0.91,
       sourceProject: 'OpenFOAM',
+      sourceUrl: 'https://github.com/OpenFOAM/OpenFOAM-dev',
       sourceVersion: 'v2312',
+      license: 'GPL-3.0-only',
+      tamperAnalysis: '变量名和局部表达式被替换，控制流和数值求解结构高度一致。',
+      suggestion: '人工复核来源并确认许可证义务。',
       currentCode: {
         paneTitle: '当前被检测代码 · solver.cpp L128-132',
         lines: [
@@ -106,7 +122,11 @@ function buildSolverCodeEvidences(prefix: string): AutonomyCodeEvidenceItem[] {
       alertType: 'fragment-reassembly',
       confidence: 0.88,
       sourceProject: 'OpenFOAM',
+      sourceUrl: 'https://github.com/OpenFOAM/OpenFOAM-dev',
       sourceVersion: 'v2312',
+      license: 'GPL-3.0-only',
+      tamperAnalysis: '',
+      suggestion: '',
       currentCode: {
         paneTitle: '当前被检测代码 · solver.cpp L54-58',
         lines: [
@@ -141,7 +161,9 @@ function buildGenericCodeEvidence(
   alertType: AutonomyCodeEvidenceItem['alertType'],
   confidence: number,
   sourceProject: string,
+  sourceUrl: string,
   sourceVersion: string,
+  license: string,
   suspectPath: string,
 ): AutonomyCodeEvidenceItem {
   const [startLine, endLine] = lineRange.split('-').map((part) => Number.parseInt(part, 10))
@@ -153,7 +175,11 @@ function buildGenericCodeEvidence(
     alertType,
     confidence,
     sourceProject,
+    sourceUrl,
     sourceVersion,
+    license,
+    tamperAnalysis: '',
+    suggestion: '',
     currentCode: {
       paneTitle: `当前被检测代码 · ${fileName} L${lineRange}`,
       lines: [
@@ -216,7 +242,9 @@ function buildCodeEvidences(
       localId === 'file-mesh' ? 'high-similarity' : 'fragment-reassembly',
       seed.maxConfidence,
       seed.sourceProject,
+      seed.sourceUrl,
       seed.sourceVersion,
+      seed.license,
       suspectByFile[localId] ?? seed.sourceProject,
     ),
   ]
@@ -308,6 +336,7 @@ export function getMockAutonomyFileDetail(
       issueLineRanges: seed.issueLineRanges,
       overallIssueRate,
       sourceProject: seed.sourceProject,
+      sourceUrl: seed.sourceUrl,
       sourceVersion: seed.sourceVersion,
       maxConfidence: seed.maxConfidence,
     },

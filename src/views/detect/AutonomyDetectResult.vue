@@ -79,23 +79,37 @@ async function fetchOverview() {
 }
 
 /**
- * 来源汇总「定位」：切回文件证据 Tab 并高亮该行首个命中文件
+ * 来源汇总「定位」：切回文件证据 Tab，优先按 hitId 对齐树节点，再按命中文件路径/文件名匹配
  * @param item - 来源汇总行数据
  */
 async function handleLocateFromSource(item: AutonomySourceHitItem) {
-  const fileName = item.hitFileNames[0]
-  if (!fileName) {
+  activeTab.value = 'evidence'
+  await nextTick()
+
+  if (item.hitId && evidencePanelRef.value?.locateFileByNodeId(item.hitId)) {
+    return
+  }
+
+  const fileCandidates = [
+    item.filePath,
+    ...item.hitFileNames,
+  ].filter(Boolean)
+  for (const fileName of fileCandidates) {
+    if (evidencePanelRef.value?.locateFileByName(fileName)) {
+      return
+    }
+  }
+
+  if (fileCandidates.length === 0 && !item.hitId) {
     message.warning('该行无命中文件可定位')
     return
   }
 
-  activeTab.value = 'evidence'
-  await nextTick()
-
-  const located = evidencePanelRef.value?.locateFileByName(fileName)
-  if (!located) {
-    message.warning(`未在证据树中找到文件「${fileName}」`)
-  }
+  message.warning(
+    fileCandidates.length > 0
+      ? `未在证据树中找到文件「${fileCandidates[0]}」`
+      : `未在证据树中找到节点「${item.hitId}」`,
+  )
 }
 
 onMounted(fetchOverview)

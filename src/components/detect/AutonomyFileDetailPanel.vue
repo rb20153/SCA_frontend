@@ -21,7 +21,16 @@
         </div>
         <div class="desc-item">
           <span class="desc-label">来源项目</span>
-          <DetailText :text="detail.summary.sourceProject" />
+          <a
+            v-if="detail.summary.sourceUrl"
+            class="source-link"
+            :href="detail.summary.sourceUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ detail.summary.sourceProject }}
+          </a>
+          <DetailText v-else :text="detail.summary.sourceProject" />
         </div>
         <div class="desc-item">
           <span class="desc-label">来源版本</span>
@@ -158,6 +167,15 @@ watch(
   min-width: 0;
   font-size: 14px;
   color: rgba(0, 0, 0, 0.88);
+}
+
+.source-link {
+  color: #1677ff;
+  text-decoration: none;
+}
+
+.source-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 992px) {

@@ -1,8 +1,10 @@
 import type { PageResult } from '@/types/common'
 import type { DetectTask } from '@/types/detect'
 import type {
+  CreateProjectParams,
   Project,
   ProjectDeliverable,
+  ProjectDeliverableCollectStatus,
   ProjectDeliverableDownloadResult,
   ProjectMember,
   ProjectMemberRole,
@@ -10,6 +12,7 @@ import type {
   ProjectQueryParams,
   ProjectStatus,
   UpdateProjectBasicInfoParams,
+  UpdateProjectParams,
 } from '@/types/project'
 import { normalizeDetectTask } from '@/utils/detectAdapter'
 import { normalizePolicyDetectParams } from '@/utils/policyAdapter'
@@ -150,7 +153,42 @@ export function normalizeProjectPage(raw: unknown): PageResult<Project> {
 }
 
 /**
- * 详情 · 基本信息更新请求体
+ * 创建项目 · POST /api/projects 请求体（仅基本信息，策略/交付物走独立接口）
+ */
+export function createProjectParamsToApi(data: CreateProjectParams): Record<string, unknown> {
+  return {
+    projectName: data.projectName,
+    name: data.projectName,
+    description: data.description,
+    owner: data.owner,
+    ownerUserId: data.ownerUserId,
+    department: data.department,
+    departmentId: data.departmentId,
+  }
+}
+
+/**
+ * 列表编辑 / 详情基本信息 · PUT /api/projects/:id 请求体
+ * 负责人与部门按名称提交；status 转为后端中文枚举（与列表筛选一致）
+ */
+export function updateProjectParamsToApi(data: UpdateProjectParams): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    description: data.description,
+    owner: data.owner,
+    department: data.department,
+  }
+  if (data.projectName !== undefined && data.projectName !== '') {
+    body.projectName = data.projectName
+    body.name = data.projectName
+  }
+  if (data.status) {
+    body.status = PROJECT_STATUS_TO_API[data.status]
+  }
+  return body
+}
+
+/**
+ * 详情 · 基本信息更新请求体（basic-info 专用，联调备用）
  * 后端按名称存储负责人与部门（ownerUserId/departmentId 不可靠），故同时提交名称与 ID；
  * status 用英文枚举（详情接口返回的也是英文，中文仅用于列表 query）
  */
@@ -220,25 +258,69 @@ function normalizeDeliverableType(raw: unknown): ProjectDeliverable['deliverable
   return text === 'binary' ? 'binary' : 'source'
 }
 
+/** 将后端 collect_status 规范为前端枚举 */
+function normalizeDeliverableCollectStatus(
+  raw: unknown,
+): ProjectDeliverableCollectStatus | undefined {
+  const text = String(raw ?? '').toLowerCase()
+  if (
+    text === 'pending' ||
+    text === 'collecting' ||
+    text === 'success' ||
+    text === 'failed' ||
+    text === 'deleted'
+  ) {
+    return text
+  }
+  return undefined
+}
+
+/** 判断交付物是否已被软删除（后端 DELETE 后仍可能出现在列表中） */
+function isDeletedProjectDeliverable(raw: Record<string, unknown>): boolean {
+  return normalizeDeliverableCollectStatus(raw.collectStatus ?? raw.collect_status) === 'deleted'
+}
+
 /** 将后端交付物规范为 ProjectDeliverable */
 export function normalizeProjectDeliverable(raw: Record<string, unknown>): ProjectDeliverable {
   return {
     deliverableId: String(raw.deliverableId ?? raw.id ?? ''),
     name: String(raw.name ?? raw.fileName ?? ''),
-    sourceMode: normalizeDeliverableSourceMode(raw.sourceMode ?? raw.source_mode),
+    sourceMode: normalizeDeliverableSourceMode(raw.sourceMode ?? raw.source_mode ?? raw.source_type),
     deliverableType: normalizeDeliverableType(raw.deliverableType ?? raw.type),
-    sizeBytes: Number(raw.sizeBytes ?? raw.size ?? 0),
+    sizeBytes: Number(raw.sizeBytes ?? raw.size_bytes ?? raw.size ?? 0),
     md5: String(raw.md5 ?? raw.md5Hash ?? ''),
-    uploaderName: String(raw.uploaderName ?? raw.uploader ?? ''),
-    uploadedAt: String(raw.uploadedAt ?? raw.createdAt ?? ''),
-    repositoryUrl: raw.repositoryUrl ? String(raw.repositoryUrl) : undefined,
+    uploaderName: String(raw.uploaderName ?? raw.uploader ?? raw.created_by ?? ''),
+    uploadedAt: String(raw.uploadedAt ?? raw.created_at ?? raw.createdAt ?? ''),
+    collectStatus: normalizeDeliverableCollectStatus(raw.collectStatus ?? raw.collect_status),
+    repositoryUrl: raw.repositoryUrl
+      ? String(raw.repositoryUrl)
+      : raw.git_url
+        ? String(raw.git_url)
+        : undefined,
     fileName: raw.fileName ? String(raw.fileName) : undefined,
   }
 }
 
-/** 规范交付物分页结果 */
+/** 规范交付物分页结果（过滤 collect_status=deleted 的软删除项） */
 export function normalizeProjectDeliverablePage(raw: unknown): PageResult<ProjectDeliverable> {
-  return normalizePageResult(raw, normalizeProjectDeliverable)
+  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const listRaw = obj.list ?? obj.items ?? obj.records ?? []
+  const pageItems = Array.isArray(listRaw)
+    ? (listRaw as Record<string, unknown>[])
+    : []
+
+  const visibleItems = pageItems.filter((item) => !isDeletedProjectDeliverable(item))
+  const deletedOnPage = pageItems.length - visibleItems.length
+  const list = visibleItems.map((item) => normalizeProjectDeliverable(item))
+
+  const backendTotal = Number(obj.total ?? list.length)
+
+  return {
+    list,
+    total: Math.max(list.length, backendTotal - deletedOnPage),
+    page: Number(obj.page ?? obj.current ?? 1),
+    pageSize: Number(obj.pageSize ?? obj.size ?? (list.length || 10)),
+  }
 }
 
 /** 规范交付物下载结果 */

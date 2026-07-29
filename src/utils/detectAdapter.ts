@@ -65,7 +65,7 @@ function normalizeSourceMode(raw: unknown, taskType: TaskType): TaskSourceMode {
 }
 
 /** 规范任务 status（completed → success） */
-function normalizeTaskStatus(raw: unknown): TaskStatus {
+export function normalizeTaskStatus(raw: unknown): TaskStatus {
   const key = String(raw ?? '').toLowerCase()
   return TASK_STATUS_MAP[key] ?? 'queued'
 }

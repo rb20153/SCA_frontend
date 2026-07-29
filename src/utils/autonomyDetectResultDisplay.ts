@@ -3,6 +3,7 @@ import type {
   AutonomyCodeAlertType,
   AutonomyFingerprintAlertType,
   AutonomyDetectResultTabKey,
+  AutonomySourceHitItem,
   AutonomySourceHitListFilters,
   AutonomySourceHitQueryParams,
   AutonomySourceHitRiskLevel,
@@ -88,6 +89,20 @@ export function autonomySourceHitListFiltersToQuery(
     ...(kbProjectName ? { kbProjectName } : {}),
     ...(filters.riskLevel ? { riskLevel: filters.riskLevel } : {}),
   }
+}
+
+/** 来源汇总「命中文件」列展示：优先 filePath，否则拼接 hitFileNames */
+export function formatAutonomySourceHitFileDisplay(
+  item: AutonomySourceHitItem | Record<string, unknown>,
+): string {
+  const raw = item as Record<string, unknown>
+  const path = String(raw.filePath ?? raw.file_path ?? raw.path ?? '').trim()
+  if (path) {
+    return path
+  }
+  const namesRaw = raw.hitFileNames ?? raw.hit_file_names ?? raw.files
+  const names = Array.isArray(namesRaw) ? namesRaw.map((n) => String(n)) : []
+  return formatAutonomySourceHitFiles(names)
 }
 
 /** 命中文件名称列表转为表格展示文案 */

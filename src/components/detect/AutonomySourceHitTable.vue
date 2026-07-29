@@ -9,7 +9,7 @@
   >
     <template #bodyCell="{ column, record: row, text }">
       <template v-if="column.key === 'hitFiles'">
-        {{ formatAutonomySourceHitFiles(getItem(row).hitFileNames) }}
+        {{ formatAutonomySourceHitFileDisplay(getItem(row)) || '—' }}
       </template>
 
       <template v-else-if="column.key === 'riskLevel'">
@@ -45,7 +45,7 @@ import {
   AUTONOMY_SOURCE_HIT_LEVEL_COLOR,
   AUTONOMY_SOURCE_HIT_LEVEL_LABEL,
   AUTONOMY_SOURCE_HIT_TABLE_SCROLL_X,
-  formatAutonomySourceHitFiles,
+  formatAutonomySourceHitFileDisplay,
 } from '@/utils/autonomyDetectResultDisplay'
 
 defineProps<{

@@ -5,6 +5,136 @@
 
 ---
 
+## [2026-07-29] 自主率文件详情 · evidence 类型分流与摘要展示
+
+### 改了什么
+
+- `autonomyDetectAdapter.ts`：
+  - `evidence.type === 'snippet'` 归入**代码检测证据**，指纹类型才进指纹区
+  - `buildAutonomyFileDetailSummary` **只读 `data.summary`**，不再从 `evidence[0]` 反推（仅 fileId/fileName 用树节点兜底）
+- `AutonomyFileDetailPanel.vue`：来源项目有 `summary.sourceUrl` 时可点击跳转；License 已从摘要区移除
+- `AutonomyEvidenceMetaRow.vue`：新增可选 `license`，显示在「来源版本」右侧；`sourceUrl` 有值时「来源项目」可点击新窗口打开
+- `AutonomyCodeEvidenceCard.vue`：透传 `evidence.license`、`evidence.sourceUrl`；置信度下方展示「解析摘要」「建议」
+- `types/detect.ts`：`AutonomyCodeEvidenceItem` 增 `license`/`tamperAnalysis`/`suggestion`；摘要类型去掉 `license`
+
+### 注意（联调）
+
+- 后端目前 `data.summary` 各字段为空串/0，摘要区会显示 `—` 与 `0.0%`，需后端按 `evidence` 汇总后填充
+- **来源汇总 source-hits**：列表项映射 `sourceRepo`/`filePath`/`sourceVersion`；「命中文件」列直接展示 `filePath`；`total=0` 时用 list 长度兜底；定位优先用 `hitId` 再按 `filePath`/文件名
+
+---
+
+## [2026-07-29] 自主率检测结果页 · 4 个接口切真实 API
+
+### 改了什么
+
+- `api/detect.ts`：`getAutonomyDetectResultOverview` / `getAutonomyDetectEvidenceTree` / `getAutonomyDetectFileDetail` / `getAutonomyDetectSourceHitList` 改 `request.get`
+- 新增 `utils/autonomyDetectAdapter.ts`：overview、证据树、文件详情、来源汇总字段规范化（snake_case、id/nodeId、0–1 比率等）
+- `detectAdapter.ts`：导出 `normalizeTaskStatus` 供结果页复用
+
+### 怎么实现的
+
+- 路径与 `API_detail.md` §4.11–4.14 一致
+- 证据树节点兼容 `id` / `fileId` / `nodeId`；目录 type 兼容 `folder`
+- 自主率/问题率：后端若返回 0–1 小数自动 ×100
+- 来源汇总 query 空值不下发（与任务列表一致）
+
+### 注意事项 / 联调
+
+- mock 文件仍保留在 `src/mock/modules/detect/`，`detect.ts` 已不再 import
+- **2026-07-29 字段对齐**：overview 读 `overallAutonomyRate`/`performance`/`matchedUnits`；evidence-tree 的 `nodes` 可为单根对象；source-hits 读 `records`；**file detail 读 `evidence[]`**，从 snippet 生成 summary + 指纹/代码证据（`tamperAnalysis`→指纹卡片）
+- 文件详情依赖树节点 `nodeId` 与后端 `fileId` 一致；定位支持 `src/solver.cpp` 与 `solver.cpp` 双向匹配
+
+---
+
+## [2026-07-29] 项目交付物列表：过滤 collect_status=deleted
+
+### 改了什么
+- `projectAdapter.ts` → `normalizeProjectDeliverable`：映射 `collect_status`、`source_type`、`size_bytes`、`created_by`、`git_url` 等后端字段
+- `types/project.ts`：交付物增加可选 `collectStatus`
+
+### 为什么这么做
+
+后端 DELETE 交付物为软删除，GET 列表仍返回 `collect_status: deleted` 的记录，导致删除成功后行仍展示、且可误点下载。
+
+### 注意事项
+
+- 当前页 total 会减去本页 deleted 条数；若其他页也有 deleted，total 可能略偏大（后端未提供 exclude 参数时的前端兜底）
+- 理想方案仍是后端列表接口默认不返回 deleted
+
+---
+
+## [2026-07-29] 项目交付物下载：/api/downloads 带 Token 拉 blob
+
+### 改了什么
+- `ProjectDeliverablesPanel.vue`：`await triggerReportDownload` 并捕获错误提示
+
+### 为什么这么做
+
+交付物下载已对接真实 API：`POST .../download` 返回 `{ downloadUrl: '/api/downloads/:token' }`。原先用 `<a href>` 直接打开第二跳 GET，浏览器不会带 JWT，后端返回 401。mock 阶段用的是 `blob:` URL 无此问题。
+
+### 注意事项
+
+- `getProjectDeliverableDownload` 本身早就是 `request.post`，不是 mock
+- 其他仍用 mock blob 链接的下载（报告/日志等）行为不变；日后切真实 `/api/downloads` 时同样受益
+- **2026-07-29 补丁**：仅当 JSON 体为 API 错误包装（`code` 非成功）才拦截；合法 `.json` 元数据文件可正常保存；`revokeObjectURL` 延迟 60s 避免浏览器来不及落盘
+- 若下载得到 `binary.bin.json` 且内含 `collect_status: deleted` / `size_bytes: 0`，说明后端交付物本身已删除或无文件，需后端或重新上传交付物
+
+---
+
+## [2026-07-29] 新建项目向导：策略与交付物改走详情页同接口
+
+### 改了什么
+
+- `api/project.ts` → `createProject()`：POST 只提交基本信息，创建成功后依次调用 `updateProjectPolicyBinding`、`addProjectSourceDeliverable` / `uploadProjectBinaryDeliverable`
+- `projectAdapter.ts`：新增 `createProjectParamsToApi`（剥离 policy/deliverables）
+- `ProjectCreateWizardModal.vue`：捕获部分成功时的错误并 `message.error` 提示
+
+### 为什么这么做
+
+联调发现 `POST /api/projects` 虽接收策略与交付物字段，但详情页读不到；详情 Tab 单独绑定策略、上传交付物则正常。因此在 API 层拆成「创建 + 绑定策略 + 提交交付物」三次请求，与详情页逻辑一致。
+
+### 怎么实现的
+
+1. `createProject` 解构 `{ policy, deliverables, ...basic }`，POST 仅带 basic
+2. 拿到 `projectId` 后 `PUT /api/projects/:id/policy-binding`
+3. 遍历 deliverables 调用 `add-source` 或 `upload-binary`（空数组跳过，对应「稍后上传」）
+4. 步骤 2/3 失败时抛出含上下文的 Error，向导弹窗展示
+
+### 注意事项 / 已知限制
+
+- 若项目已创建但策略/交付物步骤失败，会提示「项目已创建，但…失败」，需进详情页补操作
+- 后端若日后修复 POST 一体创建，可再评估是否合并请求
+
+---
+
+## [2026-07-29] 项目详情基本信息：修复负责人校验 + 改走 PUT /api/projects/:id
+
+### 改了什么
+
+- `ProjectBasicInfoPanel.vue`：提交时不再强制要求从列表重选负责人；未改负责人时沿用原姓名即可提交
+- `ProjectBasicInfoPanel.vue`：更新接口由 `updateProjectBasicInfo` 改为 `updateProject`（与列表编辑弹窗同 API）
+- `projectAdapter.ts`：新增 `updateProjectParamsToApi`，`status` 转中文后随 PUT 提交
+- `api/project.ts`：`updateProject` 支持可选 `NormalizeProjectOptions` 兜底部门字段
+- `types/project.ts`：`UpdateProjectParams` 增加可选 `status`、`projectName`
+
+### 为什么这么做
+
+详情页原先校验 `ownerUserId`，后端详情接口常不返回该字段，导致只改部门/状态时也会提示「请从列表中选择负责人」且不发请求。列表编辑弹窗只按负责人姓名提交且 `PUT /api/projects/:id` 可用，`basic-info` 子路径虽通但无法持久化。
+
+### 怎么实现的
+
+- 负责人校验与 `ProjectFormModal` 对齐：有展示姓名即可，不强制 `ownerUserId`
+- 详情 Tab 调用 `updateProject(projectId, { description, owner, department, status, projectName? })`
+- 响应缺 `departmentId` 时用提交值 fallback（与改前逻辑一致）
+
+### 注意事项 / 已知限制
+
+- `updateProjectBasicInfo` 仍保留在 `api/project.ts`，当前无页面调用；若后端修复 basic-info 可再评估
+- 状态提交使用中文枚举（与列表筛选 query 一致）
+
+---
+
 ---
 
 ## [2026-07-27] 首页卡片去掉环比 + 开源风险列表 API 开发环境探测

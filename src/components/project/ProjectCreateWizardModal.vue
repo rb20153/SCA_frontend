@@ -320,6 +320,8 @@ async function handleSubmit() {
     message.success('项目已创建')
     visible.value = false
     emit('success', res.data)
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '创建失败')
   } finally {
     submitting.value = false
   }

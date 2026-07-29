@@ -74,12 +74,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import { updateProjectBasicInfo } from '@/api/project'
+import { updateProject } from '@/api/project'
 import { searchUsers } from '@/api/user'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import ProfileFormActions from '@/components/common/ProfileFormActions.vue'
 import UserSearchInput from '@/components/common/UserSearchInput.vue'
-import type { Project, UpdateProjectBasicInfoParams } from '@/types/project'
+import type { Project, ProjectStatus } from '@/types/project'
 import type { UserSearchCandidate } from '@/types/user'
 import { PROJECT_STATUS_FORM_OPTIONS } from '@/utils/projectDisplay'
 import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
@@ -102,7 +102,7 @@ const form = reactive({
   projectName: '',
   description: '',
   departmentId: '',
-  status: 'in_progress' as UpdateProjectBasicInfoParams['status'],
+  status: 'in_progress' as ProjectStatus,
 })
 
 /** 仅当项目没有关联任务时允许改名，避免历史任务与项目名不一致 */
@@ -180,16 +180,13 @@ async function syncFormFromProject() {
   await applyDepartmentFromProject()
 }
 
-/** 解析提交用的负责人 ID：新选用户优先，未改负责人时保留原 ID */
-function resolveOwnerUserId(): string | undefined {
-  if (selectedOwner.value?.userId) {
-    return selectedOwner.value.userId
-  }
-  const displayName = ownerSearchRef.value?.getSubmitDisplayName() ?? ''
-  if (displayName === props.project.owner) {
-    return props.project.ownerUserId
-  }
-  return undefined
+/** 解析提交用的负责人姓名：已选用户优先，否则取输入框文本或原项目值 */
+function resolveOwnerName(): string {
+  return (
+    selectedOwner.value?.realName ??
+    ownerSearchRef.value?.getSubmitDisplayName()?.trim() ??
+    props.project.owner
+  ).trim()
 }
 
 /** 校验并提交基本信息更新 */
@@ -200,9 +197,9 @@ async function handleSubmit() {
     return
   }
 
-  const ownerUserId = resolveOwnerUserId()
-  if (!ownerUserId) {
-    message.warning('请从列表中选择负责人')
+  const ownerName = resolveOwnerName()
+  if (!ownerName) {
+    message.warning('请选择负责人')
     return
   }
   if (!form.departmentId) {
@@ -211,22 +208,26 @@ async function handleSubmit() {
   }
 
   // 后端按名称存储负责人/部门，提交后用本地提交值回填，避免响应缺字段导致显示回退
-  const ownerName = selectedOwner.value?.realName ?? props.project.owner
   const submittedDepartmentId = form.departmentId
   const submittedDepartmentName =
     departmentSelectRef.value?.getSelectedLabel()?.trim() || props.project.department
 
   submitting.value = true
   try {
-    const res = await updateProjectBasicInfo(props.project.projectId, {
-      projectName: projectNameEditable.value ? projectName : undefined,
-      description: form.description.trim(),
-      owner: ownerName,
-      ownerUserId,
-      department: submittedDepartmentName,
-      departmentId: submittedDepartmentId,
-      status: form.status,
-    })
+    const res = await updateProject(
+      props.project.projectId,
+      {
+        projectName: projectNameEditable.value ? projectName : undefined,
+        description: form.description.trim(),
+        owner: ownerName,
+        department: submittedDepartmentName,
+        status: form.status,
+      },
+      {
+        fallbackDepartmentId: submittedDepartmentId,
+        fallbackDepartment: submittedDepartmentName,
+      },
+    )
     message.success('基本信息已更新')
     // 响应字段缺失时用提交值兜底；status 以响应为准，便于暴露后端未持久化的情况
     emit('updated', {

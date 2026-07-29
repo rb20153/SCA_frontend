@@ -50,12 +50,14 @@ export interface CreateProjectParams {
   departmentId: string
 }
 
-/** 列表弹窗编辑项目（不含策略/交付物） */
+/** 列表弹窗 / 详情基本信息 Tab 更新项目（不含策略/交付物） */
 export interface UpdateProjectParams {
-  projectName: string
+  /** 不传表示不修改项目名称（详情页有关联任务时不传） */
+  projectName?: string
   description: string
   owner: string
   department: string
+  status?: ProjectStatus
 }
 
 export interface ProjectFormValues {
@@ -162,6 +164,14 @@ export type DeliverableSourceMode = 'repo-pull' | 'upload-source-package' | 'upl
 /** 交付物类型 */
 export type DeliverableType = 'source' | 'binary'
 
+/** 项目交付物采集/生命周期状态（后端 collect_status） */
+export type ProjectDeliverableCollectStatus =
+  | 'pending'
+  | 'collecting'
+  | 'success'
+  | 'failed'
+  | 'deleted'
+
 /** 项目交付物列表项 */
 export interface ProjectDeliverable {
   deliverableId: string
@@ -175,6 +185,8 @@ export interface ProjectDeliverable {
   uploaderName: string
   /** 上传时间，ISO 8601 */
   uploadedAt: string
+  /** 后端采集状态；deleted 时列表不展示 */
+  collectStatus?: ProjectDeliverableCollectStatus
   /** 三方仓库拉取时的源码仓库 URL */
   repositoryUrl?: string
   /** 上传类交付物的文件名（下载时使用） */

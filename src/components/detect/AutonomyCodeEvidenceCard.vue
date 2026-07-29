@@ -5,8 +5,19 @@
       :alert-color="alertTagColor"
       :confidence="evidence.confidence"
       :source-project="evidence.sourceProject"
+      :source-url="evidence.sourceUrl"
       :source-version="evidence.sourceVersion"
+      :license="evidence.license"
     />
+
+    <div v-if="evidence.tamperAnalysis || evidence.suggestion" class="analysis-block">
+      <p v-if="evidence.tamperAnalysis" class="analysis-line">
+        <span class="analysis-label">解析摘要：</span>{{ evidence.tamperAnalysis }}
+      </p>
+      <p v-if="evidence.suggestion" class="analysis-line">
+        <span class="analysis-label">建议：</span>{{ evidence.suggestion }}
+      </p>
+    </div>
 
     <div class="diff-split">
       <div class="diff-pane">
@@ -53,6 +64,25 @@ const alertLabel = computed(
   flex-direction: column;
   /* 单条代码证据整体高度 ≥ 1.8 条指纹证据占位高度 */
   min-height: calc(var(--evidence-fp-item-height, 168px) * 1.8);
+}
+
+.analysis-block {
+  margin-bottom: 12px;
+}
+
+.analysis-line {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.analysis-line:last-child {
+  margin-bottom: 0;
+}
+
+.analysis-label {
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .diff-split {

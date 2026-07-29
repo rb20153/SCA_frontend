@@ -4,7 +4,7 @@ import type {
   AutonomySourceHitQueryParams,
 } from '@/types/detect'
 
-const MOCK_SOURCE_HITS: Omit<AutonomySourceHitItem, 'hitId'>[] = [
+const MOCK_SOURCE_HITS: Omit<AutonomySourceHitItem, 'hitId' | 'filePath'>[] = [
   {
     kbProjectId: 'kb-openfoam',
     kbProjectName: 'OpenFOAM',
@@ -118,6 +118,7 @@ export function getMockAutonomySourceHitPage(
 
   let list = MOCK_SOURCE_HITS.map((item, index) => ({
     ...item,
+    filePath: item.hitFileNames[0] ? `src/${item.hitFileNames[0]}` : '',
     hitId: `${prefix}-hit-${index + 1}`,
   }))
 

@@ -127,9 +127,22 @@ export function collectDirectoryNodeIds(nodes: FileTreeNode[]): string[] {
  * @param fileName - 文件名（不含路径）
  */
 export function findFileNodeIdByName(nodes: FileTreeNode[], fileName: string): string | null {
+  const normalized = fileName.trim()
+  const basename = basenameFromPath(normalized)
+
   for (const node of nodes) {
-    if (node.type === 'file' && node.name === fileName) {
-      return node.nodeId
+    if (node.type === 'file') {
+      const nodeName = node.name.trim()
+      const nodePath = (node.path ?? '').trim()
+      if (
+        nodeName === normalized ||
+        nodeName === basename ||
+        nodePath === normalized ||
+        nodePath.endsWith(`/${basename}`) ||
+        nodeName.endsWith(`/${basename}`)
+      ) {
+        return node.nodeId
+      }
     }
     if (node.children?.length) {
       const found = findFileNodeIdByName(node.children, fileName)
@@ -139,6 +152,13 @@ export function findFileNodeIdByName(nodes: FileTreeNode[], fileName: string): s
     }
   }
   return null
+}
+
+/** 从路径提取文件名（供树节点匹配） */
+function basenameFromPath(path: string): string {
+  const normalized = path.replace(/\\/g, '/')
+  const parts = normalized.split('/').filter(Boolean)
+  return parts[parts.length - 1] ?? path
 }
 
 /**

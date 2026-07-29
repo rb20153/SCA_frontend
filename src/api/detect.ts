@@ -49,11 +49,15 @@ import {
   normalizeDetectTaskProjectOptions,
   normalizeVulnDbVersionOptions,
 } from '@/utils/detectAdapter'
+import {
+  autonomySourceHitQueryParamsToApi,
+  mergeAutonomyOverviewWithTask,
+  normalizeAutonomyDetectResultOverview,
+  normalizeAutonomyEvidenceTree,
+  normalizeAutonomyFileDetail,
+  normalizeAutonomySourceHitPage,
+} from '@/utils/autonomyDetectAdapter'
 import { getMockOpenSourceRiskDetailSummary } from '@/mock/modules/detect/openSourceRiskDetail'
-import { getMockAutonomyDetectResultOverview } from '@/mock/modules/detect/autonomyResult'
-import { getMockAutonomyDetectEvidenceTree } from '@/mock/modules/detect/autonomyEvidenceTree'
-import { getMockAutonomyFileDetail } from '@/mock/modules/detect/autonomyFileDetail'
-import { getMockAutonomySourceHitPage } from '@/mock/modules/detect/autonomySourceHits'
 import {
   getMockOpenSourceRiskComponentPage,
   getMockOpenSourceRiskComponentDetail,
@@ -155,8 +159,7 @@ async function resolveTaskActionResult(
   return { ...res, data: detail.data }
 }
 
-// 以下结果/详情类接口仍为 mock：任务列表已接真实后端，taskId 不再落在 mock 任务池里，
-// 因此不再校验任务是否存在，mock 生成器按 taskId 派生数据即可
+// 以下开源风险结果/详情类接口仍为 mock
 
 /**
  * 获取自主率检测结果 · 顶部总体摘要
@@ -164,15 +167,29 @@ async function resolveTaskActionResult(
  * @param taskId - 检测任务 ID
  * @returns 总体/风险自主率与问题数统计
  */
-export function getAutonomyDetectResultOverview(
+export async function getAutonomyDetectResultOverview(
   taskId: string,
 ): Promise<ApiResponse<AutonomyDetectResultOverview>> {
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/overview`)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockAutonomyDetectResultOverview(taskId),
-  })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/autonomy/overview`,
+  )
+  let overview = normalizeAutonomyDetectResultOverview(res.data, taskId)
+
+  if (!overview.taskName || !overview.projectName) {
+    try {
+      const taskRes = await getTaskDetail(taskId)
+      overview = mergeAutonomyOverviewWithTask(overview, {
+        taskName: taskRes.data.taskName,
+        projectName: taskRes.data.projectName,
+        status: taskRes.data.status,
+        finishedAt: taskRes.data.finishedAt ?? null,
+      })
+    } catch {
+      /* 任务详情失败时仍展示 overview 已有字段 */
+    }
+  }
+
+  return { ...res, data: overview }
 }
 
 /**
@@ -180,15 +197,13 @@ export function getAutonomyDetectResultOverview(
  * 页面进入时按 taskId 拉取，供左侧目录树展示
  * @param taskId - 检测任务 ID
  */
-export function getAutonomyDetectEvidenceTree(
+export async function getAutonomyDetectEvidenceTree(
   taskId: string,
 ): Promise<ApiResponse<FileTreeData>> {
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/evidence-tree`)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockAutonomyDetectEvidenceTree(taskId),
-  })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/autonomy/evidence-tree`,
+  )
+  return { ...res, data: normalizeAutonomyEvidenceTree(res.data) }
 }
 
 /**
@@ -197,21 +212,19 @@ export function getAutonomyDetectEvidenceTree(
  * @param fileId - 证据树文件节点 ID
  * @param fileName - 文件名（展示与 mock 匹配）
  */
-export function getAutonomyDetectFileDetail(
+export async function getAutonomyDetectFileDetail(
   taskId: string,
   fileId: string,
   fileName: string,
 ): Promise<ApiResponse<AutonomyFileDetail>> {
-  const detail = getMockAutonomyFileDetail(taskId, fileId, fileName)
-  if (!detail) {
-    return Promise.reject(new Error('文件详情不存在'))
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/autonomy/files/${fileId}`,
+    { params: fileName ? { fileName } : undefined },
+  )
+  return {
+    ...res,
+    data: normalizeAutonomyFileDetail(res.data, { fileId, fileName }),
   }
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/files/${fileId}`)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: detail,
-  })
 }
 
 /**
@@ -219,16 +232,17 @@ export function getAutonomyDetectFileDetail(
  * @param taskId - 检测任务 ID
  * @param params - 来源项目名 / 风险等级筛选与分页
  */
-export function getAutonomyDetectSourceHitList(
+export async function getAutonomyDetectSourceHitList(
   taskId: string,
   params: AutonomySourceHitQueryParams,
 ): Promise<ApiResponse<PageResult<AutonomySourceHitItem>>> {
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/autonomy/source-hits`, { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockAutonomySourceHitPage(taskId, params),
-  })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/autonomy/source-hits`,
+    { params: autonomySourceHitQueryParamsToApi(params) },
+  )
+  // 兼容 list 挂在 body 顶层而非 data 内的后端实现
+  const pageRaw = res.data ?? res
+  return { ...res, data: normalizeAutonomySourceHitPage(pageRaw) }
 }
 
 /**

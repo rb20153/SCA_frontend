@@ -101,7 +101,9 @@ async function handleDownload(deliverable: ProjectDeliverable) {
       props.project.projectId,
       deliverable.deliverableId,
     )
-    triggerReportDownload(res.data.downloadUrl, res.data.fileName)
+    await triggerReportDownload(res.data.downloadUrl, res.data.fileName)
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '下载失败')
   } finally {
     downloadingId.value = null
   }

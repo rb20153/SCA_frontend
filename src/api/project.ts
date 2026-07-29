@@ -10,6 +10,7 @@ import type {
   AddProjectSourceDeliverableParams,
   AddProjectSourceDeliverableResult,
   CreateProjectWizardParams,
+  CollectedProjectDeliverable,
   Project,
   ProjectDeliverable,
   ProjectDeliverableDownloadResult,
@@ -37,8 +38,11 @@ import {
   normalizeProjectPage,
   normalizeProjectPolicyBinding,
   normalizeProjectRelatedTaskPage,
+  type NormalizeProjectOptions,
+  createProjectParamsToApi,
   projectBasicInfoParamsToApi,
   projectQueryParamsToApi,
+  updateProjectParamsToApi,
 } from '@/utils/projectAdapter'
 
 /**
@@ -221,27 +225,99 @@ export async function getProjectList(
 }
 
 /**
+ * 创建项目后绑定向导中选择的检测策略（与详情页检测策略 Tab 同接口）
+ * @param projectId - 新建项目 ID
+ * @param policy - 向导第二步填写的策略参数
+ */
+async function bindWizardProjectPolicy(
+  projectId: string,
+  policy: ProjectPolicyBindingInput,
+): Promise<void> {
+  await updateProjectPolicyBinding(projectId, policy)
+}
+
+/**
+ * 创建项目后提交向导中收集的交付物（与详情页交付物 Tab 同接口）
+ * @param projectId - 新建项目 ID
+ * @param deliverables - 向导第三步收集的交付物，空数组表示稍后上传
+ */
+async function submitWizardDeliverables(
+  projectId: string,
+  deliverables: CollectedProjectDeliverable[],
+): Promise<void> {
+  for (const item of deliverables) {
+    if (item.type === 'source') {
+      await addProjectSourceDeliverable(projectId, item.data)
+    } else {
+      await uploadProjectBinaryDeliverable(projectId, item.data)
+    }
+  }
+}
+
+/**
  * 创建项目（向导：基本信息 + 策略绑定 + 交付物）
+ * 后端 POST /api/projects 仅持久化基本信息；策略与交付物分别走详情页已验证可用的独立接口
  * @param data - 完整创建参数
  */
 export async function createProject(
   data: CreateProjectWizardParams,
 ): Promise<ApiResponse<Project>> {
-  const res = await request.post<ApiResponse<unknown>>('/api/projects', data)
-  return { ...res, data: normalizeProject(res.data as Record<string, unknown>) }
+  const { policy, deliverables, ...basic } = data
+  const res = await request.post<ApiResponse<unknown>>(
+    '/api/projects',
+    createProjectParamsToApi(basic),
+  )
+  const project = normalizeProject(res.data as Record<string, unknown>, {
+    fallbackDepartmentId: basic.departmentId,
+    fallbackDepartment: basic.department,
+  })
+  const projectId = project.projectId
+
+  try {
+    await bindWizardProjectPolicy(projectId, policy)
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : '未知错误'
+    throw new Error(`项目已创建，但检测策略绑定失败：${detail}`)
+  }
+
+  if (deliverables.length > 0) {
+    try {
+      await submitWizardDeliverables(projectId, deliverables)
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : '未知错误'
+      throw new Error(`项目与策略已保存，但交付物提交失败：${detail}`)
+    }
+  }
+
+  return { ...res, data: project }
 }
 
 /**
- * 更新项目基本信息（列表编辑弹窗）
+ * 更新项目基本信息（列表编辑弹窗、详情基本信息 Tab）
  * @param projectId - 项目 ID
- * @param data - 可编辑字段
+ * @param data - 可编辑字段（负责人/部门按名称提交）
+ * @param options - 响应缺部门字段时的回填兜底
  */
 export async function updateProject(
   projectId: string,
   data: UpdateProjectParams,
+  options?: NormalizeProjectOptions,
 ): Promise<ApiResponse<Project>> {
-  const res = await request.put<ApiResponse<unknown>>(`/api/projects/${projectId}`, data)
-  return { ...res, data: normalizeProject(res.data as Record<string, unknown>) }
+  const res = await request.put<ApiResponse<unknown>>(
+    `/api/projects/${projectId}`,
+    updateProjectParamsToApi(data),
+  )
+  const departmentLabel =
+    typeof (res.data as Record<string, unknown> | null)?.department === 'string'
+      ? String((res.data as Record<string, unknown>).department)
+      : options?.fallbackDepartment
+  return {
+    ...res,
+    data: normalizeProject(res.data as Record<string, unknown>, {
+      fallbackDepartmentId: options?.fallbackDepartmentId,
+      fallbackDepartment: departmentLabel,
+    }),
+  }
 }
 
 /**
