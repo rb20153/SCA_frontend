@@ -5,6 +5,49 @@
 
 ---
 
+## [2026-07-29] 系统管理 · 用户列表 8 个接口切真实 API
+
+### 改了什么
+
+- `api/user.ts`：`getUserList` / `createUser` / `updateUser` / `getUserDetail` / `deleteUser` / `resetUserPassword` / `getEnabledRoleOptions` / `getRoleFilterOptions` 改 `request.*`，移除 mock 运行时依赖
+- 扩展 `utils/userAdapter.ts`：用户分页、详情（joined/owned 项目）、角色下拉、CRUD 请求体规范化
+
+### 怎么用
+
+- `/system/users` 列表筛选参数仍走 `userQuery.ts` → `userListFiltersToQuery`（realName/roleId/departmentName/createdAtStart/End）
+- 新增/编辑弹窗校验仍在 `UserFormModal.vue`，API 层不再做 mock 专用校验（用户名重复等交给后端）
+- 重置密码 Body 仅 `{ newPassword }`，userId 走 Path
+
+### 注意（联调）
+
+- 删除仍由前端根据 `ownedProjectCount > 0` 禁用；后端也应返回业务错误
+- 详情项目 Tab 字段兼容 `joinedProjects`/`ownedProjects` 及 snake_case
+- mock 文件保留在 `src/mock/modules/system/` 供参考
+
+---
+
+## [2026-07-29] 个人设置 · 5 个接口切真实 API（4 项已对接）
+
+### 改了什么
+
+- `api/profile.ts`：5 个函数改 `request.get` / `request.put`，移除 mock import
+- 新增 `utils/profileAdapter.ts`：详情/资料/消息偏好/部门下拉字段规范化（snake_case、嵌套 `profile`）
+
+### 怎么用
+
+- 进入 `/system/profile` 自动拉 `GET /api/system/profile`
+- 更新基本信息成功后 `UserProfile.vue` 仍同步 `authStore.userInfo`（姓名/手机/部门名）
+- 改密成功后 `ProfilePasswordPanel` 仍清 token 并跳转登录页
+
+### 注意（联调）
+
+- **用户实测**：加载资料、部门下拉、更新基本信息、消息偏好已对接；**修改密码待测**
+- 后端若返回平铺用户字段而非 `{ profile, notifyPreferences }`，adapter 会从根对象兜底
+- 部门下拉复用 `userAdapter.normalizeDepartmentOptionList`
+- mock 仍保留在 `src/mock/modules/system/userProfile.ts` 供参考
+
+---
+
 ## [2026-07-29] AI 解析 · 5 个接口切真实 API
 
 ### 改了什么
