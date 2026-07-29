@@ -19,3 +19,15 @@ export function isValidUsername(username: string): boolean {
 export function isValidPhone(phone: string): boolean {
   return PHONE_PATTERN.test(phone.trim())
 }
+
+/**
+ * 校验可选手机号：留空视为合法，有值则须符合国内 11 位号段
+ * @param phone - 手机号，可为空
+ */
+export function isValidPhoneOptional(phone: string): boolean {
+  const trimmed = phone.trim()
+  if (!trimmed) {
+    return true
+  }
+  return isValidPhone(trimmed)
+}

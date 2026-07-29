@@ -14,9 +14,16 @@
     </template>
 
     <template v-else>
-      <p class="modal-hint">请将以下临时密码告知用户，用户登录后请尽快修改。</p>
+      <p class="modal-hint">
+        系统将自动生成 32 位临时密码（含大小写字母、数字与特殊字符 !-_），请告知用户并尽快修改。
+      </p>
       <a-input-group compact class="password-group">
-        <a-input v-model:value="newPassword" readonly class="password-input" />
+        <a-input
+          v-model:value="newPassword"
+          readonly
+          class="password-input"
+          :maxlength="64"
+        />
         <a-button @click="regeneratePassword">重新生成</a-button>
       </a-input-group>
     </template>
@@ -28,7 +35,7 @@ import { ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { resetUserPassword } from '@/api/user'
 import type { SystemUser } from '@/types/user'
-import { generateInitialPassword } from '@/utils/passwordGenerator'
+import { generateInitialPassword, isStrongSystemPassword } from '@/utils/passwordGenerator'
 
 const props = defineProps<{
   user: SystemUser
@@ -46,7 +53,7 @@ const submitting = ref(false)
 
 /** 重新生成临时密码 */
 function regeneratePassword() {
-  newPassword.value = generateInitialPassword(8)
+  newPassword.value = generateInitialPassword()
 }
 
 watch(
@@ -67,13 +74,17 @@ function handleCancel() {
 /** 两步确认：先确认意图，再提交新密码 */
 async function handleOk() {
   if (step.value === 'confirm') {
-    newPassword.value = generateInitialPassword(8)
+    newPassword.value = generateInitialPassword()
     step.value = 'password'
     return Promise.reject()
   }
 
   if (!newPassword.value) {
     message.warning('请生成临时密码')
+    return Promise.reject()
+  }
+  if (!isStrongSystemPassword(newPassword.value)) {
+    message.warning('临时密码不符合规则，请点击重新生成')
     return Promise.reject()
   }
 

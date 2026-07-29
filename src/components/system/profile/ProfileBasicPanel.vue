@@ -20,7 +20,7 @@
         <div class="profile-form-control">
           <a-input
             v-model:value="form.phone"
-            placeholder="11 位手机号"
+            placeholder="11 位手机号（选填）"
             allow-clear
             maxlength="11"
           />
@@ -65,7 +65,7 @@ import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import ProfileFormActions from '@/components/common/ProfileFormActions.vue'
 import type { UserProfile } from '@/types/profile'
 import { loadProfileDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
-import { isValidPhone } from '@/utils/userValidation'
+import { isValidPhoneOptional } from '@/utils/userValidation'
 
 const props = defineProps<{
   profile: UserProfile
@@ -111,8 +111,8 @@ async function handleSubmit() {
     message.warning('姓名长度为 2-20 个字符')
     return
   }
-  if (!isValidPhone(form.phone)) {
-    message.warning('请输入正确的 11 位手机号')
+  if (!isValidPhoneOptional(form.phone)) {
+    message.warning('手机号格式不正确，请输入 11 位有效号码或留空')
     return
   }
   if (!form.departmentId) {

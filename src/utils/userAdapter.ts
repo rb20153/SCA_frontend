@@ -231,7 +231,8 @@ export function updateUserParamsToApi(data: UpdateUserParams): Record<string, un
 export function resetUserPasswordParamsToApi(
   data: ResetUserPasswordParams,
 ): Record<string, unknown> {
+  // 后端 DTO 字段为 password（非 newPassword）；与 createUser 一致
   return {
-    newPassword: data.newPassword,
+    password: data.newPassword,
   }
 }

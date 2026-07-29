@@ -68,10 +68,10 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="手机号" required>
+            <a-form-item label="手机号">
               <a-input
                 v-model:value="form.phone"
-                placeholder="11 位手机号"
+                placeholder="11 位手机号（选填）"
                 allow-clear
                 maxlength="11"
               />
@@ -105,7 +105,7 @@ import type { RoleOption, UserFormValues } from '@/types/user'
 import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 import { generateInitialPassword } from '@/utils/passwordGenerator'
 import { USER_STATUS_FORM_OPTIONS } from '@/utils/userDisplay'
-import { isValidPhone, isValidUsername } from '@/utils/userValidation'
+import { isValidPhoneOptional } from '@/utils/userValidation'
 
 const props = defineProps<{
   /** 弹窗模式：新增或编辑 */
@@ -146,7 +146,7 @@ const roleSelectOptions = computed(() =>
 
 /** 重新生成 8 位初始密码 */
 function regeneratePassword() {
-  form.password = generateInitialPassword(8)
+  form.password = generateInitialPassword()
 }
 
 /** 拉取启用状态的角色下拉 */
@@ -173,7 +173,7 @@ function syncFormFromProps() {
   if (props.mode === 'create') {
     form.username = ''
     form.realName = ''
-    form.password = generateInitialPassword(8)
+    form.password = generateInitialPassword()
     form.departmentId = ''
     form.roleId = ''
     form.phone = ''
@@ -222,10 +222,6 @@ async function handleOk() {
     message.warning('请输入用户名')
     return Promise.reject()
   }
-  if (!isValidUsername(username)) {
-    message.warning('用户名为 4-20 位字母或数字')
-    return Promise.reject()
-  }
   if (!realName) {
     message.warning('请输入姓名')
     return Promise.reject()
@@ -242,8 +238,8 @@ async function handleOk() {
     message.warning('请选择系统角色')
     return Promise.reject()
   }
-  if (!isValidPhone(phone)) {
-    message.warning('请输入正确的 11 位手机号')
+  if (!isValidPhoneOptional(phone)) {
+    message.warning('手机号格式不正确，请输入 11 位有效号码或留空')
     return Promise.reject()
   }
 

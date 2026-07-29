@@ -5,6 +5,79 @@
 
 ---
 
+## [2026-07-29] 部门/角色管理 · 9 个接口切真实 API
+
+### 改了什么
+
+- `api/system.ts`：部门 5 个 + 角色 4 个函数改 `request.*`，移除 departmentList/roleList mock 运行时依赖
+- 新增 `utils/systemAdapter.ts`：部门/角色分页、成员检查、permissions 对象/数组规范化
+
+### 怎么用
+
+- 部门：`/system/departments` 筛选仍走 `departmentQuery.ts`
+- 角色：`/system/roles` 筛选仍走 `roleQuery.ts`；权限树提交 `RolePermissionMap`（menu.*/op.*）
+
+### 注意（联调）
+
+- 后端 permissions 若返回 key 数组，adapter 会转为 boolean map
+- 删除规则仍由前端根据 `memberCount` / `boundUserCount` / `isBuiltin` 控制按钮；后端也应返回业务错误
+- mock 文件保留在 `src/mock/modules/system/` 供参考
+
+---
+
+## [2026-07-29] 用户列表 · 联调通过（9 接口已对接）
+
+### 改了什么
+
+- 用户实测通过：`getUserList` / CRUD / 角色下拉 / 重置密码 等 9 个接口标「已对接」
+- 校验放宽：手机号选填；用户名去掉 4-20 位限制（用户管理弹窗）
+- 重置密码：Body 字段 `password`；临时密码 32 位复杂规则（`passwordGenerator.ts`）
+
+---
+
+## [2026-07-29] 重置密码 · 请求字段与生成规则修正
+
+### 改了什么
+
+- `userAdapter.resetUserPasswordParamsToApi`：Body 字段由 `newPassword` 改为 **`password`**（与 `createUser` 一致，后端 DTO 实际字段名）
+- `passwordGenerator.ts`：默认 **32 位**；特殊字符对齐 admin 示例（`!-_`）；`crypto.getRandomValues` + 提交前 `isStrongSystemPassword` 校验
+- `UserResetPasswordModal.vue`：提示文案更新；提交前校验密码强度
+
+### 注意
+
+- 若仍 400，在 Network 里确认 Request Payload 为 `{ "password": "Aero!..." }` 且长度 ≥12
+- 新增用户初始密码同样走 `generateInitialPassword()`（32 位）
+
+---
+
+## [2026-07-29] 临时密码生成规则对齐后端（12 位复杂度）
+
+### 改了什么
+
+- `passwordGenerator.ts`：默认长度改 12；字符集增加 `!@#$%^&*-_=+`；传入长度小于 12 时自动提升
+- `UserResetPasswordModal.vue` / `UserFormModal.vue`：调用处改为 `generateInitialPassword()`（不再传 8）
+
+### 注意
+
+- 与后端「至少 12 位且含大小写、数字、特殊字符」一致；重置密码「重新生成」同样适用
+
+---
+
+## [2026-07-29] 用户/个人设置 · 手机号选填、用户名格式放宽
+
+### 改了什么
+
+- `UserFormModal.vue`：去掉用户名 4-20 位字母数字校验；手机号改为选填（有值才校验 11 位格式）
+- `ProfileBasicPanel.vue`：手机号改为选填，逻辑同上
+- `userValidation.ts`：新增 `isValidPhoneOptional`（空串通过，非空走 `isValidPhone`）
+
+### 注意
+
+- 登录/注册页仍保留用户名 4-20 位规则（`LoginPage.vue` 未改）
+- `isValidUsername` / `USERNAME_PATTERN` 仍供注册页使用
+
+---
+
 ## [2026-07-29] 系统管理 · 用户列表 8 个接口切真实 API
 
 ### 改了什么
