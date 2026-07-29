@@ -5,6 +5,26 @@
 
 ---
 
+## [2026-07-29] AI 解析 · 5 个接口切真实 API
+
+### 改了什么
+
+- `api/detect.ts`：`getAiParseTaskList` / `createAiParseTask` / `getAiParseResultDetail` / `getAiParseFallbackCompare` / `submitAiParseFallback` 改 `request.*`
+- 新增 `utils/aiParseAdapter.ts`：任务列表分页、结果详情（覆盖率/License 树/冲突列表）、规则回退对比字段规范化
+
+### 怎么用
+
+- 列表/创建/回退与自主率检测任务一样走 axios 拦截器；创建任务仍用 `buildCreateAiParseTaskFormData` 发 multipart
+- 结果抽屉打开时调 `getAiParseResultDetail(parseTaskId)`，adapter 兼容 `licenseTree`/`nodes`、snake_case、覆盖率 0–1
+
+### 注意（联调）
+
+- 后端字段若与 mock 不一致，在 `aiParseAdapter.ts` 补映射（参考 `autonomyDetectAdapter.ts`）
+- `total=0` 但 list 有数据时分页已做长度兜底
+- mock 文件保留在 `src/mock/modules/detect/aiParse*.ts`，页面不再直接引用
+
+---
+
 ## [2026-07-29] 自主率文件详情 · evidence 类型分流与摘要展示
 
 ### 改了什么

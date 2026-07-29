@@ -57,6 +57,14 @@ import {
   normalizeAutonomyFileDetail,
   normalizeAutonomySourceHitPage,
 } from '@/utils/autonomyDetectAdapter'
+import {
+  aiParseTaskQueryParamsToApi,
+  normalizeAiParseFallbackCompareList,
+  normalizeAiParseResultDetail,
+  normalizeAiParseTask,
+  normalizeAiParseTaskPage,
+  submitAiParseFallbackParamsToApi,
+} from '@/utils/aiParseAdapter'
 import { getMockOpenSourceRiskDetailSummary } from '@/mock/modules/detect/openSourceRiskDetail'
 import {
   getMockOpenSourceRiskComponentPage,
@@ -75,13 +83,6 @@ import {
   getMockOpenSourceRiskSbomPreviewPage,
   mockExportOpenSourceRiskSbom,
 } from '@/mock/modules/detect/openSourceRiskSbom'
-import {
-  getMockAiParseTaskPage,
-  mockCreateAiParseTask,
-  getMockAiParseFallbackCompare,
-  mockSubmitAiParseFallback,
-} from '@/mock/modules/detect/aiParseTasks'
-import { getMockAiParseResultDetail } from '@/mock/modules/detect/aiParseResultDetail'
 
 /** multipart 请求头：显式声明后 axios 才会保留 FormData（默认 JSON 头会被序列化） */
 const MULTIPART_CONFIG = { headers: { 'Content-Type': 'multipart/form-data' } }
@@ -466,59 +467,59 @@ export function exportOpenSourceRiskSbom(
  * 获取 AI 解析历史列表（分页）
  * @param params - 筛选与分页
  */
-export function getAiParseTaskList(
+export async function getAiParseTaskList(
   params: AiParseTaskQueryParams,
 ): Promise<ApiResponse<PageResult<AiParseTask>>> {
-  // TODO: replace with → return request.get('/api/detect/ai-parse/tasks', { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockAiParseTaskPage(params),
+  const res = await request.get<ApiResponse<unknown>>('/api/detect/ai-parse/tasks', {
+    params: aiParseTaskQueryParamsToApi(params),
   })
+  const pageRaw = res.data ?? res
+  return { ...res, data: normalizeAiParseTaskPage(pageRaw) }
 }
 
 /**
  * 创建 AI 解析任务
  * @param data - 项目、来源与扫描深度
  */
-export function createAiParseTask(
+export async function createAiParseTask(
   data: CreateAiParseTaskParams,
 ): Promise<ApiResponse<AiParseTask>> {
   const formData = buildCreateAiParseTaskFormData(data)
-  void formData
-  // TODO: replace with → return request.post('/api/detect/ai-parse/tasks', formData)
-  const task = mockCreateAiParseTask(data)
-  return Promise.resolve({ code: 200, message: 'ok', data: task })
+  const res = await request.post<ApiResponse<unknown>>(
+    '/api/detect/ai-parse/tasks',
+    formData,
+    MULTIPART_CONFIG,
+  )
+  const taskRaw =
+    res.data && typeof res.data === 'object' ? (res.data as Record<string, unknown>) : {}
+  return { ...res, data: normalizeAiParseTask(taskRaw) }
 }
 
 /**
  * 获取 AI 解析结果详情（抽屉打开时拉取）
  * @param parseTaskId - 解析任务 ID
  */
-export function getAiParseResultDetail(
+export async function getAiParseResultDetail(
   parseTaskId: string,
 ): Promise<ApiResponse<AiParseResultDetail>> {
-  const detail = getMockAiParseResultDetail(parseTaskId)
-  if (!detail) {
-    return Promise.reject(new Error('解析结果不存在或任务未完成'))
-  }
-  // TODO: replace with → return request.get(`/api/detect/ai-parse/tasks/${parseTaskId}/result`)
-  return Promise.resolve({ code: 200, message: 'ok', data: detail })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/ai-parse/tasks/${parseTaskId}/result`,
+  )
+  return { ...res, data: normalizeAiParseResultDetail(res.data, parseTaskId) }
 }
 
 /**
  * 获取 AI 解析规则回退对比项
  * @param parseTaskId - 解析任务 ID
  */
-export function getAiParseFallbackCompare(
+export async function getAiParseFallbackCompare(
   parseTaskId: string,
 ): Promise<ApiResponse<AiParseFallbackCompareItem[]>> {
-  // TODO: replace with → return request.get(`/api/detect/ai-parse/tasks/${parseTaskId}/fallback-compare`)
-  const list = getMockAiParseFallbackCompare(parseTaskId)
-  if (list.length === 0) {
-    return Promise.reject(new Error('解析任务不存在或无回退数据'))
-  }
-  return Promise.resolve({ code: 200, message: 'ok', data: list })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/ai-parse/tasks/${parseTaskId}/fallback-compare`,
+  )
+  const listRaw = res.data ?? res
+  return { ...res, data: normalizeAiParseFallbackCompareList(listRaw) }
 }
 
 /**
@@ -526,16 +527,17 @@ export function getAiParseFallbackCompare(
  * @param parseTaskId - 解析任务 ID
  * @param data - 回退原因
  */
-export function submitAiParseFallback(
+export async function submitAiParseFallback(
   parseTaskId: string,
   data: SubmitAiParseFallbackParams,
 ): Promise<ApiResponse<AiParseTask>> {
-  // TODO: replace with → return request.post(`/api/detect/ai-parse/tasks/${parseTaskId}/fallback`, data)
-  const task = mockSubmitAiParseFallback(parseTaskId, data.reason)
-  if (!task) {
-    return Promise.reject(new Error('仅失败状态的解析任务可规则回退'))
-  }
-  return Promise.resolve({ code: 200, message: 'ok', data: task })
+  const res = await request.post<ApiResponse<unknown>>(
+    `/api/detect/ai-parse/tasks/${parseTaskId}/fallback`,
+    submitAiParseFallbackParamsToApi(data),
+  )
+  const taskRaw =
+    res.data && typeof res.data === 'object' ? (res.data as Record<string, unknown>) : {}
+  return { ...res, data: normalizeAiParseTask(taskRaw) }
 }
 
 /**
