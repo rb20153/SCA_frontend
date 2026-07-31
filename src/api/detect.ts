@@ -65,24 +65,19 @@ import {
   normalizeAiParseTaskPage,
   submitAiParseFallbackParamsToApi,
 } from '@/utils/aiParseAdapter'
-import { getMockOpenSourceRiskDetailSummary } from '@/mock/modules/detect/openSourceRiskDetail'
 import {
-  getMockOpenSourceRiskComponentPage,
-  getMockOpenSourceRiskComponentDetail,
-  mockIgnoreOpenSourceRiskComponent,
-  mockRevokeOpenSourceRiskComponentIgnore,
-} from '@/mock/modules/detect/openSourceRiskComponents'
-import { getMockRiskComponentGraph } from '@/mock/modules/detect/riskComponentGraph'
-import { getMockOpenSourceRiskVulnerabilityPage, countMockOpenSourceRiskVulnerabilitiesByComponent } from '@/mock/modules/detect/openSourceRiskVulnerabilities'
-import {
-  getMockOpenSourceRiskVulnerabilityDetail,
-  mockRegisterOpenSourceRiskVulnerabilityDisposition,
-  mockReviewOpenSourceRiskVulnerabilityDisposition,
-} from '@/mock/modules/detect/openSourceRiskVulnerabilityDetail'
-import {
-  getMockOpenSourceRiskSbomPreviewPage,
-  mockExportOpenSourceRiskSbom,
-} from '@/mock/modules/detect/openSourceRiskSbom'
+  normalizeExportOpenSourceRiskSbomResult,
+  normalizeOpenSourceRiskComponentDetail,
+  normalizeOpenSourceRiskComponentPage,
+  normalizeOpenSourceRiskDetailSummary,
+  normalizeOpenSourceRiskSbomPreviewPage,
+  normalizeOpenSourceRiskVulnerabilityDetail,
+  normalizeOpenSourceRiskVulnerabilityPage,
+  normalizeRiskComponentGraph,
+  openSourceRiskComponentQueryParamsToApi,
+  openSourceRiskSbomPreviewQueryParamsToApi,
+  openSourceRiskVulnerabilityQueryParamsToApi,
+} from '@/utils/openSourceRiskAdapter'
 
 /** multipart 请求头：显式声明后 axios 才会保留 FormData（默认 JSON 头会被序列化） */
 const MULTIPART_CONFIG = { headers: { 'Content-Type': 'multipart/form-data' } }
@@ -159,8 +154,6 @@ async function resolveTaskActionResult(
   const detail = await getTaskDetail(taskId)
   return { ...res, data: detail.data }
 }
-
-// 以下开源风险结果/详情类接口仍为 mock
 
 /**
  * 获取自主率检测结果 · 顶部总体摘要
@@ -250,32 +243,28 @@ export async function getAutonomyDetectSourceHitList(
  * 获取开源风险检测详情统计摘要
  * @param taskId - 检测任务 ID
  */
-export function getOpenSourceRiskDetailSummary(
+export async function getOpenSourceRiskDetailSummary(
   taskId: string,
 ): Promise<ApiResponse<OpenSourceRiskDetailSummary>> {
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/summary`)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockOpenSourceRiskDetailSummary(taskId),
-  })
+  const res = await request.get<ApiResponse<unknown>>(`/api/detect/tasks/${taskId}/risk/summary`)
+  return { ...res, data: normalizeOpenSourceRiskDetailSummary(res.data) }
 }
 
 /**
  * 获取开源风险检测 · 组件清单（分页）
  * @param taskId - 任务 ID
- * @param params - 筛选与分页
+ * @param params - 筛选与分页；includeIgnored 为 true 时一并返回已忽略组件
  */
-export function getOpenSourceRiskComponentList(
+export async function getOpenSourceRiskComponentList(
   taskId: string,
   params: OpenSourceRiskComponentQueryParams,
 ): Promise<ApiResponse<PageResult<OpenSourceRiskComponent>>> {
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/components`, { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockOpenSourceRiskComponentPage(taskId, params),
-  })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/risk/components`,
+    { params: openSourceRiskComponentQueryParamsToApi(params) },
+  )
+  // 兼容 list 挂在 body 顶层而非 data 内的后端实现
+  return { ...res, data: normalizeOpenSourceRiskComponentPage(res.data ?? res) }
 }
 
 /**
@@ -283,13 +272,13 @@ export function getOpenSourceRiskComponentList(
  * @param taskId - 任务 ID
  * @returns 依赖图数据，节点复用组件清单 ID，便于点击打开详情抽屉
  */
-export function getRiskComponentGraph(taskId: string): Promise<ApiResponse<RiskComponentGraph>> {
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/component-graph`)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockRiskComponentGraph(taskId),
-  })
+export async function getRiskComponentGraph(
+  taskId: string,
+): Promise<ApiResponse<RiskComponentGraph>> {
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/risk/component-graph`,
+  )
+  return { ...res, data: normalizeRiskComponentGraph(res.data) }
 }
 
 /**
@@ -297,20 +286,14 @@ export function getRiskComponentGraph(taskId: string): Promise<ApiResponse<RiskC
  * @param taskId - 任务 ID
  * @param componentId - 组件 ID
  */
-export function getOpenSourceRiskComponentDetail(
+export async function getOpenSourceRiskComponentDetail(
   taskId: string,
   componentId: string,
 ): Promise<ApiResponse<OpenSourceRiskComponentDetail>> {
-  const detail = getMockOpenSourceRiskComponentDetail(taskId, componentId)
-  if (!detail) {
-    return Promise.reject(new Error('组件不存在'))
-  }
-  detail.relatedVulnerabilityCount = countMockOpenSourceRiskVulnerabilitiesByComponent(
-    taskId,
-    detail.componentName,
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/risk/components/${componentId}`,
   )
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/components/${componentId}`)
-  return Promise.resolve({ code: 200, message: 'ok', data: detail })
+  return { ...res, data: normalizeOpenSourceRiskComponentDetail(res.data, componentId) }
 }
 
 /**
@@ -324,16 +307,15 @@ export function ignoreOpenSourceRiskComponent(
   componentId: string,
   data: IgnoreOpenSourceRiskComponentParams,
 ): Promise<ApiResponse<null>> {
-  const ok = mockIgnoreOpenSourceRiskComponent(taskId, componentId, data.reason)
-  if (!ok) {
-    return Promise.reject(new Error('组件不存在'))
-  }
-  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/risk/components/${componentId}/ignore`, data)
-  return Promise.resolve({ code: 200, message: 'ok', data: null })
+  return request.post(
+    `/api/detect/tasks/${taskId}/risk/components/${componentId}/ignore`,
+    { reason: data.reason },
+  )
 }
 
 /**
  * 撤销忽略开源风险组件
+ * DELETE 带 body `{ taskId, componentId }`，与 openapi 一致
  * @param taskId - 任务 ID
  * @param componentId - 组件 ID
  */
@@ -341,12 +323,9 @@ export function revokeOpenSourceRiskComponentIgnore(
   taskId: string,
   componentId: string,
 ): Promise<ApiResponse<null>> {
-  const ok = mockRevokeOpenSourceRiskComponentIgnore(taskId, componentId)
-  if (!ok) {
-    return Promise.reject(new Error('组件未忽略或不存在'))
-  }
-  // TODO: replace with → return request.delete(`/api/detect/tasks/${taskId}/risk/components/${componentId}/ignore`)
-  return Promise.resolve({ code: 200, message: 'ok', data: null })
+  return request.delete(`/api/detect/tasks/${taskId}/risk/components/${componentId}/ignore`, {
+    data: { taskId, componentId },
+  })
 }
 
 /**
@@ -354,16 +333,15 @@ export function revokeOpenSourceRiskComponentIgnore(
  * @param taskId - 任务 ID
  * @param params - 筛选与分页
  */
-export function getOpenSourceRiskVulnerabilityList(
+export async function getOpenSourceRiskVulnerabilityList(
   taskId: string,
   params: OpenSourceRiskVulnerabilityQueryParams,
 ): Promise<ApiResponse<PageResult<OpenSourceRiskVulnerability>>> {
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/vulnerabilities`, { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockOpenSourceRiskVulnerabilityPage(taskId, params),
-  })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/risk/vulnerabilities`,
+    { params: openSourceRiskVulnerabilityQueryParamsToApi(params) },
+  )
+  return { ...res, data: normalizeOpenSourceRiskVulnerabilityPage(res.data ?? res) }
 }
 
 /**
@@ -371,62 +349,57 @@ export function getOpenSourceRiskVulnerabilityList(
  * @param taskId - 任务 ID
  * @param vulnerabilityId - 漏洞 ID
  */
-export function getOpenSourceRiskVulnerabilityDetail(
+export async function getOpenSourceRiskVulnerabilityDetail(
   taskId: string,
   vulnerabilityId: string,
 ): Promise<ApiResponse<OpenSourceRiskVulnerabilityDetail>> {
-  const detail = getMockOpenSourceRiskVulnerabilityDetail(taskId, vulnerabilityId)
-  if (!detail) {
-    return Promise.reject(new Error('漏洞不存在'))
-  }
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/vulnerabilities/${vulnerabilityId}`)
-  return Promise.resolve({ code: 200, message: 'ok', data: detail })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/risk/vulnerabilities/${vulnerabilityId}`,
+  )
+  return { ...res, data: normalizeOpenSourceRiskVulnerabilityDetail(res.data, vulnerabilityId) }
 }
 
 /**
  * 登记开源风险漏洞处置
  * @param taskId - 任务 ID
  * @param vulnerabilityId - 漏洞 ID
- * @param data - 登记表单
+ * @param data - 登记表单（处置方式、计划完成日期、负责人、说明）
  */
 export function registerOpenSourceRiskVulnerabilityDisposition(
   taskId: string,
   vulnerabilityId: string,
   data: RegisterOpenSourceRiskVulnerabilityDispositionParams,
 ): Promise<ApiResponse<null>> {
-  const ok = mockRegisterOpenSourceRiskVulnerabilityDisposition(taskId, vulnerabilityId, data)
-  if (!ok) {
-    return Promise.reject(new Error('当前状态不可登记处置'))
-  }
-  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/risk/vulnerabilities/${vulnerabilityId}/disposition`, data)
-  return Promise.resolve({ code: 200, message: 'ok', data: null })
+  return request.post(
+    `/api/detect/tasks/${taskId}/risk/vulnerabilities/${vulnerabilityId}/disposition`,
+    data,
+  )
 }
 
 /**
  * 复核开源风险漏洞处置
  * @param taskId - 任务 ID
  * @param vulnerabilityId - 漏洞 ID
- * @param data - 复核表单
+ * @param data - 复核表单（结论 + 意见）
  */
 export function reviewOpenSourceRiskVulnerabilityDisposition(
   taskId: string,
   vulnerabilityId: string,
   data: ReviewOpenSourceRiskVulnerabilityDispositionParams,
 ): Promise<ApiResponse<null>> {
-  const ok = mockReviewOpenSourceRiskVulnerabilityDisposition(taskId, vulnerabilityId, data)
-  if (!ok) {
-    return Promise.reject(new Error('当前状态不可复核'))
-  }
-  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/risk/vulnerabilities/${vulnerabilityId}/disposition/review`, data)
-  return Promise.resolve({ code: 200, message: 'ok', data: null })
+  return request.post(
+    `/api/detect/tasks/${taskId}/risk/vulnerabilities/${vulnerabilityId}/disposition/review`,
+    data,
+  )
 }
 
 /**
  * 获取开源风险 · SBOM 清单预览（分页）
+ * 行字段结构随 granularity 变化，由 adapter 按粒度选择映射
  * @param taskId - 任务 ID
  * @param params - 输出粒度与分页
  */
-export function getOpenSourceRiskSbomPreview(
+export async function getOpenSourceRiskSbomPreview(
   taskId: string,
   params: OpenSourceRiskSbomPreviewQueryParams,
 ): Promise<
@@ -438,29 +411,31 @@ export function getOpenSourceRiskSbomPreview(
     >
   >
 > {
-  // TODO: replace with → return request.get(`/api/detect/tasks/${taskId}/risk/sbom/preview`, { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockOpenSourceRiskSbomPreviewPage(taskId, params),
-  })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/risk/sbom/preview`,
+    { params: openSourceRiskSbomPreviewQueryParamsToApi(params) },
+  )
+  return {
+    ...res,
+    data: normalizeOpenSourceRiskSbomPreviewPage(res.data ?? res, params.granularity),
+  }
 }
 
 /**
  * 导出开源风险 SBOM 文件
  * @param taskId - 任务 ID
  * @param data - 标准格式、文件格式与输出粒度
+ * @returns 临时下载链接与建议文件名，由页面触发浏览器下载
  */
-export function exportOpenSourceRiskSbom(
+export async function exportOpenSourceRiskSbom(
   taskId: string,
   data: ExportOpenSourceRiskSbomParams,
 ): Promise<ApiResponse<ExportOpenSourceRiskSbomResult>> {
-  // TODO: replace with → return request.post(`/api/detect/tasks/${taskId}/risk/sbom/export`, data)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: mockExportOpenSourceRiskSbom(taskId, data),
-  })
+  const res = await request.post<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/risk/sbom/export`,
+    data,
+  )
+  return { ...res, data: normalizeExportOpenSourceRiskSbomResult(res.data) }
 }
 
 /**

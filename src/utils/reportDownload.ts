@@ -112,6 +112,24 @@ function triggerAnchorDownload(url: string, fileName: string): void {
 }
 
 /**
+ * 将预览地址解析为 iframe 可直接加载的 URL
+ * - 外链 / blob: / 签名临时链：原样返回
+ * - 同源 /api/*：带 Bearer Token 拉 blob，再生成 objectURL（iframe 无法带 Authorization）
+ * @param url - 后端返回的预览地址
+ * @returns 可供 iframe src 使用的地址；调用方负责在不用时 revokeObjectURL
+ */
+export async function resolveAuthenticatedPreviewUrl(url: string): Promise<string> {
+  if (!url) {
+    throw new Error('预览地址无效')
+  }
+  if (!needsAuthenticatedFetch(url)) {
+    return url
+  }
+  const blob = await fetchBlobWithAuth(url)
+  return URL.createObjectURL(blob)
+}
+
+/**
  * 触发浏览器下载
  * - mock 的 blob: 或外链：直接 <a download>
  * - 同源 /api/*：先 axios 带 Token 拉 blob，再 objectURL 下载（避免 401）

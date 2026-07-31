@@ -1,7 +1,6 @@
 import type { ApiResponse, PageResult } from '@/types/common'
 import request from '@/utils/request'
 import type {
-  AlertAssigneeOption,
   AlertCenterOverview,
   AlertDetail,
   AlertListItem,
@@ -30,7 +29,6 @@ import {
   alertQueryParamsToApi,
   handleAlertParamsToApi,
   logExportParamsToApi,
-  normalizeAlertAssigneeList,
   normalizeAlertCenterOverview,
   normalizeAlertDetail,
   normalizeAlertPage,
@@ -101,14 +99,6 @@ export async function handleAlert(
     handleAlertParamsToApi(data),
   )
   return { ...res, data: normalizeHandleAlertResult(res.data) }
-}
-
-/**
- * 获取转派复核候选人列表（处理弹窗下拉）
- */
-export async function getAlertAssigneeOptions(): Promise<ApiResponse<AlertAssigneeOption[]>> {
-  const res = await request.get<ApiResponse<unknown>>('/api/system/alerts/assignees')
-  return { ...res, data: normalizeAlertAssigneeList(res.data) }
 }
 
 /**

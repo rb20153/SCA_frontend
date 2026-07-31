@@ -1,6 +1,5 @@
 import type { PageResult, TaskType } from '@/types/common'
 import type {
-  AlertAssigneeOption,
   AlertCenterOverview,
   AlertDetail,
   AlertDisposition,
@@ -431,24 +430,6 @@ export function normalizeHandleAlertResult(raw: unknown): HandleAlertResult {
     alert: normalizeAlertListItem(alertObj),
     movedToHandled: normalizeBoolean(obj.movedToHandled ?? obj.moved_to_handled, true),
   }
-}
-
-/** 规范转派候选人 */
-export function normalizeAlertAssigneeOption(raw: Record<string, unknown>): AlertAssigneeOption {
-  const userId = pickFirstNonEmptyString(raw.userId, raw.user_id, raw.id)
-  const label = pickFirstNonEmptyString(
-    raw.label,
-    raw.name,
-    raw.realName,
-    raw.displayName,
-    raw.username,
-  )
-  return { userId, label: label || userId }
-}
-
-/** 规范转派候选人列表 */
-export function normalizeAlertAssigneeList(raw: unknown): AlertAssigneeOption[] {
-  return normalizeList(raw, normalizeAlertAssigneeOption).filter((item) => item.userId)
 }
 
 /** 规范日志时间线条目 */

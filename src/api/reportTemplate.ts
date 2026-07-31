@@ -1,4 +1,5 @@
-import type { ApiResponse, PageResult } from '@/types/common'
+import request from '@/utils/request'
+import { API_SUCCESS_CODE, type ApiResponse, type PageResult } from '@/types/common'
 import type {
   NewReportTemplateDraftParams,
   ReportTemplate,
@@ -8,100 +9,51 @@ import type {
   SaveReportTemplateParams,
 } from '@/types/reportTemplate'
 import {
-  MOCK_ALL_REPORT_TEMPLATES,
-  SYSTEM_REPORT_TEMPLATE_NAMES,
-  getMockTemplatePublishFailureReason,
-} from '@/mock/modules/report/templateList'
-import {
-  getMockNewReportTemplateEditorDetail,
-  getMockReportTemplateDetail,
-  mockSaveReportTemplate,
-} from '@/mock/modules/report/templateDetail'
+  createNewReportTemplateDetailFallback,
+  newReportTemplateDraftParamsToApi,
+  normalizeReportTemplate,
+  normalizeReportTemplateDetail,
+  normalizeReportTemplatePage,
+  normalizeReportTemplatePublishFailureReason,
+  reportTemplateQueryParamsToApi,
+  saveReportTemplateParamsToApi,
+} from '@/utils/reportAdapter'
 
-// TODO: replace with: import request from '@/utils/request'
-
-const DEFAULT_PAGE_SIZE = 10
-
-/** 系统内置模板置顶，其余按更新时间倒序 */
-function sortReportTemplates(list: ReportTemplate[]): ReportTemplate[] {
-  return [...list].sort((a, b) => {
-    const aSystemIdx = (SYSTEM_REPORT_TEMPLATE_NAMES as readonly string[]).indexOf(a.templateName)
-    const bSystemIdx = (SYSTEM_REPORT_TEMPLATE_NAMES as readonly string[]).indexOf(b.templateName)
-
-    if (aSystemIdx >= 0 && bSystemIdx >= 0) {
-      return aSystemIdx - bSystemIdx
-    }
-    if (aSystemIdx >= 0) return -1
-    if (bSystemIdx >= 0) return 1
-
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  })
-}
-
-/** mock 阶段按筛选条件过滤模板列表 */
-function filterMockReportTemplates(params: ReportTemplateQueryParams): ReportTemplate[] {
-  let list = [...MOCK_ALL_REPORT_TEMPLATES]
-
-  const templateName = params.templateName?.trim()
-  if (templateName) {
-    list = list.filter((item) => item.templateName.includes(templateName))
-  }
-
-  if (params.outputFormat) {
-    list = list.filter((item) => item.outputFormat === params.outputFormat)
-  }
-
-  if (params.visibility) {
-    list = list.filter((item) => item.visibility === params.visibility)
-  }
-
-  if (params.status) {
-    list = list.filter((item) => item.status === params.status)
-  }
-
-  return sortReportTemplates(list)
-}
+/** 新建模板在编辑器内的占位 ID（首次保存走 POST 而非 PUT） */
+const NEW_TEMPLATE_ID = 'new'
 
 /**
  * 获取报告模板列表（分页 + 筛选）
  * @param params - 分页与筛选参数
  */
-export function getReportTemplateList(
+export async function getReportTemplateList(
   params: ReportTemplateQueryParams,
 ): Promise<ApiResponse<PageResult<ReportTemplate>>> {
-  const page = params.page ?? 1
-  const pageSize = params.pageSize ?? DEFAULT_PAGE_SIZE
-
-  const sorted = filterMockReportTemplates(params)
-  const start = (page - 1) * pageSize
-  const list = sorted.slice(start, start + pageSize)
-
-  // TODO: replace with → return request.get('/api/report-templates', { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: {
-      list,
-      total: sorted.length,
-      page,
-      pageSize,
-    },
+  const res = await request.get<ApiResponse<unknown>>('/api/report-templates', {
+    params: reportTemplateQueryParamsToApi(params),
   })
+  return { ...res, data: normalizeReportTemplatePage(res.data ?? res) }
 }
 
 /**
  * 获取新建模板编辑器草稿详情（弹窗确认后、首次保存前）
  * @param draft - 模板名称与复制来源
+ * 后端返回空内容时回落到空白模板详情，避免编辑器卡在加载失败态
  */
-export function getNewReportTemplateEditorDetail(
+export async function getNewReportTemplateEditorDetail(
   draft: NewReportTemplateDraftParams,
 ): Promise<ApiResponse<ReportTemplateDetail>> {
-  // TODO: replace with → return request.post('/api/report-templates/draft-preview', draft)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockNewReportTemplateEditorDetail(draft),
-  })
+  const res = await request.post<ApiResponse<unknown>>(
+    '/api/report-templates/draft-preview',
+    newReportTemplateDraftParamsToApi(draft),
+  )
+  const detail = normalizeReportTemplateDetail(res.data, NEW_TEMPLATE_ID)
+  return {
+    ...res,
+    data: detail
+      ? { ...detail, templateId: NEW_TEMPLATE_ID }
+      : createNewReportTemplateDetailFallback(draft),
+  }
 }
 
 /**
@@ -109,124 +61,95 @@ export function getNewReportTemplateEditorDetail(
  * @param templateId - 模板 ID，新建传 new
  * @param data - 基本信息、Markdown（英文 varKey）、导出与权限
  */
-export function saveReportTemplate(
+export async function saveReportTemplate(
   templateId: string,
   data: SaveReportTemplateParams,
 ): Promise<ApiResponse<ReportTemplateDetail>> {
-  // TODO: replace with →
-  // templateId === 'new'
-  //   ? request.post('/api/report-templates', data)
-  //   : request.put(`/api/report-templates/${templateId}`, data)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: mockSaveReportTemplate(templateId, data),
-  })
+  const body = saveReportTemplateParamsToApi(data)
+  const res =
+    templateId === NEW_TEMPLATE_ID
+      ? await request.post<ApiResponse<unknown>>('/api/report-templates', body)
+      : await request.put<ApiResponse<unknown>>(`/api/report-templates/${templateId}`, body)
+
+  const detail = normalizeReportTemplateDetail(res.data, templateId)
+  return {
+    ...res,
+    // 后端保存接口可能只回 id 或空对象，这里用提交内容回填，保证返回类型完整
+    data: detail ?? {
+      ...createNewReportTemplateDetailFallback({ templateName: data.templateName }),
+      templateId,
+      version: data.version,
+      outputFormat: data.outputFormat,
+      visibility: data.visibility,
+      projectId: data.projectId,
+      isDefault: data.isDefault,
+      markdownContent: data.markdownContent,
+    },
+  }
 }
 
 /**
  * 获取报告模板详情（编辑器页加载基本信息与 Markdown 正文）
  * @param templateId - 模板 ID
+ * 模板不存在 / 加载失败时返回 data=null（错误提示已由拦截器弹出），
+ * 页面据此展示「无法加载模板」结果页
  */
-export function getReportTemplateDetail(
+export async function getReportTemplateDetail(
   templateId: string,
 ): Promise<ApiResponse<ReportTemplateDetail | null>> {
-  // TODO: replace with → return request.get(`/api/report-templates/${templateId}`)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: getMockReportTemplateDetail(templateId),
-  })
+  try {
+    const res = await request.get<ApiResponse<unknown>>(`/api/report-templates/${templateId}`)
+    return { ...res, data: normalizeReportTemplateDetail(res.data, templateId) }
+  } catch {
+    return { code: API_SUCCESS_CODE, message: '模板不存在或加载失败', data: null }
+  }
 }
 
 /**
  * 发布报告模板（草稿 → 已发布）
  * @param templateId - 模板 ID
+ * 「系统内置不可发布」「仅草稿可发布」等校验由后端返回业务错误
  */
-export function publishReportTemplate(
+export async function publishReportTemplate(
   templateId: string,
 ): Promise<ApiResponse<ReportTemplate>> {
-  const template = MOCK_ALL_REPORT_TEMPLATES.find((item) => item.templateId === templateId)
-
-  if (!template) {
-    return Promise.reject(new Error('模板不存在'))
-  }
-
-  if (template.isSystem) {
-    return Promise.reject(new Error('系统内置模板不可发布'))
-  }
-
-  if (template.status !== 'draft') {
-    return Promise.reject(new Error('仅草稿状态模板可发布'))
-  }
-
-  template.status = 'published'
-  template.updatedAt = new Date().toISOString()
-
-  // TODO: replace with → return request.post(`/api/report-templates/${templateId}/publish`)
-  return Promise.resolve({ code: 200, message: 'ok', data: { ...template } })
+  const res = await request.post<ApiResponse<unknown>>(
+    `/api/report-templates/${templateId}/publish`,
+  )
+  return { ...res, data: normalizeReportTemplate((res.data ?? {}) as Record<string, unknown>) }
 }
 
 /**
  * 删除报告模板（系统内置不可删）
  * @param templateId - 模板 ID
  */
-export function deleteReportTemplate(templateId: string): Promise<ApiResponse<null>> {
-  const index = MOCK_ALL_REPORT_TEMPLATES.findIndex((item) => item.templateId === templateId)
-  const target = index >= 0 ? MOCK_ALL_REPORT_TEMPLATES[index] : undefined
-
-  if (target?.isSystem) {
-    return Promise.reject(new Error('系统内置模板不可删除'))
-  }
-
-  if (index >= 0) {
-    MOCK_ALL_REPORT_TEMPLATES.splice(index, 1)
-  }
-
-  // TODO: replace with → return request.delete(`/api/report-templates/${templateId}`)
-  return Promise.resolve({ code: 200, message: 'ok', data: null })
+export async function deleteReportTemplate(templateId: string): Promise<ApiResponse<null>> {
+  const res = await request.delete<ApiResponse<unknown>>(`/api/report-templates/${templateId}`)
+  return { ...res, data: null }
 }
 
 /**
  * 取消发布报告模板（已发布 → 草稿）
  * @param templateId - 模板 ID
  */
-export function unpublishReportTemplate(templateId: string): Promise<ApiResponse<ReportTemplate>> {
-  const template = MOCK_ALL_REPORT_TEMPLATES.find((item) => item.templateId === templateId)
-
-  if (!template) {
-    return Promise.reject(new Error('模板不存在'))
-  }
-
-  if (template.isSystem) {
-    return Promise.reject(new Error('系统内置模板不可取消发布'))
-  }
-
-  if (template.status !== 'published') {
-    return Promise.reject(new Error('仅已发布模板可取消发布'))
-  }
-
-  template.status = 'draft'
-  template.updatedAt = new Date().toISOString()
-
-  // TODO: replace with → return request.post(`/api/report-templates/${templateId}/unpublish`)
-  return Promise.resolve({ code: 200, message: 'ok', data: { ...template } })
+export async function unpublishReportTemplate(
+  templateId: string,
+): Promise<ApiResponse<ReportTemplate>> {
+  const res = await request.post<ApiResponse<unknown>>(
+    `/api/report-templates/${templateId}/unpublish`,
+  )
+  return { ...res, data: normalizeReportTemplate((res.data ?? {}) as Record<string, unknown>) }
 }
 
 /**
  * 获取报告模板发布失败原因
  * @param templateId - 模板 ID
  */
-export function getReportTemplatePublishFailureReason(
+export async function getReportTemplatePublishFailureReason(
   templateId: string,
 ): Promise<ApiResponse<ReportTemplatePublishFailureReason>> {
-  // TODO: replace with → return request.get(`/api/report-templates/${templateId}/publish-failure-reason`)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: {
-      templateId,
-      reason: getMockTemplatePublishFailureReason(templateId),
-    },
-  })
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/report-templates/${templateId}/publish-failure-reason`,
+  )
+  return { ...res, data: normalizeReportTemplatePublishFailureReason(res.data, templateId) }
 }

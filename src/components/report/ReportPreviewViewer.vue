@@ -34,11 +34,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 
 import { getReportPreview } from '@/api/report'
 import PageLoading from '@/components/common/PageLoading.vue'
 import type { ReportPreview } from '@/types/report'
+import { resolveAuthenticatedPreviewUrl } from '@/utils/reportDownload'
 
 const props = defineProps<{
   /** 报告 ID；为空时不加载 */
@@ -51,7 +52,21 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const preview = ref<ReportPreview | null>(null)
 
-/** 拉取报告预览信息（错误捕获后展示重试态，不依赖全局拦截器） */
+/** 当前 iframe 使用的 blob URL，卸载或重新加载时需释放 */
+let objectUrlToRevoke: string | null = null
+
+/** 释放上一次生成的 blob URL，避免内存泄漏 */
+function revokePreviewObjectUrl() {
+  if (objectUrlToRevoke) {
+    URL.revokeObjectURL(objectUrlToRevoke)
+    objectUrlToRevoke = null
+  }
+}
+
+/**
+ * 拉取报告预览；同源 /api 地址会先带 Token 拉成 blob URL 再给 iframe，
+ * 避免 iframe 无法携带 Authorization 导致 401 白屏
+ */
 async function loadPreview() {
   if (!props.reportId) {
     preview.value = null
@@ -60,9 +75,17 @@ async function loadPreview() {
   loading.value = true
   error.value = null
   preview.value = null
+  revokePreviewObjectUrl()
   try {
     const res = await getReportPreview(props.reportId)
-    preview.value = res.data
+    const resolvedUrl = await resolveAuthenticatedPreviewUrl(res.data.url)
+    if (resolvedUrl.startsWith('blob:')) {
+      objectUrlToRevoke = resolvedUrl
+    }
+    preview.value = {
+      ...res.data,
+      url: resolvedUrl,
+    }
   } catch {
     error.value = '无法获取报告预览，请稍后重试'
   } finally {
@@ -79,10 +102,15 @@ watch(
     if (!active) {
       preview.value = null
       error.value = null
+      revokePreviewObjectUrl()
     }
   },
   { immediate: true },
 )
+
+onUnmounted(() => {
+  revokePreviewObjectUrl()
+})
 </script>
 
 <style scoped>
@@ -116,5 +144,4 @@ watch(
   border-radius: 6px;
   background: #fff;
 }
-
 </style>

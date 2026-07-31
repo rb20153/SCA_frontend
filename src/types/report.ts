@@ -40,8 +40,8 @@ export interface ReportPreview {
   format: ReportPreviewFormat
   /**
    * 预览文件地址。
-   * - mock 阶段指向 public 下的静态示例文件
-   * - 真实接入时建议后端返回带签名的临时预览 URL；若需鉴权可改为前端 axios 拉 blob 后 objectURL
+   * - 外链 / 签名临时 URL：iframe 可直接加载
+   * - 同源 /api 路径：由 ReportPreviewViewer 带 Token 拉 blob 后换成 objectURL
    */
   url: string
   /** 文件名（下载/标题展示用） */

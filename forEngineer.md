@@ -5,6 +5,87 @@
 
 ---
 
+## [2026-07-31] 联调前修复 · openapi 契约补齐 + 预览鉴权 + 死代码清理
+
+### 改了什么
+
+- **openapi.yaml**：策略 5 个 POST（发布申请/审批/版本导出/差异导出/回滚）补齐 requestBody 字段；模板新建/更新保存改用 `SaveReportTemplateParams`（含 `version/outputFormat/visibility/isDefault/projectId`）；`/api/reports/generate` 与报告详情响应由错误的 `DownloadResult` 改为 `Report`；模板详情 `variables` 声明为必返结构
+- **报告预览**：`ReportPreviewViewer` + `resolveAuthenticatedPreviewUrl`——同源 `/api` 预览地址先带 Bearer Token 拉 blob，再生成 objectURL 给 iframe，避免 iframe 不带 Authorization 导致 401 白屏
+- **模板变量兜底**：新增 `src/utils/reportTemplateVariables.ts`；后端未返回 `variables` 时用默认变量库，避免中英转换静默失效
+- **死代码清理**：删除 `getAlertAssigneeOptions` / `getKbProjectSelectOptions` / `loadKbProjectSelectOptions` 及对应 type、adapter、remote loader（转派已改用 `searchUsers`）
+
+### 注意
+
+- 策略 POST body 字段名以 camelCase 为准（与前端 `policyAdapter` 一致）：`versionNo/changeSummary/configText/editorId`、`conclusion/opinion/effectiveTime`、`scope/format`、`confirmVersionNo`
+- 新建策略发布路径仍为 `/api/policies/new/publish-requests`，后端需识别字面量 `new`
+- mock 的 `alertAssignees.ts` / `templateVariables.ts` 保留备查，api 不再引用
+
+---
+
+## [2026-07-31] 全量切真实接口 · 最后 6 个 mock 模块（86 个函数）
+
+### 改了什么
+
+- `src/api/detect.ts`：开源风险相关 12 个函数切真实接口（结果统计、组件清单/详情/依赖图、忽略与撤销、漏洞列表/详情/登记处置/复核、SBOM 预览与导出）。任务主体、自主率结果、AI 解析此前已对接，本次不动
+- `src/api/policy.ts`：17 个函数 / 16 个端点全切（列表、下拉、编辑器内容、检测参数、导入、删除、按 ID 查、规则命中列表与详情、治理概览、版本列表、发布申请、版本差异与差异导出、审批、版本导出、回滚）
+- `src/api/knowledge.ts`：37 个函数全切，覆盖项目知识库、版本管理、覆盖统计、季度更新、漏洞知识库、漏洞条目六块
+- `src/api/report.ts`：9 个函数全切（列表、生成、删除、详情、在线预览、下载前置状态、下载申请、创建下载、失败原因）
+- `src/api/reportTemplate.ts`：8 个函数全切（列表、新建草稿预览、保存、详情、发布、取消发布、删除、发布失败原因）
+- `src/api/siteMessage.ts`：3 个函数全切（列表、全部已读、单条已读切换）
+- 新增 adapter：`src/utils/openSourceRiskAdapter.ts`、`src/utils/knowledgeAdapter.ts`（约 830 行）、`src/utils/reportAdapter.ts`（报告 + 模板共用）、`src/utils/siteMessageAdapter.ts`
+- 扩展 adapter：`src/utils/policyAdapter.ts` 从 3 个导出扩到 22 个
+- `src/utils/request.ts`：`RequestMethods` 追加 `patch` 签名（全项目第一个 PATCH 请求，站内消息单条已读要用）
+- 文档：根目录 `API.md` 相关行状态由 mock 改为「联调中」并补上真实 method + path
+
+至此 `src/api/` 下已经没有任何 mock 引用，原先 172 处 `Promise.resolve` / mock import 全部清零。
+
+### 为什么这么做
+
+这批的目标是「前端先把接口都换上，后端再来联调」。所以状态一律标「联调中」而不是「已对接」——函数体确实已经打真实请求，但还没在真实后端环境跑通过。
+`src/mock/` 下的 mock 文件**全部保留**，只是 api 层不再 import，方便后端没就绪时对照数据结构，也方便出问题时回退比对。
+
+### 怎么实现的
+
+沿用之前几轮联调同一套路子，页面和组件一行没动：
+
+- api 函数签名保持不变，函数体换成 `request.get/post/put/delete/patch`，返回值统一过 adapter 转成前端类型
+- 出站方向由 `xxxParamsToApi` / `xxxQueryToApi` 把前端的筛选表单转成后端 query / body；入站方向由 `normalizeXxx` / `normalizeXxxPage` 把后端字段转回前端类型，缺字段就补默认值
+- 分页统一走已有的 `pageResultAdapter`
+- multipart 接口（策略导入、知识库建项目、版本上传包、离线漏洞包导入）继续用已有的 FormData 构造方式
+- 报告模板保存接口按 `templateId === 'new'` 分流 POST / PUT；后端只回 id 或空对象时用提交内容回填，保证返回类型完整
+
+### 注意事项 / 已知限制
+
+**枚举和字段口径不一致（前端已在 adapter 兼容，但后端要知道）**
+
+- 风险等级：openapi 是 5 档 `critical/high/medium/low/info`，前端只有 3 档。`critical` 并入「高」、`info` 并入「低」。**后端真下发 `critical`，页面上显示的是「高」**
+- 漏洞严重等级同理，`critical` 并入 `high`
+- 知识库版本状态：后端 `active` → 前端 `ready`
+- 漏洞来源同步状态：后端 `normal/syncing/failed/offline`，前端 `normal/delayed/warning`，出站做反向映射。**`offline` 在前端筛选里选不出来**
+- 季度更新采集方式：后端字段名 `updateType` → 前端 `collectMode`
+- 站内消息类型：后端短枚举 `task/approval/alert/report/system`，前端长枚举 `task_notice/approval_reminder/...`，出入站双向转换
+- 漏洞条目字段改名：`cveId`→`identifier`、`severity`→`level`、`publishedAt`→`updatedAt`
+- 覆盖统计字段改名：`missingField`→`gapDescription`、`priority`→`impact`、`coverageRate`→`directoryCoverageRate`、`collectMode`→`method`
+
+**需要后端补或确认的（联调时优先问这几条）**
+
+1. 策略 5 个 POST 的 requestBody 在 openapi 里是空的 `properties: {}`（发布申请 / 审批 / 版本导出 / 差异导出 / 回滚）。前端按 camelCase 提交，字段名需要后端核对
+2. 策略新建时发布申请走 `/api/policies/new/publish-requests`，`policyId` 传的是字面量 `new`，要后端确认能识别
+3. 检测组件清单缺 `identifyBasis` 枚举字段，只有 `identifyBasisLabel` 文案。前端只能靠文案反推 Tag 颜色，建议后端补枚举
+4. 报告模板保存接口的 requestBody 少声明了 `version` / `outputFormat` / `visibility` / `isDefault` / `projectId`
+5. 模板详情**必须返回 `variables` 数组**。少了这个，Markdown 里的变量中英转换会静默失效、变量面板直接空白，而且不报错，很难查
+6. `/api/reports/generate` 和报告详情的响应 schema 被写成了 `DownloadResult`，实际应该是报告对象
+7. `getVulnItemList` 的 `identifier` 参数被声明成 `enum:[CVE,CNVD]`，但页面传的是完整编号（如 `CVE-2024-3094`），应该是模糊匹配
+8. 后端 schema 字段明显少于前端类型的接口：`getKbProjectFileDetail`、`getCoverageUpdateTrendWeeks`、`getCollectionMethodCoverageStats`、`getCategoryCoverageStats`。目前缺的都由 adapter 补默认值，页面不会崩，但会显示空/0
+9. 报告在线预览：`getReportPreview` 拿到的 URL 直接进 `<iframe src>`，**浏览器不会带 Authorization 头**。后端需要返回签名临时 URL，或者对这个地址支持 Cookie 鉴权，否则一定是 401 白屏
+
+**行为变化（联调时最容易误判成 bug 的地方）**
+
+- mock 阶段写在前端的一批前置校验已经全部移到后端了：系统内置模板不可删 / 不可发布、报告未完成不可下载、下载未过审、重复提交下载申请、策略相关校验等。现在前端直接发请求，靠后端返回非成功业务码，错误文案由 axios 拦截器统一弹。**如果测出来「点了没反应也没提示」，多半是后端返回了成功码但没执行动作**，不是前端漏了处理
+- 报告模板列表原来在 mock 里做的「系统模板置顶」排序，现在由后端负责。列表顺序不对先看后端排序
+
+---
+
 ## [2026-07-29] 告警列表 · 按 status 过滤未处理/已处理队列
 
 ### 改了什么

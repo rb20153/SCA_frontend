@@ -137,12 +137,6 @@ export interface AlertQueryParams extends PageParams {
   occurredDate?: string
 }
 
-/** 告警转派候选人（处理弹窗下拉） */
-export interface AlertAssigneeOption {
-  userId: string
-  label: string
-}
-
 /** 审计日志结果 */
 export type LogResult = 'success' | 'failure'
 

@@ -1,3 +1,4 @@
+import request from '@/utils/request'
 import type { ApiResponse, PageResult } from '@/types/common'
 import type {
   SiteMessage,
@@ -5,53 +6,48 @@ import type {
   UpdateSiteMessageReadParams,
 } from '@/types/siteMessage'
 import {
-  filterMockSiteMessageList,
-  markAllMockSiteMessagesRead,
-  updateMockSiteMessageRead,
-} from '@/mock/modules/system/siteMessageList'
+  normalizeMarkAllReadResult,
+  normalizeSiteMessagePage,
+  siteMessageQueryToApi,
+} from '@/utils/siteMessageAdapter'
 
 /**
  * 分页查询当前用户的站内消息（按时间倒序）
  * @param params - 接收人用户名、筛选条件、分页
  */
-export function getSiteMessageList(
+export async function getSiteMessageList(
   params: SiteMessageListQuery,
 ): Promise<ApiResponse<PageResult<SiteMessage>>> {
-  // TODO: replace with → return request.get('/api/system/messages', { params })
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: filterMockSiteMessageList(params),
+  const res = await request.get<ApiResponse<unknown>>('/api/system/messages', {
+    params: siteMessageQueryToApi(params),
   })
+  return { ...res, data: normalizeSiteMessagePage(res.data ?? res) }
 }
 
 /**
  * 将当前用户全部站内消息标为已读
  * @param recipientUsername - 当前登录用户名
+ * 后端以 token 中的用户为准，body 里的 recipientUsername 仅作冗余参数
  */
-export function markAllSiteMessagesRead(
+export async function markAllSiteMessagesRead(
   recipientUsername: string,
 ): Promise<ApiResponse<{ updatedCount: number }>> {
-  // TODO: replace with → return request.post('/api/system/messages/read-all')
-  const updatedCount = markAllMockSiteMessagesRead(recipientUsername)
-  return Promise.resolve({
-    code: 200,
-    message: 'ok',
-    data: { updatedCount },
+  const res = await request.post<ApiResponse<unknown>>('/api/system/messages/read-all', {
+    recipientUsername,
   })
+  return { ...res, data: normalizeMarkAllReadResult(res.data) }
 }
 
 /**
  * 更新单条站内消息已读状态
  * @param params - 消息 ID 与 read 目标值
  */
-export function updateSiteMessageReadStatus(
+export async function updateSiteMessageReadStatus(
   params: UpdateSiteMessageReadParams,
 ): Promise<ApiResponse<null>> {
-  // TODO: replace with → return request.patch(`/api/system/messages/${params.messageId}/read`, { read: params.read })
-  const ok = updateMockSiteMessageRead(params)
-  if (!ok) {
-    return Promise.reject(new Error('消息不存在'))
-  }
-  return Promise.resolve({ code: 200, message: 'ok', data: null })
+  const res = await request.patch<ApiResponse<unknown>>(
+    `/api/system/messages/${params.messageId}/read`,
+    { read: params.read },
+  )
+  return { ...res, data: null }
 }

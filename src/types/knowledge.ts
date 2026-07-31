@@ -128,12 +128,6 @@ export interface KbVersionQueryParams extends PageParams {
   kbProjectId: string
 }
 
-/** 项目目录页 · 知识库项目下拉选项 */
-export interface KbProjectSelectOption {
-  kbProjectId: string
-  projectName: string
-}
-
 /** 项目目录页 · 版本下拉选项 */
 export interface KbVersionSelectOption {
   versionId: string
