@@ -18,7 +18,7 @@
       </template>
 
       <template v-else-if="column.key === 'detail'">
-        <DetailText :text="getItem(row).detail" />
+        <EllipsisText :text="getItem(row).detail" />
       </template>
 
       <ListTableCell v-else :column="column" :text="text" />
@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
-import DetailText from '@/components/common/DetailText.vue'
+import EllipsisText from '@/components/common/EllipsisText.vue'
 import ListTable from '@/components/common/ListTable.vue'
 import ListTableCell from '@/components/common/ListTableCell.vue'
 import type { KbIntakeTodoItem } from '@/types/knowledge'
@@ -57,7 +57,7 @@ const columns: TableColumnsType<KbIntakeTodoItem> = [
     title: '项目',
     key: 'projectName',
     dataIndex: 'projectName',
-    width: 96,
+    width: 196,
     ellipsis: true,
   },
   { title: '状态', key: 'status', width: 88 },
@@ -65,6 +65,7 @@ const columns: TableColumnsType<KbIntakeTodoItem> = [
     title: '详情',
     key: 'detail',
     dataIndex: 'detail',
+    width: 236,
     ellipsis: true,
   },
 ]

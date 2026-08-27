@@ -393,7 +393,14 @@ export function normalizeKbIntakeTodoItem(raw: Record<string, unknown>): KbIntak
     todoId: pickString([raw.todoId, raw.todo_id, raw.id]),
     projectName: pickString([raw.projectName, raw.project_name, raw.name]),
     status: normalizeKbIntakeTodoStatus(raw.status),
-    detail: pickString([raw.detail, raw.description, raw.remark, raw.message]),
+    detail: pickString([
+      raw.failureReason,
+      raw.failure_reason,
+      raw.detail,
+      raw.description,
+      raw.remark,
+      raw.message,
+    ]),
   }
 }
 
@@ -478,8 +485,8 @@ function normalizeKbFileTreeNode(raw: Record<string, unknown>): FileTreeNode {
     ? childrenRaw.map((child) => normalizeKbFileTreeNode(toRecord(child)))
     : undefined
 
-  const name = pickString([raw.name, raw.fileName, raw.file_name, raw.label, raw.title])
   const path = pickString([raw.path, raw.filePath, raw.file_path, raw.fullPath, raw.full_path])
+  const name = pickString([raw.name, raw.fileName, raw.file_name, raw.label, raw.title], path)
   const md5 = pickString([raw.md5, raw.md5Hash, raw.md5_hash, raw.fileMd5, raw.file_md5])
 
   const node: FileTreeNode = {
