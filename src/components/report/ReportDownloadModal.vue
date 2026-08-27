@@ -30,10 +30,10 @@
       </a-form-item>
 
       <a-form-item label="包含证据链" name="includeEvidenceChain">
-        <a-select
-          v-model:value="formState.includeEvidenceChain"
-          :options="evidenceChainOptions"
-          class="report-download-evidence"
+        <a-switch
+          v-model:checked="formState.includeEvidenceChain"
+          checked-children="是"
+          un-checked-children="否"
         />
       </a-form-item>
     </a-form>
@@ -43,14 +43,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { createReportDownload } from '@/api/report'
 import type { Report, ReportExportPolicyPreview } from '@/types/report'
 import {
   DEFAULT_REPORT_DOWNLOAD_FORMAT,
   REPORT_DOWNLOAD_FORMAT_OPTIONS,
-  REPORT_EVIDENCE_CHAIN_OPTIONS,
 } from '@/utils/reportDownloadDisplay'
 import { triggerReportDownload } from '@/utils/reportDownload'
 
@@ -68,12 +67,6 @@ const formState = reactive({
   includeEvidenceChain: false,
 })
 
-const evidenceChainOptions = computed(() =>
-  REPORT_EVIDENCE_CHAIN_OPTIONS.map((item) => ({
-    label: item.label,
-    value: item.value,
-  })),
-)
 
 /** 重置下载表单为默认值 */
 function resetForm() {

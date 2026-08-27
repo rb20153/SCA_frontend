@@ -41,7 +41,7 @@
       :bound-count="deletingDepartment.memberCount"
       block-message="该部门下有成员绑定，请移除全部成员再操作。"
       confirm-message="一旦删除不可恢复，是否确认删除？"
-      :delete-fn="() => deleteDepartment(deletingDepartment!.departmentId)"
+      :delete-fn="async () => { await deleteDepartment(deletingDepartment!.departmentId) }"
       @success="onDeleteSuccess"
     />
   </div>

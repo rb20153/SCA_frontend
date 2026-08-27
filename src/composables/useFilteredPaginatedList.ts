@@ -1,13 +1,13 @@
-import { reactive, ref, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import type { PageParams, PageResult } from '@/types/common'
 import { usePaginatedList, type UsePaginatedListOptions } from '@/composables/usePaginatedList'
 
-export interface UseFilteredPaginatedListOptions<TFilters>
+export interface UseFilteredPaginatedListOptions<TFilters, TQuery extends object = Record<string, unknown>>
   extends Omit<UsePaginatedListOptions, 'immediate'> {
   /** 空筛选表单工厂 */
   createEmptyFilters: () => TFilters
   /** 将表单值转为 API 查询参数（空值字段由业务方决定是否剔除） */
-  filtersToQuery: (filters: TFilters) => Record<string, unknown>
+  filtersToQuery: (filters: TFilters) => TQuery
   /** 是否在挂载时立即请求第一页，默认 true */
   immediate?: boolean
 }
@@ -29,9 +29,13 @@ export interface UseFilteredPaginatedListOptions<TFilters>
  *     },
  *   )
  */
-export function useFilteredPaginatedList<TItem, TFilters extends object>(
-  fetchFn: (params: PageParams & Record<string, unknown>) => Promise<PageResult<TItem>>,
-  options: UseFilteredPaginatedListOptions<TFilters>,
+export function useFilteredPaginatedList<
+  TItem,
+  TFilters extends object,
+  TQuery extends object = Record<string, unknown>,
+>(
+  fetchFn: (params: PageParams & TQuery) => Promise<PageResult<TItem>>,
+  options: UseFilteredPaginatedListOptions<TFilters, TQuery>,
 ) {
   const {
     createEmptyFilters,
@@ -42,7 +46,7 @@ export function useFilteredPaginatedList<TItem, TFilters extends object>(
 
   // 用 ref 包裹筛选表单，避免模板 v-model="filterForm" 触发 reactive const 编译警告
   const filterForm = ref(createEmptyFilters()) as Ref<TFilters>
-  const appliedQuery = ref<Record<string, unknown>>({})
+  const appliedQuery = ref<TQuery>({} as TQuery)
 
   const { loading, list, pagination, loadPage, refresh } = usePaginatedList<TItem>(
     (pageParams) =>
@@ -61,7 +65,7 @@ export function useFilteredPaginatedList<TItem, TFilters extends object>(
 
   async function handleReset() {
     filterForm.value = createEmptyFilters()
-    appliedQuery.value = {}
+    appliedQuery.value = {} as TQuery
     pagination.current = 1
     await loadPage()
   }

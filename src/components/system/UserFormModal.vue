@@ -73,7 +73,7 @@
                 v-model:value="form.phone"
                 placeholder="11 位手机号（选填）"
                 allow-clear
-                maxlength="11"
+                :maxlength="11"
               />
             </a-form-item>
           </a-col>

@@ -76,8 +76,13 @@ const props = defineProps<{
   pagination: TablePaginationConfig
 }>()
 
+type SbomPreviewRow =
+  | OpenSourceRiskSbomProjectPreviewRow
+  | OpenSourceRiskSbomModulePreviewRow
+  | OpenSourceRiskSbomPackagePreviewRow
+
 /** 项目级预览列 */
-const projectColumns: TableColumnsType<OpenSourceRiskSbomProjectPreviewRow> = [
+const projectColumns: TableColumnsType<SbomPreviewRow> = [
   { title: '组件名', key: 'componentName', dataIndex: 'componentName', width: 120, ellipsis: true },
   { title: '版本', key: 'version', dataIndex: 'version', width: 90, ellipsis: true },
   { title: '许可证', key: 'license', dataIndex: 'license', width: 110, ellipsis: true },
@@ -87,7 +92,7 @@ const projectColumns: TableColumnsType<OpenSourceRiskSbomProjectPreviewRow> = [
 ]
 
 /** 模块级预览列 */
-const moduleColumns: TableColumnsType<OpenSourceRiskSbomModulePreviewRow> = [
+const moduleColumns: TableColumnsType<SbomPreviewRow> = [
   { title: '模块', key: 'moduleName', dataIndex: 'moduleName', width: 160, ellipsis: true },
   { title: '组件数', key: 'componentCount', dataIndex: 'componentCount', width: 90 },
   { title: '高风险许可证', key: 'highRiskLicense', width: 130 },
@@ -95,7 +100,7 @@ const moduleColumns: TableColumnsType<OpenSourceRiskSbomModulePreviewRow> = [
 ]
 
 /** 包级预览列 */
-const packageColumns: TableColumnsType<OpenSourceRiskSbomPackagePreviewRow> = [
+const packageColumns: TableColumnsType<SbomPreviewRow> = [
   { title: '包', key: 'packageLabel', dataIndex: 'packageLabel', width: 160, ellipsis: true },
   { title: '证据来源', key: 'evidenceSource', dataIndex: 'evidenceSource', width: 180, ellipsis: true },
   { title: '置信度', key: 'confidence', width: 90 },

@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
-import type { Router } from 'vue-router'
+import type { HistoryState, Router } from 'vue-router'
 import type { Policy, PolicyImportMode, PolicyImportPrecheck, PolicyMaskingAction, PolicyRuleHitScope } from '@/types/policy'
+import { createNavigationState } from '@/utils/navigation'
 
 /** 策略列表表格横向滚动宽度 */
 export const POLICY_TABLE_SCROLL_X = 1050
@@ -80,7 +81,7 @@ export function buildLogListTracePath(traceId: string): string {
 
 /** 构建带策略上下文的 history.state（列表跳转子页用） */
 export function buildPolicyNavigationState(policy?: Policy): HistoryState | undefined {
-  return policy ? ({ policy } as HistoryState) : undefined
+  return policy ? createNavigationState({ policy }) : undefined
 }
 
 /**

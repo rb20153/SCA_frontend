@@ -523,6 +523,8 @@ export interface ExportOpenSourceRiskSbomResult {
 /** AI 解析 · 任务状态 */
 export type AiParseTaskStatus = 'running' | 'failed' | 'success'
 
+export type AiParseAnalysisMode = 'pending' | 'ai_provider' | 'rule_fallback'
+
 /** AI 解析 · 扫描深度（依赖层数） */
 export type AiParseScanDepth = 1 | 2 | 3
 
@@ -546,6 +548,10 @@ export interface AiParseTask {
   resultSummary: string | null
   /** 已完成时的冲突数 */
   conflictCount: number | null
+  analysisMode: AiParseAnalysisMode
+  confidence: number
+  elapsedMs: number
+  fallbackUsed: boolean
 }
 
 /** AI 解析 · 解析结果详情（抽屉打开时拉取） */
@@ -557,6 +563,13 @@ export interface AiParseResultDetail {
   finishedAt: string
   /** AI 解析覆盖率 0–100 */
   aiParseCoverage: number
+  analysisMode: AiParseAnalysisMode
+  aiStatus: string
+  confidence: number
+  confidenceThreshold: number
+  elapsedMs: number
+  fallbackUsed: boolean
+  fallbackReason: string
   /** License 树节点（含 licenseLabel / licenseTagColor） */
   licenseTreeNodes: FileTreeNode[]
   /** 潜在许可证冲突说明列表 */
@@ -584,7 +597,7 @@ export interface CreateAiParseTaskParams {
   sshPassphrase?: string
   /** 上传模式下的压缩包（multipart 联调时使用） */
   packageFile?: File
-  /** 上传模式下的压缩包文件名（mock 阶段） */
+  /** 上传模式下的压缩包文件名 */
   packageFileName?: string
 }
 

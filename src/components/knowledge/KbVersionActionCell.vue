@@ -53,6 +53,7 @@ import KbVersionRestoreModal from '@/components/knowledge/KbVersionRestoreModal.
 import KbVersionUpdateNotesModal from '@/components/knowledge/KbVersionUpdateNotesModal.vue'
 import type { KbProject, KbVersion } from '@/types/knowledge'
 import { buildLogListTracePath } from '@/utils/knowledgeVersionDisplay'
+import { createNavigationState } from '@/utils/navigation'
 
 const props = defineProps<{
   version: KbVersion
@@ -71,10 +72,10 @@ const directoryTo = computed(() =>
     name: 'KbProjectDirectory',
     params: { kbProjectId: props.version.kbProjectId },
     query: { versionId: props.version.versionId },
-    state: {
+    state: createNavigationState({
       kbProject: props.kbProject ?? undefined,
       kbVersion: props.version,
-    },
+    }),
   }),
 )
 

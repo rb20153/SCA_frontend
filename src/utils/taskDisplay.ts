@@ -1,7 +1,7 @@
 import type { Router } from 'vue-router'
 import type { TaskSourceMode, TaskStatus, TaskType } from '@/types/common'
 import type { DetectTask } from '@/types/detect'
-import { appendFromQuery } from '@/utils/navigation'
+import { appendFromQuery, createNavigationState } from '@/utils/navigation'
 import { QUEUED_TASK_DISPLAY_PROGRESS } from '@/utils/taskCreate'
 
 /** 检测类型中文文案 */
@@ -31,12 +31,18 @@ export const TASK_SOURCE_MODE_LABEL: Record<TaskSourceMode, string> = {
  */
 export function formatDurationMs(ms: number | undefined): string {
   if (ms === undefined || ms <= 0) return '—'
+  if (ms < 1_000) return `${Math.max(1, Math.round(ms))} 毫秒`
+  if (ms < 60_000) {
+    const seconds = ms < 10_000 ? Math.round(ms / 100) / 10 : Math.round(ms / 1_000)
+    return `${seconds} 秒`
+  }
   const totalMinutes = Math.floor(ms / 60_000)
   const hours = Math.floor(totalMinutes / 60)
   const minutes = totalMinutes % 60
-  if (hours <= 0) return `${minutes}m`
-  if (minutes <= 0) return `${hours}h`
-  return `${hours}h${minutes}m`
+  const seconds = Math.floor((ms % 60_000) / 1_000)
+  if (hours <= 0) return seconds > 0 ? `${minutes} 分 ${seconds} 秒` : `${minutes} 分钟`
+  if (minutes <= 0) return `${hours} 小时`
+  return `${hours} 小时 ${minutes} 分`
 }
 
 /**
@@ -90,10 +96,15 @@ export function navigateToTaskResult(
   task: DetectTask,
   fromFullPath: string,
 ): void {
-  void router.push({
-    ...appendFromQuery(getTaskResultRoute(task), fromFullPath),
-    state: { task },
-  })
+  const target = appendFromQuery(getTaskResultRoute(task), fromFullPath)
+  void router.push(
+    typeof target === 'string'
+      ? target
+      : {
+          ...target,
+          state: createNavigationState({ task }),
+        },
+  )
 }
 
 /** 列表展示的进度百分比（排队中固定 10%） */

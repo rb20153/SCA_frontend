@@ -74,7 +74,7 @@ export async function getReportDetail(reportId: string): Promise<ApiResponse<Rep
  * 获取报告在线预览信息（详情抽屉内嵌 viewer 用）
  * @param reportId - 报告 ID
  * @returns 预览格式（pdf/html）与文件地址
- * 同源 /api 路径由 ReportPreviewViewer 带 Token 拉 blob 后生成 objectURL；
+ * 同源 /api 路径由 ReportPreviewViewer 带 Token 拉取；HTML 使用受限 srcdoc，PDF 使用 objectURL；
  * 外链或签名临时 URL 可直接给 iframe
  */
 export async function getReportPreview(reportId: string): Promise<ApiResponse<ReportPreview>> {

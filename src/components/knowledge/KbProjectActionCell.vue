@@ -17,6 +17,7 @@
 import { computed } from 'vue'
 import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import type { KbProject } from '@/types/knowledge'
+import { createNavigationState } from '@/utils/navigation'
 
 const props = defineProps<{
   project: KbProject
@@ -34,7 +35,7 @@ const directoryTo = computed(() =>
   withFrom({
     name: 'KbProjectDirectory',
     params: { kbProjectId: props.project.kbProjectId },
-    state: { kbProject: props.project },
+    state: createNavigationState({ kbProject: props.project }),
   }),
 )
 
@@ -43,7 +44,7 @@ const versionsTo = computed(() =>
   withFrom({
     name: 'KbVersionManage',
     params: { kbProjectId: props.project.kbProjectId },
-    state: { kbProject: props.project },
+    state: createNavigationState({ kbProject: props.project }),
   }),
 )
 </script>

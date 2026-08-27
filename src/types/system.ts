@@ -23,6 +23,9 @@ export type AlertDisposition = (typeof ALERT_DISPOSITION)[keyof typeof ALERT_DIS
 /** 未处理列表已读筛选 */
 export type AlertReadFilter = 'all' | 'unread' | 'read'
 
+/** 告警可关联两类检测任务或 AI 辅助解析任务。 */
+export type AlertTaskType = TaskType | 'ai-parse'
+
 /** 告警中心页顶部概览 */
 export interface AlertCenterOverview {
   criticalCount: number
@@ -56,7 +59,7 @@ export interface AlertListItem {
 export interface AlertRelatedTask {
   taskId: string
   taskName: string
-  taskType: TaskType
+  taskType: AlertTaskType
 }
 
 export interface AlertRelatedProject {
@@ -125,7 +128,7 @@ export interface AlertListFilters {
   level: AlertLevel | ''
   /** 未处理 Tab：已读状态筛选 */
   readStatus: AlertReadFilter
-  /** 筛选时间（日期+时刻），默认今日 */
+  /** 可选的告警发生日期筛选。 */
   occurredAt?: Dayjs
 }
 
@@ -180,7 +183,7 @@ export interface LogDetail {
 export interface LogListFilters {
   traceId: string
   /** 时间范围（日期+时刻） */
-  occurredAtRange: [Dayjs, Dayjs] | null
+  occurredAtRange: [Dayjs, Dayjs] | undefined
   username: string
   /** 资源/对象（如检测任务名称） */
   resourceObject: string
@@ -213,7 +216,7 @@ export interface LogExportResult {
 /** 部门启用状态 */
 export type DepartmentStatus = 'enabled' | 'disabled'
 
-/** 部门持久化字段（mock / 后端存储，不含成员数） */
+/** 部门持久化字段（不含实时聚合的成员数） */
 export interface DepartmentRecord {
   departmentId: string
   departmentName: string

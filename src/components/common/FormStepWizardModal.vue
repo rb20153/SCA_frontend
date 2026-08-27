@@ -49,7 +49,7 @@ const props = withDefaults(
     /** 弹窗标题 */
     title: string
     /** 步骤标题列表 */
-    steps: string[]
+    steps: readonly string[]
     /** 当前步骤是否可进入下一步 */
     canGoNext?: boolean
     /** 最后一步是否可提交 */

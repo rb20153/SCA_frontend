@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { getAiParseTaskList } from '@/api/detect'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
@@ -106,6 +106,25 @@ const {
     pageSize: 10,
   },
 )
+
+let pollingTimer: ReturnType<typeof setInterval> | undefined
+
+watch(
+  () => tasks.value.some((task) => task.status === 'running'),
+  (hasRunningTask) => {
+    if (pollingTimer) clearInterval(pollingTimer)
+    pollingTimer = hasRunningTask
+      ? setInterval(() => {
+          if (!loading.value) loadPage()
+        }, 2_000)
+      : undefined
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  if (pollingTimer) clearInterval(pollingTimer)
+})
 </script>
 
 <style scoped>

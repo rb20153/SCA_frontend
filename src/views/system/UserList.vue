@@ -48,7 +48,7 @@
       :bound-count="deletingUser.ownedProjectCount"
       block-message="该用户仍负责项目，请先移交负责项目给其他用户再进行操作。"
       confirm-message="删除后不可恢复，是否确认删除？"
-      :delete-fn="() => deleteUser(deletingUser!.userId)"
+      :delete-fn="async () => { await deleteUser(deletingUser!.userId) }"
       @success="onDeleteSuccess"
     />
 
@@ -114,7 +114,7 @@ const {
 /** 从部门/角色管理跳转时，按 query 预填筛选并查询 */
 async function applyRouteFilters() {
   filterForm.value.realName = ''
-  filterForm.value.createdAtRange = null
+  filterForm.value.createdAtRange = undefined
 
   const departmentName = route.query.departmentName
   if (typeof departmentName === 'string' && departmentName) {

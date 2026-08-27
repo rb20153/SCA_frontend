@@ -153,7 +153,7 @@ const vulnDbOptions = computed(() =>
 const canSubmit = computed(() => {
   if (!form.taskName.trim() || !form.projectId.trim()) return false
   if (form.dataSource === 'project-scan') {
-    return form.vulnDbVersion.trim().length > 0
+    return Boolean(form.vulnDbVersion?.trim())
   }
   return hasSbomFile.value
 })

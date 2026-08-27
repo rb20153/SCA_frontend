@@ -33,11 +33,11 @@ function buildOption(stats: CategoryCoverageStat[]): EChartsOption {
     animationDurationUpdate: 500,
     animationEasingUpdate: 'cubicOut',
     color: ['#7fb3e6', '#b7a6df'],
-    grid: { left: 48, right: 112, top: 28, bottom: 36 },
+    grid: { left: 48, right: 32, top: 58, bottom: 46 },
     legend: {
-      orient: 'vertical',
-      top: 'middle',
-      right: 12,
+      orient: 'horizontal',
+      top: 10,
+      right: 24,
       itemWidth: 10,
       itemHeight: 10,
       textStyle: {

@@ -15,7 +15,7 @@ export function createEmptyProjectListFilters(): ProjectListFilters {
     projectName: '',
     owner: '',
     status: '',
-    createdAtRange: null,
+    createdAtRange: undefined,
   }
 }
 

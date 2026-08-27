@@ -1,5 +1,5 @@
-import type { AlertLevel } from '@/types/system'
-import type { PageNavTabItem, TaskType } from '@/types/common'
+import type { AlertLevel, AlertTaskType } from '@/types/system'
+import type { PageNavTabItem } from '@/types/common'
 import dayjs from 'dayjs'
 
 /** 告警中心顶部 Tab：未处理 / 已处理 */
@@ -37,9 +37,12 @@ export function formatAlertDateTime(value: string): string {
  * @param taskId - 任务 ID
  * @param taskType - 检测类型
  */
-export function getAlertRelatedTaskRoute(taskId: string, taskType: TaskType) {
+export function getAlertRelatedTaskRoute(taskId: string, taskType: AlertTaskType) {
   if (taskType === 'autonomy') {
     return { name: 'AutonomyDetectResult', params: { taskId } }
+  }
+  if (taskType === 'ai-parse') {
+    return { name: 'AiAnalysis', query: { taskId } }
   }
   return { name: 'OpenSourceRiskDetail', params: { taskId } }
 }

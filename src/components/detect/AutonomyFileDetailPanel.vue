@@ -86,7 +86,7 @@ const props = defineProps<{
   taskId: string
   /** 证据树选中的文件节点 ID */
   fileId: string | undefined
-  /** 文件名，用于 mock 与展示 */
+  /** 文件名，用于展示及服务端证据定位 */
   fileName: string | undefined
 }>()
 

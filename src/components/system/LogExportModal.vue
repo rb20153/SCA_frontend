@@ -46,7 +46,7 @@ const formRef = ref<FormInstance>()
 const submitting = ref(false)
 
 const formState = reactive<{
-  timeRange: [Dayjs, Dayjs] | null
+  timeRange: [Dayjs, Dayjs] | undefined
   format: LogExportFormat
 }>({
   timeRange: createDefaultLogExportRange(),

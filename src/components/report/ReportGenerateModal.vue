@@ -169,7 +169,8 @@ async function loadTasksForProject(projectId: string) {
 }
 
 /** 切换项目后重新加载任务列表 */
-async function handleProjectChange(projectId: string) {
+async function handleProjectChange(value: unknown) {
+  const projectId = String(value ?? '')
   if (!projectId) {
     tasks.value = []
     form.taskId = ''

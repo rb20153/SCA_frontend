@@ -58,7 +58,7 @@ const { withFrom } = useRouteWithFrom()
 
 const markAllLoading = ref(false)
 
-/** 当前登录用户名，用于 mock 按接收人过滤 */
+/** 当前登录用户名，用于按接收人过滤站内消息。 */
 const recipientUsername = computed(() => authStore.userInfo?.username ?? 'admin')
 
 const {

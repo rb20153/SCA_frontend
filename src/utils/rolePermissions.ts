@@ -10,4 +10,4 @@ export {
   createDefaultCustomRolePermissions,
   createEmptyRolePermissions,
   isBuiltinPermissionDisabled,
-} from '@/mock/modules/system/rolePermissionDefs'
+} from '@/constants/rolePermissionDefs'

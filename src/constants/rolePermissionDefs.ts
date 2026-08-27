@@ -1,6 +1,6 @@
 import type { RolePermissionKey, RolePermissionMap } from '@/types/system'
 
-/** 权限 Key 别名（mock 模块内使用） */
+/** 权限 Key 别名 */
 export type PermissionKey = RolePermissionKey
 
 export interface RolePermissionOption {
@@ -30,7 +30,7 @@ export const ALL_PERMISSION_KEYS: PermissionKey[] = ROLE_PERMISSION_OPTIONS.map(
   (item) => item.key,
 )
 
-/** 内置角色权限（mock 参考；联调时以后端返回为准） */
+/** 内置角色的最小权限基线；服务端返回值始终拥有最终决定权。 */
 export const BUILTIN_ROLE_PERMISSIONS: Record<string, RolePermissionMap> = {
   admin: {
     'menu.home': true,
@@ -95,7 +95,7 @@ export function createDefaultCustomRolePermissions(): RolePermissionMap {
  */
 export function isBuiltinPermissionDisabled(
   roleCode: string,
-  permissionKey: RolePermissionKey,
+  _permissionKey: RolePermissionKey,
   checked: boolean,
 ): boolean {
   return roleCode === 'readonly' && !checked

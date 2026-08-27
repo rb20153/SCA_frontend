@@ -1,6 +1,5 @@
 import type {
   AiParseFallbackCompareItem,
-  AiParseFallbackReason,
   AiParseResultDetail,
   AiParseScanDepth,
   AiParseTask,
@@ -46,6 +45,13 @@ function normalizeAiParseTaskStatus(raw: unknown): AiParseTaskStatus {
     return 'failed'
   }
   return 'running'
+}
+
+function normalizeAnalysisMode(raw: unknown): AiParseTask['analysisMode'] {
+  const value = String(raw ?? '').toLowerCase()
+  if (value === 'ai_provider') return 'ai_provider'
+  if (value === 'rule_fallback') return 'rule_fallback'
+  return 'pending'
 }
 
 /** 规范 AI 解析来源方式 */
@@ -211,6 +217,10 @@ export function normalizeAiParseTask(raw: Record<string, unknown>): AiParseTask 
       conflictCountRaw === null || conflictCountRaw === undefined || conflictCountRaw === ''
         ? null
         : Number(conflictCountRaw),
+    analysisMode: normalizeAnalysisMode(raw.analysisMode ?? raw.analysis_mode),
+    confidence: Number(raw.confidence ?? 0),
+    elapsedMs: Number(raw.elapsedMs ?? raw.elapsed_ms ?? 0),
+    fallbackUsed: Boolean(raw.fallbackUsed ?? raw.fallback_used),
   }
 }
 
@@ -266,6 +276,13 @@ export function normalizeAiParseResultDetail(raw: unknown, parseTaskId: string):
     aiParseCoverage: normalizePercentRate(
       obj.aiParseCoverage ?? obj.ai_parse_coverage ?? obj.coverage ?? obj.coverageRate,
     ),
+    analysisMode: normalizeAnalysisMode(obj.analysisMode ?? obj.analysis_mode),
+    aiStatus: String(obj.aiStatus ?? obj.ai_status ?? ''),
+    confidence: Number(obj.confidence ?? 0),
+    confidenceThreshold: Number(obj.confidenceThreshold ?? obj.confidence_threshold ?? 0),
+    elapsedMs: Number(obj.elapsedMs ?? obj.elapsed_ms ?? 0),
+    fallbackUsed: Boolean(obj.fallbackUsed ?? obj.fallback_used),
+    fallbackReason: String(obj.fallbackReason ?? obj.fallback_reason ?? ''),
     licenseTreeNodes: unwrapLicenseTreeNodes(treeRaw).map((node) => normalizeLicenseTreeNode(node)),
     licenseConflicts,
   }

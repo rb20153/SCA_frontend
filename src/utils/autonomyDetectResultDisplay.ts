@@ -2,7 +2,6 @@ import type { PageNavTabItem } from '@/types/common'
 import type {
   AutonomyCodeAlertType,
   AutonomyFingerprintAlertType,
-  AutonomyDetectResultTabKey,
   AutonomySourceHitItem,
   AutonomySourceHitListFilters,
   AutonomySourceHitQueryParams,

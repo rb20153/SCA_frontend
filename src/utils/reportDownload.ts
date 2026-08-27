@@ -130,6 +130,28 @@ export async function resolveAuthenticatedPreviewUrl(url: string): Promise<strin
 }
 
 /**
+ * 解析 HTML 报告预览。
+ * 鉴权接口返回的 HTML 直接作为 iframe srcdoc，避免部分浏览器阻止 blob: iframe。
+ * 外部或已签名地址仍由 iframe 直接加载。
+ */
+export async function resolveAuthenticatedHtmlPreview(
+  url: string,
+): Promise<{ url: string; html: string | null }> {
+  if (!url) {
+    throw new Error('预览地址无效')
+  }
+  if (!needsAuthenticatedFetch(url)) {
+    return { url: resolveDownloadUrl(url), html: null }
+  }
+  const blob = await fetchBlobWithAuth(url)
+  const html = await blob.text()
+  if (!/<(?:!doctype|html|body|main|section|article)\b/i.test(html)) {
+    throw new Error('报告 HTML 内容无效')
+  }
+  return { url: 'about:blank', html }
+}
+
+/**
  * 触发浏览器下载
  * - mock 的 blob: 或外链：直接 <a download>
  * - 同源 /api/*：先 axios 带 Token 拉 blob，再 objectURL 下载（避免 401）

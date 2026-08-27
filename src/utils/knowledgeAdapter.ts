@@ -703,7 +703,13 @@ export function normalizeCollectionMethodCoverageStats(
   raw: unknown,
 ): CollectionMethodCoverageStat[] {
   return normalizeList(raw, (item) => ({
-    method: pickString([item.method, item.collectMode, item.collect_mode, item.name]),
+    method: ({
+      cloud_repo: '云端仓库拉取',
+      'repo-pull': '云端仓库拉取',
+      upload_package: '上传源码包',
+      'upload-source-package': '上传源码包',
+    } as Record<string, string>)[pickString([item.method, item.collectMode, item.collect_mode, item.name])]
+      ?? pickString([item.method, item.collectMode, item.collect_mode, item.name]),
     projectCount: pickNumber([item.projectCount, item.project_count]),
     categoryCounts: normalizeCollectionMethodCategoryCounts(
       item.categoryCounts ?? item.category_counts ?? item.categories,
@@ -714,6 +720,7 @@ export function normalizeCollectionMethodCoverageStats(
       item.avg_duration_minutes,
       item.averageDurationMinutes,
     ]),
+    durationSampleCount: pickNumber([item.durationSampleCount, item.duration_sample_count]),
   }))
 }
 

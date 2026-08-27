@@ -5,12 +5,50 @@
 
 ---
 
+## [2026-08-26] 应用后端适配补丁 · 清空 mock 目录 + 类型收紧 + 后端地址收敛到 env
+
+### 改了什么
+
+- 应用开发同学给的 `0001-feat-adapt-backend.patch`（134 文件，+416 / −9638）
+- **mock 全清**：`src/mock/` 整个目录删掉（56 个 mock 文件），`public/mock-reports/` 示例报告也删了。`rolePermissionDefs.ts` 从 `src/mock/modules/system/` 挪到 `src/constants/`，`src/utils/rolePermissions.ts` 的 re-export 路径跟着改
+- **AI 解析补后端新字段**：`AiParseTask` / `AiParseResultDetail` 加 `analysisMode`（`pending` / `ai_provider` / `rule_fallback`）、`confidence`、`elapsedMs`、`fallbackUsed`、`fallbackReason` 等；`aiParseAdapter` 同时认 camelCase 和 snake_case。表格新增「分析方式 / 置信度 / 耗时」三列，抽屉在走规则回退时弹 `a-alert` 说明原因
+- **AI 解析页加轮询**：`AiAnalysis.vue` 列表里只要还有 `running` 任务就每 2 秒刷一次，任务全部跑完自动停
+- **history.state 序列化**：新增 `createNavigationState()`，项目/知识库/策略/任务详情跳转时把 Dayjs 之类不可克隆的值转成可序列化结构，修 `DataCloneError`
+- **类型收紧**（vue-tsc 报错的地方）：日期范围筛选统一 `null` → `undefined`；`ListTable` 泛型约束 `Record<string, unknown>` → `object`；`useFilteredPaginatedList` 加第三个泛型 `TQuery`；`maxlength="11"` → `:maxlength="11"`；`BoundCountDeleteModal` 的 `delete-fn` 包成 async 保证返回 `Promise<void>`
+- **其他体验修正**：`formatDurationMs` 支持毫秒/秒级（原来不到 1 分钟一律显示 `0m`）；覆盖统计两个图表图例改横排、无样本时耗时列显示「暂无样本」；报告下载「包含证据链」由下拉改 `a-switch`；告警默认不再限制「今日」；告警关联任务类型新增 `ai-parse` 并能跳到 AI 解析页
+- **工程配置**：新增 `Dockerfile.build` + `.dockerignore`（node 22.18 多阶段构建，产物 `FROM scratch` 导出 `dist/`）；`package.json` 加 `engines.node >= 22.18.0`、axios 升到 `^1.19.0`；`tsconfig*.json` 加 `exclude: ["src/mock/**"]`
+- **后端地址（本次我自己改的，不在补丁里）**：`vite.config.ts` 改为函数式配置，用 `loadEnv` 读 `VITE_API_PROXY_TARGET`（默认 `http://8.130.55.127`），dev 和 preview 共用同一份代理；`.env.development` / `.env.production` 补上 `VITE_API_PROXY_TARGET`
+
+### 为什么这么做
+
+后端已经在 `http://8.130.55.127` 上把接口全部实现，前端所有 api 也早就切成 `request.*` 了，mock 目录纯属死重量，留着还会让 `vue-tsc` 白跑几千行。补丁本身就是开发同学在真实后端上跑出来的适配结果（新增字段、类型报错、几个白屏 bug）。
+
+后端地址原来硬编码在 `vite.config.ts` 里，而 `npm run preview` 根本没配代理，本地验证构建产物时所有接口都 404，所以顺手把地址挪进 env 并给 preview 也加上。
+
+### 怎么实现的
+
+- 直接 `git apply` 补丁，无冲突；补丁改了 `package-lock.json`，所以跑了 `npm install` 同步 axios
+- `vite.config.ts` 从对象式改成 `defineConfig(({ mode }) => ...)`，因为要拿 `mode` 才能 `loadEnv`。`apiProxy` 提成一个常量给 `server.proxy` 和 `preview.proxy` 复用
+- `VITE_API_PROXY_TARGET` 只在 vite 配置里读，不会通过 `import.meta.env` 进前端产物；axios 的 `baseURL`（`VITE_API_BASE_URL`）依然留空，浏览器只请求同源 `/api`，由 vite / Nginx 转发，规避 CORS
+- 验证：`npm run build`（vue-tsc + vite build）零报错；起 dev server 后 `POST http://localhost:5173/api/auth/login` 拿到真实后端带 `traceId` 的响应，确认代理链路通
+
+### 注意事项 / 已知限制
+
+- **mock 已经彻底没有了**，想跑纯 mock 演示请切 `mock` 分支或用 `frontend-mock/` 克隆目录，别指望在 `dev` 上还能离线跑
+- 生产部署仍然依赖网关：`.env.production` 的 `VITE_API_BASE_URL` 是空的，`dist/` 必须挂在一个会把 `/api` 转发到 `8.130.55.127` 的 Nginx 后面；如果前端要单独部署到别的域名，改 `VITE_API_BASE_URL` 为绝对地址，同时后端得开 CORS
+- `VITE_WS_BASE_URL` 目前全项目没人用（原值 `ws://localhost:8080` 已顺手改成 `ws://8.130.55.127`），真要做 WebSocket 进度推送时记得先确认后端端口
+- `Dockerfile.build` 的产物阶段是 `FROM scratch`，只能配合 `docker build --output` 导出静态文件，不是能直接 `docker run` 的镜像
+- `REPORT_EVIDENCE_CHAIN_OPTIONS`（`reportDownloadDisplay.ts`）在下载弹窗改成 switch 后没人引用了，暂时留着没删
+- 构建有 chunk > 500kB 的告警（`request`、`OpenSourceRiskDetail`、`useECharts`），是历史遗留的分包问题，本次没动
+
+---
+
 ## [2026-07-31] 联调前修复 · openapi 契约补齐 + 预览鉴权 + 死代码清理
 
 ### 改了什么
 
 - **openapi.yaml**：策略 5 个 POST（发布申请/审批/版本导出/差异导出/回滚）补齐 requestBody 字段；模板新建/更新保存改用 `SaveReportTemplateParams`（含 `version/outputFormat/visibility/isDefault/projectId`）；`/api/reports/generate` 与报告详情响应由错误的 `DownloadResult` 改为 `Report`；模板详情 `variables` 声明为必返结构
-- **报告预览**：`ReportPreviewViewer` + `resolveAuthenticatedPreviewUrl`——同源 `/api` 预览地址先带 Bearer Token 拉 blob，再生成 objectURL 给 iframe，避免 iframe 不带 Authorization 导致 401 白屏
+- **报告预览**：`ReportPreviewViewer` 对同源 `/api` 预览地址携带 Bearer Token 拉取；HTML 使用受限 `srcdoc`，PDF 使用 objectURL，避免 iframe 鉴权失败或 blob 页面白屏
 - **模板变量兜底**：新增 `src/utils/reportTemplateVariables.ts`；后端未返回 `variables` 时用默认变量库，避免中英转换静默失效
 - **死代码清理**：删除 `getAlertAssigneeOptions` / `getKbProjectSelectOptions` / `loadKbProjectSelectOptions` 及对应 type、adapter、remote loader（转派已改用 `searchUsers`）
 

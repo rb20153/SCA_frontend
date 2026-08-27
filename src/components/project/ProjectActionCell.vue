@@ -12,6 +12,7 @@
 import { computed } from 'vue'
 import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import type { Project } from '@/types/project'
+import { createNavigationState } from '@/utils/navigation'
 
 const props = defineProps<{
   project: Project
@@ -29,7 +30,7 @@ const detailTo = computed(() =>
   withFrom({
     name: 'ProjectDetail',
     params: { projectId: props.project.projectId },
-    state: { project: props.project },
+    state: createNavigationState({ project: props.project }),
   }),
 )
 </script>

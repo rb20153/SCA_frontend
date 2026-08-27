@@ -297,6 +297,8 @@ export interface CollectionMethodCoverageStat {
   successRate: number
   /** 平均耗时（分钟） */
   avgDurationMinutes: number
+  /** 具有真实采集耗时的样本数；0 表示暂无可计算数据 */
+  durationSampleCount: number
 }
 
 /** 待补全项影响程度 */

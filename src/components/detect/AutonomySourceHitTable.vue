@@ -69,7 +69,7 @@ const columns: TableColumnsType<AutonomySourceHitItem> = [
 ]
 
 /** 将表格行 record 收窄为来源汇总项 */
-function getItem(record: Record<string, unknown>): AutonomySourceHitItem {
+function getItem(record: unknown): AutonomySourceHitItem {
   return record as AutonomySourceHitItem
 }
 </script>

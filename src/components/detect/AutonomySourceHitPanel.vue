@@ -33,7 +33,7 @@ import AutonomySourceHitTable from '@/components/detect/AutonomySourceHitTable.v
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
-import type { AutonomySourceHitItem } from '@/types/detect'
+import type { AutonomySourceHitItem, AutonomySourceHitQueryParams } from '@/types/detect'
 import {
   autonomySourceHitListFiltersToQuery,
   createEmptyAutonomySourceHitListFilters,
@@ -59,7 +59,11 @@ const {
   loadPage,
   handleSearch,
   handleReset,
-} = useFilteredPaginatedList<AutonomySourceHitItem, ReturnType<typeof createEmptyAutonomySourceHitListFilters>>(
+} = useFilteredPaginatedList<
+  AutonomySourceHitItem,
+  ReturnType<typeof createEmptyAutonomySourceHitListFilters>,
+  AutonomySourceHitQueryParams
+>(
   async (params) => (await getAutonomyDetectSourceHitList(props.taskId, params)).data,
   {
     createEmptyFilters: createEmptyAutonomySourceHitListFilters,

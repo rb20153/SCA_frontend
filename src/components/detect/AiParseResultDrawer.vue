@@ -13,13 +13,22 @@
       <template v-else-if="detail">
         <div class="ai-result-head">
           <div class="ai-result-head__left">
-            <a-tag color="processing">AI</a-tag>
-            <span class="ai-result-head__status">AI解析完成</span>
+            <a-tag :color="analysisTagColor">{{ analysisModeLabel }}</a-tag>
+            <span class="ai-result-head__status">解析完成</span>
           </div>
           <span class="ai-result-head__meta">
-            扫描深度：{{ detail.scanDepth }} · {{ finishedAtText }}
+            扫描深度：{{ detail.scanDepth }} · 置信度：{{ confidenceText }} ·
+            {{ formatDurationMs(detail.elapsedMs) }} · {{ finishedAtText }}
           </span>
         </div>
+
+        <a-alert
+          v-if="detail.fallbackUsed"
+          type="warning"
+          show-icon
+          :message="detail.fallbackReason || '外部 AI 模型未启用，本次采用许可证规则库完成分析'"
+          class="fallback-alert"
+        />
 
         <AiParseCoverageBar :coverage="detail.aiParseCoverage" />
 
@@ -53,6 +62,7 @@ import PageLoading from '@/components/common/PageLoading.vue'
 import LinuxStyleFileTree from '@/components/common/LinuxStyleFileTree.vue'
 import AiParseCoverageBar from '@/components/detect/AiParseCoverageBar.vue'
 import { formatAiParseFinishedAt } from '@/utils/aiParseDisplay'
+import { formatDurationMs } from '@/utils/taskDisplay'
 
 const props = defineProps<{
   /** 当前查看结果的解析任务 */
@@ -76,6 +86,19 @@ const drawerTitle = computed(() => {
 const finishedAtText = computed(() =>
   detail.value ? formatAiParseFinishedAt(detail.value.finishedAt) : '—',
 )
+
+const analysisModeLabel = computed(() =>
+  detail.value?.analysisMode === 'ai_provider' ? 'AI + 规则复核' : '规则回退',
+)
+
+const analysisTagColor = computed(() =>
+  detail.value?.analysisMode === 'ai_provider' ? 'processing' : 'warning',
+)
+
+const confidenceText = computed(() => {
+  const confidence = detail.value?.confidence ?? 0
+  return confidence > 0 ? `${(confidence * 100).toFixed(1)}%` : '—'
+})
 
 /** 抽屉打开且有关联任务时拉取解析结果详情 */
 async function fetchDetail(parseTaskId: string) {
@@ -133,6 +156,10 @@ watch(
   font-size: 16px;
   font-weight: 600;
   color: rgba(0, 0, 0, 0.88);
+}
+
+.fallback-alert {
+  margin-bottom: 16px;
 }
 
 .section-title--conflicts {

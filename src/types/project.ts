@@ -30,7 +30,7 @@ export interface ProjectListFilters {
   projectName: string
   owner: string
   status: ProjectStatus | ''
-  createdAtRange: [Dayjs, Dayjs] | null
+  createdAtRange: [Dayjs, Dayjs] | undefined
 }
 
 export interface ProjectQueryParams extends PageParams {

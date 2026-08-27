@@ -5,7 +5,6 @@ import type {
   AlertReadFilter,
 } from '@/types/system'
 import { ALERT_LEVEL_LABEL } from '@/utils/alertDisplay'
-import dayjs from 'dayjs'
 
 /** 级别筛选项 */
 export const ALERT_LEVEL_FILTER_OPTIONS: {
@@ -25,12 +24,12 @@ export const ALERT_READ_FILTER_OPTIONS: { value: AlertReadFilter; label: string 
   { value: 'read', label: '已读' },
 ]
 
-/** 返回空的告警列表筛选表单，时间默认今日 00:00 */
+/** 返回空的告警列表筛选表单；默认不限制日期，避免隐藏跨时区告警。 */
 export function createEmptyAlertListFilters(): AlertListFilters {
   return {
     level: '',
     readStatus: 'all',
-    occurredAt: dayjs().startOf('day'),
+    occurredAt: undefined,
   }
 }
 

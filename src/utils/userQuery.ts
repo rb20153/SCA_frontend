@@ -6,7 +6,7 @@ export function createEmptyUserListFilters(): UserListFilters {
     realName: '',
     roleId: '',
     departmentName: '',
-    createdAtRange: null,
+    createdAtRange: undefined,
   }
 }
 

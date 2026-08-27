@@ -27,7 +27,7 @@ export interface UserProjectRef {
   projectName: string
 }
 
-/** 用户持久化字段（mock / 后端存储，不含负责项目数） */
+/** 用户持久化字段（不含实时聚合的负责项目数） */
 export interface UserRecord {
   userId: string
   username: string
@@ -83,7 +83,7 @@ export interface UserListFilters {
   realName: string
   roleId: string
   departmentName: string
-  createdAtRange: [Dayjs, Dayjs] | null
+  createdAtRange: [Dayjs, Dayjs] | undefined
 }
 
 export interface UserQueryParams extends PageParams {

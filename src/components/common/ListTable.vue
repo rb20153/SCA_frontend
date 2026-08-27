@@ -19,7 +19,7 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="T extends Record<string, unknown>">
+<script setup lang="ts" generic="T extends object">
 import { computed } from 'vue'
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import ListTableCell from '@/components/common/ListTableCell.vue'

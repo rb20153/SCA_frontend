@@ -204,7 +204,7 @@ export async function getAutonomyDetectEvidenceTree(
  * 获取自主率检测结果 · 单文件详情（摘要 + 全量代码/指纹证据，前端分页展示）
  * @param taskId - 检测任务 ID
  * @param fileId - 证据树文件节点 ID
- * @param fileName - 文件名（展示与 mock 匹配）
+ * @param fileName - 文件名（用于展示及服务端证据定位）
  */
 export async function getAutonomyDetectFileDetail(
   taskId: string,

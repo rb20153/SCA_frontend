@@ -43,7 +43,7 @@
       :bound-count="deletingRole.boundUserCount"
       block-message="该角色下仍有用户绑定，请先解绑全部成员再操作。"
       confirm-message="删除后不可恢复，是否确认删除？"
-      :delete-fn="() => deleteRole(deletingRole!.roleId)"
+      :delete-fn="async () => { await deleteRole(deletingRole!.roleId) }"
       @success="onDeleteSuccess"
     />
   </div>

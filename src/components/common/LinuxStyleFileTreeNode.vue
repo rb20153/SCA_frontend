@@ -37,11 +37,13 @@ const props = defineProps<{
   node: FileTreeNode
 }>()
 
-const treeContext = inject<LinuxStyleFileTreeContext>('linuxStyleFileTreeContext')
+const injectedTreeContext = inject<LinuxStyleFileTreeContext>('linuxStyleFileTreeContext')
 
-if (!treeContext) {
+if (!injectedTreeContext) {
   throw new Error('LinuxStyleFileTreeNode 必须在 LinuxStyleFileTree 内使用')
 }
+
+const treeContext: LinuxStyleFileTreeContext = injectedTreeContext
 
 const isDirectory = computed(() => props.node.type === 'directory')
 

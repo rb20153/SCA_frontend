@@ -25,7 +25,7 @@ export const LOG_EXPORT_FORMAT_OPTIONS: {
 export function createEmptyLogListFilters(): LogListFilters {
   return {
     traceId: '',
-    occurredAtRange: null,
+    occurredAtRange: undefined,
     username: '',
     resourceObject: '',
     result: '',

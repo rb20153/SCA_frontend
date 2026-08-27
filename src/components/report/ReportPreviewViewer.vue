@@ -16,9 +16,10 @@
       <!-- HTML 报告：iframe 沙箱内嵌 -->
       <iframe
         v-else-if="preview?.format === 'html'"
-        :src="preview.url"
+        :src="previewHtml ? 'about:blank' : preview.url"
+        :srcdoc="previewHtml || undefined"
         class="report-preview-viewer__frame"
-        sandbox="allow-same-origin"
+        sandbox=""
         title="报告预览"
       />
 
@@ -39,7 +40,10 @@ import { onUnmounted, ref, watch } from 'vue'
 import { getReportPreview } from '@/api/report'
 import PageLoading from '@/components/common/PageLoading.vue'
 import type { ReportPreview } from '@/types/report'
-import { resolveAuthenticatedPreviewUrl } from '@/utils/reportDownload'
+import {
+  resolveAuthenticatedHtmlPreview,
+  resolveAuthenticatedPreviewUrl,
+} from '@/utils/reportDownload'
 
 const props = defineProps<{
   /** 报告 ID；为空时不加载 */
@@ -51,6 +55,7 @@ const props = defineProps<{
 const loading = ref(false)
 const error = ref<string | null>(null)
 const preview = ref<ReportPreview | null>(null)
+const previewHtml = ref<string | null>(null)
 
 /** 当前 iframe 使用的 blob URL，卸载或重新加载时需释放 */
 let objectUrlToRevoke: string | null = null
@@ -75,16 +80,20 @@ async function loadPreview() {
   loading.value = true
   error.value = null
   preview.value = null
+  previewHtml.value = null
   revokePreviewObjectUrl()
   try {
     const res = await getReportPreview(props.reportId)
-    const resolvedUrl = await resolveAuthenticatedPreviewUrl(res.data.url)
-    if (resolvedUrl.startsWith('blob:')) {
-      objectUrlToRevoke = resolvedUrl
-    }
-    preview.value = {
-      ...res.data,
-      url: resolvedUrl,
+    if (res.data.format === 'html') {
+      const resolved = await resolveAuthenticatedHtmlPreview(res.data.url)
+      previewHtml.value = resolved.html
+      preview.value = { ...res.data, url: resolved.url }
+    } else {
+      const resolvedUrl = await resolveAuthenticatedPreviewUrl(res.data.url)
+      if (resolvedUrl.startsWith('blob:')) {
+        objectUrlToRevoke = resolvedUrl
+      }
+      preview.value = { ...res.data, url: resolvedUrl }
     }
   } catch {
     error.value = '无法获取报告预览，请稍后重试'
@@ -101,6 +110,7 @@ watch(
     }
     if (!active) {
       preview.value = null
+      previewHtml.value = null
       error.value = null
       revokePreviewObjectUrl()
     }

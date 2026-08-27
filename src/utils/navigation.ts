@@ -1,8 +1,56 @@
-import type { RouteLocationRaw, RouteLocationNormalizedLoaded } from 'vue-router'
+import type {
+  HistoryState,
+  RouteLocationRaw,
+  RouteLocationNormalizedLoaded,
+} from 'vue-router'
 import type { BreadcrumbItem } from '@/types/breadcrumb'
 
 /** 跨模块跳转时携带的来源页 query 键名 */
 export const FROM_QUERY_KEY = 'from'
+
+/**
+ * Convert domain models into the serializable value shape accepted by
+ * history.state. Unsupported values are omitted instead of reaching the
+ * browser History API and causing a DataCloneError.
+ */
+type HistoryStateEntry = HistoryState[string]
+
+function toHistoryStateValue(value: unknown): HistoryStateEntry {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(toHistoryStateValue)
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+
+  if (typeof value === 'object') {
+    const state: HistoryState = {}
+    for (const [key, entry] of Object.entries(value)) {
+      if (typeof entry !== 'function' && typeof entry !== 'symbol') {
+        state[key] = toHistoryStateValue(entry)
+      }
+    }
+    return state
+  }
+
+  return undefined
+}
+
+/** Build a browser-safe history state object from application models. */
+export function createNavigationState(entries: Record<string, unknown>): HistoryState {
+  return toHistoryStateValue(entries) as HistoryState
+}
 
 /**
  * 校验 from 是否为站内相对路径，防止开放重定向

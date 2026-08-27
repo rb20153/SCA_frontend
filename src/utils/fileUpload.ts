@@ -21,7 +21,7 @@ export function createSingleUploadFileList(file: RcFile): UploadFile[] {
       uid: file.uid,
       name: file.name,
       status: 'done',
-      originFileObj: file,
+      originFileObj: file as UploadFile['originFileObj'],
     },
   ]
 }

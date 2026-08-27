@@ -1,4 +1,4 @@
-import type { ColumnType, TableColumnsType } from 'ant-design-vue'
+import type { TableColumnType, TableColumnsType } from 'ant-design-vue'
 
 /** 不使用单行省略的列（标签、进度、操作等） */
 const NON_ELLIPSIS_COLUMN_KEYS = new Set([
@@ -19,7 +19,7 @@ const NON_ELLIPSIS_COLUMN_KEYS = new Set([
  * 判断列表列是否应启用单行省略 + tooltip
  * @param column - 表格列配置
  */
-export function shouldColumnEllipsis(column: ColumnType): boolean {
+export function shouldColumnEllipsis(column: TableColumnType): boolean {
   if (column.ellipsis === false) {
     return false
   }
@@ -40,7 +40,9 @@ export function shouldColumnEllipsis(column: ColumnType): boolean {
  * 为列表表头列补齐默认样式：表头与单元格居中；文本列默认 ellipsis
  * @param columns - 业务表格列定义
  */
-export function withListColumnDefaults<T>(columns: TableColumnsType<T>): TableColumnsType<T> {
+export function withListColumnDefaults<T extends object>(
+  columns: TableColumnsType<T>,
+): TableColumnsType<T> {
   return columns.map((column) => {
     const useEllipsis = shouldColumnEllipsis(column)
 

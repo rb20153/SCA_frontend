@@ -1,4 +1,4 @@
-import type { PageResult, TaskType } from '@/types/common'
+import type { PageResult } from '@/types/common'
 import type {
   AlertCenterOverview,
   AlertDetail,
@@ -10,6 +10,7 @@ import type {
   AlertRelatedProject,
   AlertRelatedTask,
   AlertTimeline,
+  AlertTaskType,
   CreateDepartmentParams,
   CreateRoleParams,
   Department,
@@ -34,7 +35,7 @@ import type {
   UpdateRoleParams,
 } from '@/types/system'
 import { ALERT_DISPOSITION } from '@/types/system'
-import { normalizeList, normalizePageResult } from '@/utils/pageResultAdapter'
+import { normalizePageResult } from '@/utils/pageResultAdapter'
 import { ALL_PERMISSION_KEYS } from '@/utils/rolePermissions'
 
 /** 取第一个非空字符串 */
@@ -206,7 +207,7 @@ function normalizeAlertDisposition(raw: unknown): AlertDisposition | undefined {
 }
 
 /** 规范关联任务类型 */
-function normalizeAlertTaskType(raw: unknown): TaskType {
+function normalizeAlertTaskType(raw: unknown): AlertTaskType {
   const text = String(raw ?? '').toLowerCase()
   if (text.includes('risk') || text.includes('open')) {
     return 'open-source-risk'

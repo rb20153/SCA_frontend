@@ -154,7 +154,10 @@ const collectionMethodColumns: TableColumnsType<CollectionMethodCoverageStat> = 
     key: 'avgDurationMinutes',
     dataIndex: 'avgDurationMinutes',
     width: 120,
-    customRender: ({ text }) => formatCoverageDuration(text as number),
+    customRender: ({ text, record }) =>
+      (record as CollectionMethodCoverageStat).durationSampleCount > 0
+        ? formatCoverageDuration(text as number)
+        : '暂无样本',
   },
 ]
 

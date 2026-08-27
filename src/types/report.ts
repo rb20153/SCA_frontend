@@ -23,7 +23,7 @@ export interface Report {
   /** 生成时间，ISO 8601 */
   generatedAt: string
   status: ReportStatus
-  /** 已完成报告的可下载地址（mock 遗留字段，新流程走 createReportDownload） */
+  /** 已完成报告的兼容下载地址；新流程使用 createReportDownload。 */
   downloadUrl?: string
 }
 
@@ -41,7 +41,7 @@ export interface ReportPreview {
   /**
    * 预览文件地址。
    * - 外链 / 签名临时 URL：iframe 可直接加载
-   * - 同源 /api 路径：由 ReportPreviewViewer 带 Token 拉 blob 后换成 objectURL
+   * - 同源 /api 路径：由 ReportPreviewViewer 带 Token 拉取后安全内嵌
    */
   url: string
   /** 文件名（下载/标题展示用） */

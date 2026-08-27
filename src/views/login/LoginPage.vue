@@ -155,6 +155,7 @@ import { nextTick, reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance } from 'ant-design-vue'
+import type { Rule } from 'ant-design-vue/es/form'
 import { useAuthStore } from '@/stores/auth'
 import { login, checkUsernameAvailable, register } from '@/api/auth'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
@@ -178,7 +179,7 @@ const departmentSelectRef = ref<InstanceType<typeof AsyncOptionsSelect> | null>(
 
 const loginForm = reactive({ username: '', password: '' })
 
-const loginRules = {
+const loginRules: Record<string, Rule[]> = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 }
@@ -212,9 +213,8 @@ const registerForm = reactive({
 const departmentLoadFailed = ref(false)
 
 /**
- * 注册页部门下拉数据源
- * 该接口按契约无需登录，但后端目前仍校验 token，未登录会 401；
- * 失败时静默降级为手填输入框，避免注册流程被卡死
+ * 注册页部门下拉数据源。
+ * 公共目录服务暂时不可用时降级为手工录入，保证注册流程具备容灾能力。
  */
 async function loadRegisterDepartmentOptions(): Promise<SelectOption[]> {
   try {
@@ -249,7 +249,7 @@ function checkConfirmPassword(_rule: unknown, value: string) {
   return Promise.resolve()
 }
 
-const registerRules = {
+const registerRules: Record<string, Rule[]> = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     {
