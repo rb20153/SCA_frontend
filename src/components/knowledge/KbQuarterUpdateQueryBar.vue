@@ -28,15 +28,6 @@
       />
     </a-form-item>
 
-    <a-form-item label="摘要关键词">
-      <a-input
-        v-model:value="filters.summaryKeyword"
-        placeholder="匹配摘要部分文字"
-        allow-clear
-        class="list-query-input-wide"
-        @press-enter="emit('search')"
-      />
-    </a-form-item>
   </ListQueryBar>
 </template>
 

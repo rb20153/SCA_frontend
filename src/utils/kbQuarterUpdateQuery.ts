@@ -32,7 +32,6 @@ export function createEmptyKbQuarterUpdateListFilters(): KbQuarterUpdateListFilt
     quarter: '',
     status: '',
     collectMode: '',
-    summaryKeyword: '',
   }
 }
 
@@ -41,12 +40,10 @@ export function kbQuarterUpdateListFiltersToQuery(
   filters: KbQuarterUpdateListFilters,
 ): Omit<KbQuarterUpdateListQueryParams, 'page' | 'pageSize'> {
   const query: Omit<KbQuarterUpdateListQueryParams, 'page' | 'pageSize'> = {}
-  const summaryKeyword = filters.summaryKeyword.trim()
 
   if (filters.quarter) query.quarter = filters.quarter
   if (filters.status) query.status = filters.status
   if (filters.collectMode) query.collectMode = filters.collectMode
-  if (summaryKeyword) query.summaryKeyword = summaryKeyword
 
   return query
 }

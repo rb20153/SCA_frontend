@@ -363,7 +363,7 @@ export async function getKbQuarterUpdateQuarterOptions(): Promise<ApiResponse<st
 
 /**
  * 分页获取季度更新记录列表
- * @param params - 季度、状态、采集方式、摘要关键词及分页
+ * @param params - 季度、状态、采集方式及分页
  */
 export async function getKbQuarterUpdateList(
   params: KbQuarterUpdateListQueryParams,

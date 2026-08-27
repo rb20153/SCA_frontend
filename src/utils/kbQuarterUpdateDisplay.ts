@@ -20,7 +20,7 @@ export const KB_QUARTER_UPDATE_COLLECT_MODE_LABEL: Record<KbCollectMode, string>
 }
 
 /** 季度更新记录表格横向滚动宽度 */
-export const KB_QUARTER_UPDATE_TABLE_SCROLL_X = 1080
+export const KB_QUARTER_UPDATE_TABLE_SCROLL_X = 780
 
 /** 格式化季度更新记录更新时间 */
 export function formatKbQuarterUpdateDateTime(value: string): string {

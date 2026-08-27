@@ -905,12 +905,10 @@ export function normalizeKbQuarterUpdatePage(raw: unknown): PageResult<KbQuarter
     recordId: pickString([item.recordId, item.record_id, item.id]),
     projectName: pickString([item.projectName, item.project_name, item.name]),
     quarter: pickString([item.quarter, item.quarterLabel, item.quarter_label]),
-    summary: pickString([item.summary, item.description, item.remark]),
     collectMode: normalizeKbCollectMode(
       item.collectMode ?? item.collect_mode ?? item.updateType ?? item.update_type,
     ),
     status: normalizeKbQuarterUpdateStatus(item.status),
-    ownerName: pickString([item.ownerName, item.owner_name, item.owner, item.operator]),
     updatedAt: pickString([item.updatedAt, item.updated_at, item.createdAt, item.created_at]),
   }))
 }

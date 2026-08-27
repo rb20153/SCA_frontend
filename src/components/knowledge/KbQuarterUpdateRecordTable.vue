@@ -55,12 +55,11 @@ function getRecord(row: unknown): KbQuarterUpdateRecord {
 }
 
 const columns: TableColumnsType<KbQuarterUpdateRecord> = [
+  { title: '记录编号', key: 'recordId', dataIndex: 'recordId', width: 180, ellipsis: true },
   { title: '项目名', key: 'projectName', dataIndex: 'projectName', width: 120, ellipsis: true },
   { title: '季度', key: 'quarter', dataIndex: 'quarter', width: 100 },
-  { title: '摘要', key: 'summary', dataIndex: 'summary', ellipsis: true },
   { title: '采集方式', key: 'collectMode', width: 110 },
   { title: '状态', key: 'status', width: 100 },
-  { title: '负责人', key: 'ownerName', dataIndex: 'ownerName', width: 100, ellipsis: true },
   { title: '更新时间', key: 'updatedAt', width: 160 },
 ]
 </script>
