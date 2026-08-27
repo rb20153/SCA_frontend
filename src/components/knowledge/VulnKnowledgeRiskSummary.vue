@@ -21,7 +21,7 @@
           />
         </a-col>
         <a-col :xs="24" :lg="14">
-          <div class="vuln-risk-summary__chart-title">高危来源排行</div>
+          <div class="vuln-risk-summary__chart-title">高危漏洞来源 Top 8</div>
           <div ref="barChartRef" class="vuln-risk-summary__bar-chart" />
         </a-col>
       </a-row>
@@ -68,16 +68,71 @@ const roseItems = computed<RiskRosePieChartItem[]>(() => {
   }))
 })
 
-/** 按高危数量倒序展示漏洞来源 */
+const RANKING_LIMIT = 8
+
+/**
+ * 离线导入接口暂把导入文件名回传为来源名。这类名称并不代表逻辑漏洞源，
+ * 先在展示层聚合，避免一次导入一个文件就占用一行排行。
+ */
+function isOfflineImportFileName(sourceName: string): boolean {
+  return /^(offline-\d+-[a-z0-9]+|.+\.json)$/i.test(sourceName.trim())
+}
+
+/** 合并多个来源的风险计数，保留最近一次同步时间 */
+function mergeRiskSources(sourceName: string, sources: VulnRiskSummarySource[]): VulnRiskSummarySource {
+  return sources.reduce<VulnRiskSummarySource>(
+    (merged, source) => ({
+      sourceName,
+      total: merged.total + source.total,
+      high: merged.high + source.high,
+      medium: merged.medium + source.medium,
+      low: merged.low + source.low,
+      lastSyncedAt:
+        !merged.lastSyncedAt || source.lastSyncedAt > merged.lastSyncedAt
+          ? source.lastSyncedAt
+          : merged.lastSyncedAt,
+    }),
+    { sourceName, total: 0, high: 0, medium: 0, low: 0, lastSyncedAt: '' },
+  )
+}
+
+/**
+ * 将离线导入文件批次聚合为一个可读项，并收敛为 Top 8；其余来源汇总为“其他”。
+ * 当前端拿到后端补全的稳定 sourceId/sourceCode 后，可删除文件名识别分支。
+ */
 const rankedSources = computed<VulnRiskSummarySource[]>(() => {
   if (!summary.value) return []
-  return [...summary.value.sources].sort((a, b) => b.high - a.high)
+  const meaningfulSources = summary.value.sources.filter((source) => source.high > 0)
+  const offlineImports = meaningfulSources.filter((source) => isOfflineImportFileName(source.sourceName))
+  const namedSources = meaningfulSources.filter((source) => !isOfflineImportFileName(source.sourceName))
+  const groupedSources =
+    offlineImports.length > 0
+      ? [
+          ...namedSources,
+          mergeRiskSources(`离线导入批次（${offlineImports.length} 批）`, offlineImports),
+        ]
+      : namedSources
+  const sortedSources = groupedSources.sort((a, b) => b.high - a.high)
+  const topSources = sortedSources.slice(0, RANKING_LIMIT)
+  const remainingSources = sortedSources.slice(RANKING_LIMIT)
+
+  if (remainingSources.length === 0) return topSources
+  return [
+    ...topSources,
+    mergeRiskSources(`其他来源（${remainingSources.length} 项）`, remainingSources),
+  ]
 })
 
 /** 计算高危占来源总量的比例 */
 function getHighRiskRatio(source: VulnRiskSummarySource): string {
   if (source.total <= 0) return '0.0'
   return ((source.high / source.total) * 100).toFixed(1)
+}
+
+/** Y 轴仅展示短名称；完整名称保留在 Tooltip 中 */
+function formatSourceAxisLabel(value: string): string {
+  const maxLength = 16
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value
 }
 
 /** 构建右侧高危来源排行条形图 */
@@ -88,7 +143,7 @@ function buildBarOption(sources: VulnRiskSummarySource[]): EChartsOption {
     animationEasing: 'cubicOut',
     animationDurationUpdate: 500,
     animationEasingUpdate: 'cubicOut',
-    grid: { left: 112, right: 32, top: 24, bottom: 28 },
+    grid: { left: 156, right: 40, top: 24, bottom: 28 },
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
@@ -109,13 +164,19 @@ function buildBarOption(sources: VulnRiskSummarySource[]): EChartsOption {
     },
     xAxis: {
       type: 'value',
+      minInterval: 1,
       axisLabel: { color: 'rgba(0, 0, 0, 0.45)' },
       splitLine: { lineStyle: { color: '#f0f0f0' } },
     },
     yAxis: {
       type: 'category',
       data: sources.map((item) => item.sourceName),
-      axisLabel: { color: 'rgba(0, 0, 0, 0.65)' },
+      axisLabel: {
+        color: 'rgba(0, 0, 0, 0.65)',
+        width: 132,
+        overflow: 'truncate',
+        formatter: formatSourceAxisLabel,
+      },
       axisTick: { show: false },
       axisLine: { show: false },
     },
