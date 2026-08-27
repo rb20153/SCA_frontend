@@ -502,15 +502,109 @@ function normalizeKbFileTreeNode(raw: Record<string, unknown>): FileTreeNode {
   return node
 }
 
+/** 将路径拆分为目录层级，兼容 Windows 分隔符与 `./` 前缀。 */
+function splitKbDirectoryPath(path: string): string[] {
+  return path
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((segment) => segment && segment !== '.')
+}
+
+/** 按名称排序：目录在前、文件在后，递归保持层级清晰。 */
+function sortKbDirectoryNodes(nodes: FileTreeNode[]): FileTreeNode[] {
+  return nodes
+    .map((node) => ({
+      ...node,
+      children: node.children ? sortKbDirectoryNodes(node.children) : undefined,
+    }))
+    .sort((left, right) => {
+      if (left.type !== right.type) {
+        return left.type === 'directory' ? -1 : 1
+      }
+      return left.name.localeCompare(right.name)
+    })
+}
+
+/**
+ * 后端可能以扁平 nodes 返回完整 `path`。这里将路径中的中间段补为目录节点，
+ * 使知识库目录与自主率证据树一样按目录层级展开；叶子文件保留后端 nodeId。
+ */
+function buildKbDirectoryTree(nodes: FileTreeNode[]): FileTreeNode[] {
+  const roots: FileTreeNode[] = []
+  const directoryByPath = new Map<string, FileTreeNode>()
+
+  function getOrCreateDirectory(pathSegments: string[]): FileTreeNode {
+    const directoryPath = pathSegments.join('/')
+    const existing = directoryByPath.get(directoryPath)
+    if (existing) {
+      return existing
+    }
+
+    const parent = pathSegments.length > 1
+      ? getOrCreateDirectory(pathSegments.slice(0, -1))
+      : undefined
+    const directory: FileTreeNode = {
+      nodeId: `directory:${directoryPath}`,
+      name: pathSegments[pathSegments.length - 1] ?? directoryPath,
+      type: 'directory',
+      path: directoryPath,
+      children: [],
+    }
+    directoryByPath.set(directoryPath, directory)
+    ;(parent?.children ?? roots).push(directory)
+    return directory
+  }
+
+  function appendNode(node: FileTreeNode) {
+    const pathSegments = node.path ? splitKbDirectoryPath(node.path) : []
+
+    if (node.type === 'directory' && pathSegments.length > 0) {
+      const directory = getOrCreateDirectory(pathSegments)
+      directory.nodeId = node.nodeId || directory.nodeId
+      directory.md5 = node.md5
+      for (const child of node.children ?? []) {
+        appendNode(child)
+      }
+      return
+    }
+
+    if (node.type === 'file' && pathSegments.length > 0) {
+      const parent = pathSegments.length > 1
+        ? getOrCreateDirectory(pathSegments.slice(0, -1))
+        : undefined
+      ;(parent?.children ?? roots).push({
+        ...node,
+        name: pathSegments[pathSegments.length - 1] ?? node.name,
+      })
+      return
+    }
+
+    roots.push({
+      ...node,
+      children: node.children ? buildKbDirectoryTree(node.children) : undefined,
+    })
+  }
+
+  for (const node of nodes) {
+    appendNode(node)
+  }
+
+  return sortKbDirectoryNodes(roots)
+}
+
 /** 规范知识库项目目录树（兼容后端直接返回数组或 { nodes } 包裹） */
 export function normalizeKbProjectDirectoryTree(raw: unknown): FileTreeData {
   if (Array.isArray(raw)) {
-    return { nodes: raw.map((item) => normalizeKbFileTreeNode(toRecord(item))) }
+    return { nodes: buildKbDirectoryTree(raw.map((item) => normalizeKbFileTreeNode(toRecord(item)))) }
   }
   const obj = toRecord(raw)
   const nodesRaw = obj.nodes ?? obj.tree ?? obj.children ?? obj.list ?? obj.items
   if (Array.isArray(nodesRaw)) {
-    return { nodes: nodesRaw.map((item) => normalizeKbFileTreeNode(toRecord(item))) }
+    return {
+      nodes: buildKbDirectoryTree(
+        nodesRaw.map((item) => normalizeKbFileTreeNode(toRecord(item))),
+      ),
+    }
   }
   return { nodes: [] }
 }
