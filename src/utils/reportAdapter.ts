@@ -186,11 +186,16 @@ export function normalizeReportPage(raw: unknown): PageResult<Report> {
 /**
  * 规范报告详情（抽屉元信息）
  * @param raw - 后端详情对象
- * @param reportId - 路由/列表携带的报告 ID（后端缺字段时兜底）
+ * @param fallbackReport - 当前列表项；后端缺关联项目或模板时用于展示兜底
  */
-export function normalizeReportDetail(raw: unknown, reportId: string): ReportDetail {
+export function normalizeReportDetail(raw: unknown, fallbackReport: Report): ReportDetail {
   const detail = normalizeReport(toRecord(raw))
-  return { ...detail, reportId: detail.reportId || reportId }
+  return {
+    ...detail,
+    reportId: detail.reportId || fallbackReport.reportId,
+    projectName: detail.projectName || fallbackReport.projectName,
+    templateName: detail.templateName || fallbackReport.templateName,
+  }
 }
 
 /**

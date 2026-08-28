@@ -242,24 +242,21 @@ export function normalizeAiParseResultDetail(raw: unknown, parseTaskId: string):
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
   const treeRaw =
     obj.licenseTreeNodes ?? obj.license_tree_nodes ?? obj.licenseTree ?? obj.tree ?? obj.nodes
-  const conflictsRaw =
-    obj.licenseConflicts ?? obj.license_conflicts ?? obj.conflicts ?? obj.potentialConflicts
-
-  let licenseConflicts: string[] = []
-  if (Array.isArray(conflictsRaw)) {
-    licenseConflicts = conflictsRaw
-      .map((item) => {
-        if (typeof item === 'string') {
-          return item
-        }
-        if (item && typeof item === 'object') {
-          const conflict = item as Record<string, unknown>
-          return String(conflict.message ?? conflict.description ?? conflict.detail ?? conflict.text ?? '')
-        }
-        return String(item ?? '')
-      })
-      .filter(Boolean)
-  }
+  const ruleFallback =
+    obj.ruleFallback && typeof obj.ruleFallback === 'object'
+      ? (obj.ruleFallback as Record<string, unknown>)
+      : obj.rule_fallback && typeof obj.rule_fallback === 'object'
+        ? (obj.rule_fallback as Record<string, unknown>)
+        : {}
+  const licenseConflicts = normalizeLicenseConflicts([
+    obj.licenseConflicts,
+    obj.license_conflicts,
+    obj.conflicts,
+    obj.potentialConflicts,
+    ruleFallback.conflicts,
+    ruleFallback.licenseConflicts,
+    ruleFallback.license_conflicts,
+  ])
 
   return {
     parseTaskId: pickFirstNonEmptyString(obj.parseTaskId, obj.parse_task_id, obj.id, parseTaskId),
@@ -286,6 +283,23 @@ export function normalizeAiParseResultDetail(raw: unknown, parseTaskId: string):
     licenseTreeNodes: unwrapLicenseTreeNodes(treeRaw).map((node) => normalizeLicenseTreeNode(node)),
     licenseConflicts,
   }
+}
+
+/** 合并顶层与规则回退中的冲突，并提取对象中的可读说明。 */
+function normalizeLicenseConflicts(candidates: unknown[]): string[] {
+  const conflicts = candidates.flatMap((candidate) => (Array.isArray(candidate) ? candidate : []))
+  return [...new Set(
+    conflicts
+      .map((item) => {
+        if (typeof item === 'string') return item.trim()
+        if (item && typeof item === 'object') {
+          const conflict = item as Record<string, unknown>
+          return String(conflict.message ?? conflict.description ?? conflict.detail ?? conflict.text ?? '').trim()
+        }
+        return String(item ?? '').trim()
+      })
+      .filter(Boolean),
+  )]
 }
 
 /** 规范规则回退对比行 */

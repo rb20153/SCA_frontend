@@ -56,7 +56,7 @@
 
     <ReportDetailDrawer
       v-model:open="detailVisible"
-      :report-id="detailReportId"
+      :report="detailReport"
     />
   </div>
 </template>
@@ -96,7 +96,7 @@ const downloadReport = ref<Report | null>(null)
 const downloadExportPolicy = ref<ReportExportPolicyPreview | null>(null)
 const downloadChecking = ref(false)
 const detailVisible = ref(false)
-const detailReportId = ref<string | null>(null)
+const detailReport = ref<Report | null>(null)
 
 const {
   filterForm,
@@ -129,7 +129,7 @@ function openFailureReasonModal(report: Report) {
 
 /** 打开报告详情抽屉 */
 function openDetailDrawer(report: Report) {
-  detailReportId.value = report.reportId
+  detailReport.value = report
   detailVisible.value = true
 }
 

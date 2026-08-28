@@ -26,7 +26,7 @@
         </a-descriptions>
 
         <ReportPreviewViewer
-          :report-id="props.reportId"
+          :report-id="props.report?.reportId ?? null"
           :active="visible"
           class="report-preview"
         />
@@ -41,11 +41,11 @@ import { getReportDetail } from '@/api/report'
 import DetailText from '@/components/common/DetailText.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import ReportPreviewViewer from '@/components/report/ReportPreviewViewer.vue'
-import type { ReportDetail } from '@/types/report'
+import type { Report, ReportDetail } from '@/types/report'
 import { formatReportDateTime } from '@/utils/reportDisplay'
 
 const props = defineProps<{
-  reportId: string | null
+  report: Report | null
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
@@ -62,11 +62,11 @@ const loading = ref(false)
 const detail = ref<ReportDetail | null>(null)
 
 /** 打开抽屉时按 ID 拉取报告详情 */
-async function fetchDetail(reportId: string) {
+async function fetchDetail(report: Report) {
   loading.value = true
   detail.value = null
   try {
-    const res = await getReportDetail(reportId)
+    const res = await getReportDetail(report)
     detail.value = res.data
   } finally {
     loading.value = false
@@ -74,10 +74,10 @@ async function fetchDetail(reportId: string) {
 }
 
 watch(
-  () => [visible.value, props.reportId] as const,
-  ([open, reportId]) => {
-    if (open && reportId) {
-      fetchDetail(reportId)
+  () => [visible.value, props.report] as const,
+  ([open, report]) => {
+    if (open && report) {
+      fetchDetail(report)
     }
     if (!open) {
       detail.value = null

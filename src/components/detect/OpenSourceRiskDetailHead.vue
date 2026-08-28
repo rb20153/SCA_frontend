@@ -20,34 +20,22 @@
         </span>
       </div>
       <div class="risk-detail-head__item">
-        <span class="risk-detail-head__label">完成时间</span>
-        <span class="risk-detail-head__value">{{ finishedAtText }}</span>
-      </div>
-      <div class="risk-detail-head__item">
         <span class="risk-detail-head__label">数据来源</span>
         <span class="risk-detail-head__value">{{ headInfo.dataSourceLabel }}</span>
-      </div>
-      <div class="risk-detail-head__item">
-        <span class="risk-detail-head__label">漏洞库</span>
-        <span class="risk-detail-head__value">{{ headInfo.vulnDbVersion }}</span>
       </div>
     </div>
   </a-card>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import { TASK_STATUS_COLOR, TASK_STATUS_LABEL } from '@/types/common'
 import type { OpenSourceRiskDetailHeadInfo } from '@/types/detect'
-import { formatRiskDetailFinishedAt } from '@/utils/openSourceRiskDisplay'
 
 const props = defineProps<{
   /** 顶部任务与项目摘要 */
   headInfo: OpenSourceRiskDetailHeadInfo
 }>()
 
-/** 完成时间展示文案 */
-const finishedAtText = computed(() => formatRiskDetailFinishedAt(props.headInfo.finishedAt))
 </script>
 
 <style scoped>
@@ -57,7 +45,7 @@ const finishedAtText = computed(() => formatRiskDetailFinishedAt(props.headInfo.
 
 .risk-detail-head__grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px 24px;
 }
 

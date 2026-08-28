@@ -81,23 +81,36 @@ function readNode(datum: NodeData | ElementDatum): RiskComponentGraphNode {
 
 /** 业务依赖图数据 → G6 GraphData，节点完整对象塞进 data 供样式/tooltip 读取 */
 function toGraphData(graph: RiskComponentGraph): GraphData {
+  const compact = graph.nodes.length === 1 && graph.nodes[0].isRoot
   return {
-    nodes: graph.nodes.map((node) => ({ id: node.id, data: { ...node } })),
+    nodes: graph.nodes.map((node) => ({ id: node.id, data: { ...node, compact } })),
     edges: graph.edges.map((edge) => ({ source: edge.source, target: edge.target })),
   }
 }
 
-const { updateData } = useG6Graph(
+/** 图中仅有项目根节点时，避免自动适配将节点与文字放大。 */
+function isCompactNode(datum: NodeData): boolean {
+  return Boolean((datum.data as Record<string, unknown> | undefined)?.compact)
+}
+
+/** 节点文字最多两行，超出部分以省略号截断，完整名称仍可在 tooltip 查看。 */
+function formatNodeLabel(text: string, maxCharsPerLine: number): string {
+  const normalized = text.trim()
+  const maxLength = maxCharsPerLine * 2
+  const truncated = normalized.length > maxLength ? `${normalized.slice(0, maxLength - 1)}…` : normalized
+  return truncated.match(new RegExp(`.{1,${maxCharsPerLine}}`, 'g'))?.join('\n') ?? ''
+}
+
+const { updateData, getInstance } = useG6Graph(
   graphRef,
   {
-    autoFit: 'view',
     animation: true,
     padding: 16,
     layout: { type: 'antv-dagre', rankdir: 'TB', nodesep: 28, ranksep: 52 },
     node: {
       type: 'rect',
       style: {
-        size: [124, 36],
+        size: (d: NodeData) => (isCompactNode(d) ? [62, 18] : [124, 36]),
         radius: 6,
         fill: (d: NodeData) => {
           const node = readNode(d)
@@ -107,11 +120,12 @@ const { updateData } = useG6Graph(
         lineWidth: 1,
         labelText: (d: NodeData) => {
           const node = readNode(d)
-          return node.isRoot ? node.componentName : `${node.componentName}@${node.version}`
+          const label = node.isRoot ? node.componentName : `${node.componentName}@${node.version}`
+          return formatNodeLabel(label, isCompactNode(d) ? 8 : 14)
         },
         labelPlacement: 'center',
         labelFill: 'rgba(0, 0, 0, 0.85)',
-        labelFontSize: 12,
+        labelFontSize: (d: NodeData) => (isCompactNode(d) ? 10 : 12),
       },
     },
     edge: {
@@ -154,6 +168,15 @@ const { updateData } = useG6Graph(
         emit('select', id)
       }
     })
+    graph.once('afterrender', () => {
+      const graphData = props.graph
+      if (!graphData || graphData.nodes.length === 0) return
+      if (graphData.nodes.length === 1 && graphData.nodes[0].isRoot) {
+        graph.fitCenter()
+      } else {
+        graph.fitView()
+      }
+    })
   },
 )
 
@@ -162,6 +185,14 @@ watch(
   (graph) => {
     if (graph && graph.nodes.length > 0) {
       updateData(toGraphData(graph))
+      const instance = getInstance()
+      if (instance) {
+        if (graph.nodes.length === 1 && graph.nodes[0].isRoot) {
+          instance.fitCenter()
+        } else {
+          instance.fitView()
+        }
+      }
     }
   },
   { immediate: true },

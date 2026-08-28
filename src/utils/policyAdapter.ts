@@ -255,16 +255,43 @@ function normalizePolicyMaskingAction(raw: unknown): PolicyMaskingAction {
 export function normalizePolicyRuleHitListItem(
   raw: Record<string, unknown>,
 ): PolicyRuleHitListItem {
+  const evidence = toRecord(raw.evidence) ?? {}
+
   return {
     hitId: pickFirstNonEmptyString([raw.hitId, raw.hit_id, raw.id]),
     policyId: pickFirstNonEmptyString([raw.policyId, raw.policy_id]),
-    occurredAt: pickFirstNonEmptyString([raw.occurredAt, raw.occurred_at, raw.createdAt]),
-    ruleKeyword: pickFirstNonEmptyString([raw.ruleKeyword, raw.rule_keyword]),
-    hitObject: pickFirstNonEmptyString([raw.hitObject, raw.hit_object]),
+    occurredAt: pickFirstNonEmptyString([
+      raw.occurredAt,
+      raw.occurred_at,
+      raw.createdAt,
+      raw.created_at,
+    ]),
+    ruleKeyword: pickFirstNonEmptyString([
+      raw.ruleKeyword,
+      raw.rule_keyword,
+      raw.ruleCode,
+      raw.rule_code,
+      evidence.ruleKeyword,
+      evidence.rule_keyword,
+      evidence.ruleCode,
+      evidence.rule_code,
+    ]),
+    hitObject: pickFirstNonEmptyString([
+      raw.hitObject,
+      raw.hit_object,
+      raw.filePath,
+      raw.file_path,
+      evidence.hitObject,
+      evidence.hit_object,
+      evidence.filePath,
+      evidence.file_path,
+    ]),
     maskingAction: normalizePolicyMaskingAction(raw.maskingAction ?? raw.masking_action),
     responsibleUser: pickFirstNonEmptyString([
       raw.responsibleUser,
       raw.responsible_user,
+      raw.responsibleUserName,
+      raw.responsible_user_name,
       raw.owner,
     ]),
     traceId: pickFirstNonEmptyString([raw.traceId, raw.trace_id]),
@@ -293,7 +320,25 @@ export function normalizePolicyRuleHitDetail(raw: unknown): PolicyRuleHitDetail 
       obj.processing_result,
       obj.result,
     ]),
+    suggestion: normalizePolicyRuleHitDetailText(obj.suggestion ?? obj.recommendation),
+    tamperAnalysis: normalizePolicyRuleHitDetailText(
+      obj.tamperAnalysis ?? obj.tamper_analysis,
+    ),
+    taskName: pickFirstNonEmptyString([obj.taskName, obj.task_name]),
+    projectName: pickFirstNonEmptyString([obj.projectName, obj.project_name]),
   }
+}
+
+/** 详情扩展字段可能是对象，统一序列化后交由 DetailText 展示。 */
+function normalizePolicyRuleHitDetailText(raw: unknown): string {
+  if (raw && typeof raw === 'object') {
+    try {
+      return JSON.stringify(raw)
+    } catch {
+      return ''
+    }
+  }
+  return String(raw ?? '').trim()
 }
 
 // ─── 版本与审批 ───────────────────────────────────────────────────────────────

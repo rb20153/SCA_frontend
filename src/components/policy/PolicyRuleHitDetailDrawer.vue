@@ -9,18 +9,27 @@
     <PageLoading :loading="loading">
       <template v-if="detail">
         <a-descriptions :column="2" bordered size="small" class="hit-desc detail-desc">
+          <a-descriptions-item label="任务名称">
+            <DetailText :text="detail.taskName" />
+          </a-descriptions-item>
+          <a-descriptions-item label="项目名称">
+            <DetailText :text="detail.projectName" />
+          </a-descriptions-item>
           <a-descriptions-item label="规则">
             <DetailText :text="detail.ruleKeyword" />
           </a-descriptions-item>
           <a-descriptions-item label="命中对象">
             <DetailText :text="detail.hitObject" />
           </a-descriptions-item>
+          <a-descriptions-item label="责任人">
+            <DetailText :text="detail.responsibleUser" />
+          </a-descriptions-item>
           <a-descriptions-item label="脱敏动作">
             <a-tag :color="POLICY_MASKING_ACTION_COLOR[detail.maskingAction]">
               {{ POLICY_MASKING_ACTION_LABEL[detail.maskingAction] }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="TraceID">
+          <a-descriptions-item label="TraceID" :span="2">
             <router-link :to="buildLogListTracePath(detail.traceId)" class="list-table-link">
               {{ detail.traceId }}
             </router-link>
@@ -28,8 +37,14 @@
           <a-descriptions-item label="命中片段" :span="2">
             <CodeSnippetBlock :content="detail.hitSnippet" />
           </a-descriptions-item>
-          <a-descriptions-item label="处理结果" :span="2">
+          <a-descriptions-item label="处置建议">
+            <DetailText :text="detail.suggestion" />
+          </a-descriptions-item>
+          <a-descriptions-item label="处理结果">
             <DetailText :text="detail.processingResult" />
+          </a-descriptions-item>
+          <a-descriptions-item label="篡改分析" :span="2">
+            <DetailText :text="detail.tamperAnalysis" />
           </a-descriptions-item>
         </a-descriptions>
       </template>

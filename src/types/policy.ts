@@ -82,6 +82,10 @@ export interface PolicyRuleHitListItem {
 export interface PolicyRuleHitDetail extends PolicyRuleHitListItem {
   hitSnippet: string
   processingResult: string
+  suggestion: string
+  tamperAnalysis: string
+  taskName: string
+  projectName: string
 }
 
 export interface PolicyRuleHitListFilters {

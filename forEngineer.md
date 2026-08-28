@@ -3937,3 +3937,9 @@ Header 设置 `position: fixed; left: 0; width: 100vw`，让它脱离右侧容�
 
 - 24 个页面全是占位（显示"页面开发中"），后续按模块逐个实现
 - mock 数据阶段所有接口都从 `src/mock/` 里取数据，真实接口接入时只需改 `src/api/` 里的函数体
+## [2026-08-28] 联调字段兼容与开源风险结果展示修正
+
+- **规则命中追溯**：`policyAdapter.ts` 兼容 `rule_code`、`file_path`、`responsibleUser` 及 `evidence` 内的对应字段；详情补充处置建议、篡改分析、任务名称、项目名称和责任人。
+- **报告查看**：`getReportDetail` 接收当前报告列表项；详情响应缺少关联项目或模板时，以列表已展示的字段回填，不改变 `GET /api/reports/:reportId`。
+- **AI 辅助分析**：结果适配合并顶层冲突字段与 `ruleFallback.conflicts`，规则回退的真实冲突不再被空数组遮蔽。
+- **开源风险检测结果**：仅根节点的依赖图采用半尺寸节点、两行省略标签；顶部移除完成时间与漏洞库。

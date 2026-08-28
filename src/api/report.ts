@@ -63,11 +63,12 @@ export async function deleteReport(reportId: string): Promise<ApiResponse<null>>
 
 /**
  * 获取报告详情（查看抽屉）
- * @param reportId - 报告 ID
+ * @param report - 当前报告列表项；详情字段缺失时用于展示兜底
  */
-export async function getReportDetail(reportId: string): Promise<ApiResponse<ReportDetail>> {
+export async function getReportDetail(report: Report): Promise<ApiResponse<ReportDetail>> {
+  const { reportId } = report
   const res = await request.get<ApiResponse<unknown>>(`/api/reports/${reportId}`)
-  return { ...res, data: normalizeReportDetail(res.data, reportId) }
+  return { ...res, data: normalizeReportDetail(res.data, report) }
 }
 
 /**
