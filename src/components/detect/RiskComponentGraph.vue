@@ -81,11 +81,16 @@ function readNode(datum: NodeData | ElementDatum): RiskComponentGraphNode {
 
 /** 业务依赖图数据 → G6 GraphData，节点完整对象塞进 data 供样式/tooltip 读取 */
 function toGraphData(graph: RiskComponentGraph): GraphData {
-  const compact = graph.nodes.length === 1 && graph.nodes[0].isRoot
+  const compact = isSingleRootGraph(graph)
   return {
     nodes: graph.nodes.map((node) => ({ id: node.id, data: { ...node, compact } })),
     edges: graph.edges.map((edge) => ({ source: edge.source, target: edge.target })),
   }
+}
+
+/** 仅有被测项目根节点、没有组件依赖的紧凑展示态。 */
+function isSingleRootGraph(graph: RiskComponentGraph): boolean {
+  return graph.nodes.length === 1 && graph.nodes[0].isRoot
 }
 
 /** 图中仅有项目根节点时，避免自动适配将节点与文字放大。 */
@@ -101,6 +106,16 @@ function formatNodeLabel(text: string, maxCharsPerLine: number): string {
   return truncated.match(new RegExp(`.{1,${maxCharsPerLine}}`, 'g'))?.join('\n') ?? ''
 }
 
+/** 布局完成后再适配视口，避免子节点尚未定位时出现偏移。 */
+async function fitGraphViewport(graph: ReturnType<typeof getInstance>, graphData: RiskComponentGraph) {
+  if (!graph) return
+  if (isSingleRootGraph(graphData)) {
+    await graph.fitCenter()
+  } else {
+    await graph.fitView()
+  }
+}
+
 const { updateData, getInstance } = useG6Graph(
   graphRef,
   {
@@ -110,7 +125,7 @@ const { updateData, getInstance } = useG6Graph(
     node: {
       type: 'rect',
       style: {
-        size: (d: NodeData) => (isCompactNode(d) ? [62, 18] : [124, 36]),
+        size: (d: NodeData) => (isCompactNode(d) ? [161, 49] : [124, 36]),
         radius: 6,
         fill: (d: NodeData) => {
           const node = readNode(d)
@@ -121,11 +136,11 @@ const { updateData, getInstance } = useG6Graph(
         labelText: (d: NodeData) => {
           const node = readNode(d)
           const label = node.isRoot ? node.componentName : `${node.componentName}@${node.version}`
-          return formatNodeLabel(label, isCompactNode(d) ? 8 : 14)
+          return formatNodeLabel(label, isCompactNode(d) ? 9 : 14)
         },
         labelPlacement: 'center',
         labelFill: 'rgba(0, 0, 0, 0.85)',
-        labelFontSize: (d: NodeData) => (isCompactNode(d) ? 10 : 12),
+        labelFontSize: (d: NodeData) => (isCompactNode(d) ? 14 : 12),
       },
     },
     edge: {
@@ -149,7 +164,7 @@ const { updateData, getInstance } = useG6Graph(
           }
           const title = node.isRoot ? node.componentName : `${node.componentName}@${node.version}`
           const rows = node.isRoot
-            ? '<div>被测项目根节点</div>'
+            ? ''
             : `<div>风险等级：${RISK_LABEL[node.riskLevel]}</div>` +
               `<div>关联漏洞：${node.vulnerabilityCount} 条</div>`
           return Promise.resolve(
@@ -171,28 +186,17 @@ const { updateData, getInstance } = useG6Graph(
     graph.once('afterrender', () => {
       const graphData = props.graph
       if (!graphData || graphData.nodes.length === 0) return
-      if (graphData.nodes.length === 1 && graphData.nodes[0].isRoot) {
-        graph.fitCenter()
-      } else {
-        graph.fitView()
-      }
+      void fitGraphViewport(graph, graphData)
     })
   },
 )
 
 watch(
   () => props.graph,
-  (graph) => {
+  async (graph) => {
     if (graph && graph.nodes.length > 0) {
-      updateData(toGraphData(graph))
-      const instance = getInstance()
-      if (instance) {
-        if (graph.nodes.length === 1 && graph.nodes[0].isRoot) {
-          instance.fitCenter()
-        } else {
-          instance.fitView()
-        }
-      }
+      await updateData(toGraphData(graph))
+      await fitGraphViewport(getInstance(), graph)
     }
   },
   { immediate: true },

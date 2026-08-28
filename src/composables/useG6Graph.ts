@@ -54,11 +54,11 @@ export function useG6Graph(
    * 更新图数据；实例尚未就绪时先缓存，待 init 后自动重放。
    * @param data - G6 图数据（nodes / edges）
    */
-  function updateData(data: GraphData) {
+  async function updateData(data: GraphData) {
     lastData = data
     if (!graph) return
     graph.setData(data)
-    graph.render()
+    await graph.render()
   }
 
   function getInstance() {
