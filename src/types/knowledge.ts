@@ -444,7 +444,13 @@ export interface VulnItemDetail {
   affectedComponent: string
   fixedVersion: string
   /** 参考链接列表 */
-  referenceLinks: string[]
+  referenceLinks: VulnItemReferenceLink[]
+}
+
+/** 漏洞条目的参考链接（后端 references_json） */
+export interface VulnItemReferenceLink {
+  url: string
+  type: string
 }
 
 export interface VulnItemListFilters {
@@ -511,6 +517,7 @@ export interface VulnItemQuickSearchSuggestion {
 
 /** 漏洞条目页统计卡片数据 */
 export interface VulnItemOverview {
+  totalCount: number
   matchedCount: number
   highRiskCount: number
   /** 最近更新时间，ISO 8601 */

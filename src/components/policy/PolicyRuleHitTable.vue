@@ -74,7 +74,6 @@ const columns: TableColumnsType<PolicyRuleHitListItem> = [
   { title: '规则', key: 'ruleKeyword', dataIndex: 'ruleKeyword', width: 120, ellipsis: true },
   { title: '命中对象', key: 'hitObject', dataIndex: 'hitObject', width: 220, ellipsis: true },
   { title: '脱敏动作', key: 'maskingAction', width: 120 },
-  { title: '责任人', key: 'responsibleUser', dataIndex: 'responsibleUser', width: 110, ellipsis: true },
   { title: 'TraceID', key: 'traceId', width: 180, ellipsis: true },
   { title: '操作', key: 'action', width: 80 },
 ]

@@ -36,6 +36,7 @@ import type {
   VulnItemOverview,
   VulnItemQuickSearchFilters,
   VulnItemQuickSearchSuggestion,
+  VulnItemReferenceLink,
   VulnItemStatus,
   VulnKnowledgeOverview,
   VulnRiskLevelCount,
@@ -1023,11 +1024,17 @@ export function normalizeVulnSource(raw: Record<string, unknown>): VulnSource {
     recordCount: pickNullableNumber([
       raw.recordCount,
       raw.record_count,
-      raw.vulnCount,
-      raw.vuln_count,
+      raw.packageCount,
+      raw.package_count,
       raw.total,
     ]),
-    highRiskCount: pickNullableNumber([raw.highRiskCount, raw.high_risk_count, raw.highCount]),
+    highRiskCount: pickNullableNumber([
+      raw.vulnCount,
+      raw.vuln_count,
+      raw.highRiskCount,
+      raw.high_risk_count,
+      raw.highCount,
+    ]),
     syncCycle: pickNullableString([raw.syncCycle, raw.sync_cycle, raw.cycle]),
     lastSyncedAt: pickString([
       raw.lastSyncedAt,
@@ -1175,7 +1182,8 @@ export function normalizeVulnItemQuickSearchSuggestions(
 export function normalizeVulnItemOverview(raw: unknown): VulnItemOverview {
   const obj = toRecord(raw)
   const overview: VulnItemOverview = {
-    matchedCount: pickNumber([obj.matchedCount, obj.matched_count, obj.totalCount, obj.total_count, obj.total]),
+    totalCount: pickNumber([obj.totalCount, obj.total_count, obj.total]),
+    matchedCount: pickNumber([obj.matchedCount, obj.matched_count]),
     highRiskCount: pickNumber([obj.highRiskCount, obj.high_risk_count, obj.highCount, obj.high_count]),
     lastUpdatedAt: pickString([obj.lastUpdatedAt, obj.last_updated_at, obj.updatedAt, obj.updated_at]),
   }
@@ -1221,7 +1229,42 @@ export function normalizeVulnItemPage(raw: unknown): PageResult<VulnItemListItem
   return normalizePageResult(raw, normalizeVulnItemListItem)
 }
 
-/** 规范漏洞条目详情（参考链接兼容数组与分隔符字符串） */
+/** 规范 references_json 为可展示的链接与类型，兼容 JSON 字符串、对象和历史字符串数组。 */
+function normalizeVulnItemReferenceLinks(raw: unknown): VulnItemReferenceLink[] {
+  let source = raw
+  if (typeof raw === 'string') {
+    try {
+      source = JSON.parse(raw)
+    } catch {
+      source = raw
+    }
+  }
+
+  if (Array.isArray(source)) {
+    return source
+      .map((item) => {
+        if (typeof item === 'string') return { url: item.trim(), type: '—' }
+        const obj = toRecord(item)
+        return {
+          url: pickString([obj.url, obj.link, obj.href, obj.reference]),
+          type: pickString([obj.type, obj.referenceType, obj.reference_type, obj.category], '—'),
+        }
+      })
+      .filter((item) => Boolean(item.url))
+  }
+
+  const obj = toRecord(source)
+  if (Object.keys(obj).length > 0) {
+    const url = pickString([obj.url, obj.link, obj.href, obj.reference])
+    return url
+      ? [{ url, type: pickString([obj.type, obj.referenceType, obj.reference_type, obj.category], '—') }]
+      : []
+  }
+
+  return toStringArray(source).map((url) => ({ url, type: '—' }))
+}
+
+/** 规范漏洞条目详情 */
 export function normalizeVulnItemDetail(raw: unknown, itemId = ''): VulnItemDetail {
   const obj = toRecord(raw)
   return {
@@ -1233,7 +1276,9 @@ export function normalizeVulnItemDetail(raw: unknown, itemId = ''): VulnItemDeta
     description: pickString([obj.description, obj.detail, obj.summary]),
     affectedComponent: pickString([obj.affectedComponent, obj.affected_component, obj.component, obj.title]),
     fixedVersion: pickString([obj.fixedVersion, obj.fixed_version, obj.patchedVersion], '—'),
-    referenceLinks: toStringArray(obj.referenceLinks ?? obj.reference_links ?? obj.references),
+    referenceLinks: normalizeVulnItemReferenceLinks(
+      obj.referencesJson ?? obj.references_json ?? obj.referenceLinks ?? obj.reference_links ?? obj.references,
+    ),
   }
 }
 

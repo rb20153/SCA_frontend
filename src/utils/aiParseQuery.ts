@@ -66,7 +66,7 @@ export const AI_PARSE_FALLBACK_REASON_OPTIONS: {
 ]
 
 /** AI 解析列表表格横向滚动宽度 */
-export const AI_PARSE_TASK_TABLE_SCROLL_X = 1280
+export const AI_PARSE_TASK_TABLE_SCROLL_X = 1152
 
 /** 返回空的 AI 解析列表筛选表单 */
 export function createEmptyAiParseTaskListFilters(): AiParseTaskListFilters {

@@ -12,10 +12,7 @@
 
       <template v-else-if="detail">
         <div class="ai-result-head">
-          <div class="ai-result-head__left">
-            <a-tag :color="analysisTagColor">{{ analysisModeLabel }}</a-tag>
-            <span class="ai-result-head__status">解析完成</span>
-          </div>
+          <span class="ai-result-head__status">解析完成</span>
           <span class="ai-result-head__meta">
             扫描深度：{{ detail.scanDepth }} · 置信度：{{ confidenceText }} ·
             {{ formatDurationMs(detail.elapsedMs) }} · {{ finishedAtText }}
@@ -87,14 +84,6 @@ const finishedAtText = computed(() =>
   detail.value ? formatAiParseFinishedAt(detail.value.finishedAt) : '—',
 )
 
-const analysisModeLabel = computed(() =>
-  detail.value?.analysisMode === 'ai_provider' ? 'AI + 规则复核' : '规则回退',
-)
-
-const analysisTagColor = computed(() =>
-  detail.value?.analysisMode === 'ai_provider' ? 'processing' : 'warning',
-)
-
 const confidenceText = computed(() => {
   const confidence = detail.value?.confidence ?? 0
   return confidence > 0 ? `${(confidence * 100).toFixed(1)}%` : '—'
@@ -133,12 +122,6 @@ watch(
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
-}
-
-.ai-result-head__left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .ai-result-head__status {

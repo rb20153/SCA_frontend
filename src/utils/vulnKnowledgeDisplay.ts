@@ -1,7 +1,7 @@
 import type { VulnSource, VulnSourceCode, VulnSyncStatus } from '@/types/knowledge'
 
 /** 漏洞来源列表横向滚动宽度 */
-export const VULN_SOURCE_TABLE_SCROLL_X = 1120
+export const VULN_SOURCE_TABLE_SCROLL_X = 1010
 
 export const VULN_SOURCE_CODE_LABEL: Record<VulnSourceCode, string> = {
   nvd: 'NVD',

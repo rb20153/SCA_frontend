@@ -7,7 +7,7 @@ import { createNavigationState } from '@/utils/navigation'
 export const POLICY_TABLE_SCROLL_X = 1050
 
 /** 规则命中列表表格横向滚动宽度 */
-export const POLICY_RULE_HIT_TABLE_SCROLL_X = 1180
+export const POLICY_RULE_HIT_TABLE_SCROLL_X = 1070
 
 /** 脱敏动作展示文案 */
 export const POLICY_MASKING_ACTION_LABEL: Record<PolicyMaskingAction, string> = {

@@ -289,7 +289,7 @@ export function normalizeProjectDeliverable(raw: Record<string, unknown>): Proje
     deliverableType: normalizeDeliverableType(raw.deliverableType ?? raw.type),
     sizeBytes: Number(raw.sizeBytes ?? raw.size_bytes ?? raw.size ?? 0),
     md5: String(raw.md5 ?? raw.md5Hash ?? ''),
-    uploaderName: String(raw.uploaderName ?? raw.uploader ?? raw.created_by ?? ''),
+    uploaderName: String(raw.uploaderName ?? raw.uploader ?? raw.createdBy ?? raw.created_by ?? ''),
     uploadedAt: String(raw.uploadedAt ?? raw.created_at ?? raw.createdAt ?? ''),
     collectStatus: normalizeDeliverableCollectStatus(raw.collectStatus ?? raw.collect_status),
     repositoryUrl: raw.repositoryUrl

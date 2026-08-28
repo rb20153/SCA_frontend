@@ -16,10 +16,6 @@
         {{ formatVulnMetric(getSource(row).highRiskCount) }}
       </template>
 
-      <template v-else-if="column.key === 'syncCycle'">
-        {{ formatVulnSyncCycle(getSource(row).syncCycle) }}
-      </template>
-
       <template v-else-if="column.key === 'lastSyncedAt'">
         {{ formatVulnSourceLastSync(getSource(row)) }}
       </template>
@@ -54,7 +50,6 @@ import VulnSourceActionCell from '@/components/knowledge/VulnSourceActionCell.vu
 import {
   formatVulnMetric,
   formatVulnSourceLastSync,
-  formatVulnSyncCycle,
   VULN_SOURCE_TABLE_SCROLL_X,
   VULN_SYNC_STATUS_COLOR,
   VULN_SYNC_STATUS_LABEL,
@@ -80,7 +75,6 @@ const columns: TableColumnsType<VulnSource> = [
   { title: '来源类型', key: 'sourceType', dataIndex: 'sourceType', width: 130, ellipsis: true },
   { title: '记录数', key: 'recordCount', width: 100 },
   { title: '高危数', key: 'highRiskCount', width: 90 },
-  { title: '同步周期', key: 'syncCycle', dataIndex: 'syncCycle', width: 110, ellipsis: true },
   { title: '最近同步', key: 'lastSyncedAt', width: 160 },
   { title: '状态', key: 'syncStatus', width: 90 },
   { title: '操作', key: 'action', width: 160 },

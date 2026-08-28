@@ -33,10 +33,6 @@
         {{ formatOptionalSummary(getTask(row)) }}
       </template>
 
-      <template v-else-if="column.key === 'analysisMode'">
-        {{ formatAnalysisMode(getTask(row)) }}
-      </template>
-
       <template v-else-if="column.key === 'confidence'">
         {{ formatConfidence(getTask(row)) }}
       </template>
@@ -119,13 +115,6 @@ function formatOptionalConflictCount(task: AiParseTask): string {
     : '—'
 }
 
-function formatAnalysisMode(task: AiParseTask): string {
-  if (task.status === 'running') return '等待分析'
-  if (task.analysisMode === 'ai_provider') return 'AI + 规则复核'
-  if (task.analysisMode === 'rule_fallback') return '规则回退'
-  return '—'
-}
-
 function formatConfidence(task: AiParseTask): string {
   if (task.status !== 'success' || task.confidence <= 0) return '—'
   return `${(task.confidence * 100).toFixed(1)}%`
@@ -172,7 +161,6 @@ const columns: TableColumnsType<AiParseTask> = [
     width: 140,
     ellipsis: true,
   },
-  { title: '分析方式', key: 'analysisMode', width: 128 },
   { title: '置信度', key: 'confidence', width: 96 },
   { title: '耗时', key: 'elapsedMs', width: 112 },
   {

@@ -11,7 +11,7 @@
 
 - 应用开发同学给的 `0001-feat-adapt-backend.patch`（134 文件，+416 / −9638）
 - **mock 全清**：`src/mock/` 整个目录删掉（56 个 mock 文件），`public/mock-reports/` 示例报告也删了。`rolePermissionDefs.ts` 从 `src/mock/modules/system/` 挪到 `src/constants/`，`src/utils/rolePermissions.ts` 的 re-export 路径跟着改
-- **AI 解析补后端新字段**：`AiParseTask` / `AiParseResultDetail` 加 `analysisMode`（`pending` / `ai_provider` / `rule_fallback`）、`confidence`、`elapsedMs`、`fallbackUsed`、`fallbackReason` 等；`aiParseAdapter` 同时认 camelCase 和 snake_case。表格新增「分析方式 / 置信度 / 耗时」三列，抽屉在走规则回退时弹 `a-alert` 说明原因
+- **AI 解析补后端新字段**：`AiParseTask` / `AiParseResultDetail` 加 `analysisMode`（`pending` / `ai_provider` / `rule_fallback`）、`confidence`、`elapsedMs`、`fallbackUsed`、`fallbackReason` 等；`aiParseAdapter` 同时认 camelCase 和 snake_case。表格展示「置信度 / 耗时」，分析方式不在界面展示；抽屉在走规则回退时弹 `a-alert` 说明原因
 - **AI 解析页加轮询**：`AiAnalysis.vue` 列表里只要还有 `running` 任务就每 2 秒刷一次，任务全部跑完自动停
 - **history.state 序列化**：新增 `createNavigationState()`，项目/知识库/策略/任务详情跳转时把 Dayjs 之类不可克隆的值转成可序列化结构，修 `DataCloneError`
 - **类型收紧**（vue-tsc 报错的地方）：日期范围筛选统一 `null` → `undefined`；`ListTable` 泛型约束 `Record<string, unknown>` → `object`；`useFilteredPaginatedList` 加第三个泛型 `TQuery`；`maxlength="11"` → `:maxlength="11"`；`BoundCountDeleteModal` 的 `delete-fn` 包成 async 保证返回 `Promise<void>`
@@ -3943,3 +3943,12 @@ Header 设置 `position: fixed; left: 0; width: 100vw`，让它脱离右侧容�
 - **报告查看**：`getReportDetail` 接收当前报告列表项；详情响应缺少关联项目或模板时，以列表已展示的字段回填，不改变 `GET /api/reports/:reportId`。
 - **AI 辅助分析**：结果适配合并顶层冲突字段与 `ruleFallback.conflicts`，规则回退的真实冲突不再被空数组遮蔽。
 - **开源风险检测结果**：仅根节点的依赖图采用半尺寸节点、两行省略标签；顶部移除完成时间与漏洞库。
+
+## [2026-08-29] 漏洞知识库与交付物字段对齐
+
+- **漏洞知识库概览**：`GET /api/knowledge/vulnerabilities/overview` 顶部仅展示来源数、漏洞总数和最近同步；高危漏洞数不再展示，后端未提供该统计口径。
+- **漏洞来源列表**：`GET /api/knowledge/vulnerabilities/sources` 的“高危数”取 `vulnCount`， “记录数”取 `packageCount`（均兼容下划线字段）；同步周期列已移除。
+- **漏洞条目概览**：`GET /api/knowledge/vulnerabilities/items/overview` 固定展示总条目数（`totalCount`）、命中条目（`matchedCount`）、高危（`highRiskCount`）和最近更新。
+- **漏洞条目详情**：`GET /api/knowledge/vulnerabilities/items/:itemId` 新增 `references_json` / `referencesJson` 适配，解析为独立“参考链接”模块，每行展示链接与类型并支持纵向滚动；历史 `references` 字段仍兼容。
+- **规则命中追溯**：列表移除责任人列，详情保留责任人。
+- **项目交付物**：`GET /api/projects/:projectId/deliverables` 的“上传人”兼容读取 `createdBy`、`created_by` 及既有字段。

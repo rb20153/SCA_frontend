@@ -38,12 +38,3 @@ export function formatVulnItemDateTime(iso: string): string {
   const pad = (value: number) => String(value).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
-
-/**
- * 将参考链接列表格式化为详情展示文案
- * @param links - 参考链接数组
- */
-export function formatVulnItemReferenceLinks(links: string[]): string {
-  if (links.length === 0) return '—'
-  return links.join(' / ')
-}
