@@ -22,54 +22,54 @@
           mode="inline"
           @click="handleMenuClick"
         >
-          <a-menu-item key="/dashboard">
+          <a-menu-item v-if="hasPagePermission('/dashboard')" key="/dashboard">
             <template #icon><home-outlined /></template>
             <span>首页</span>
           </a-menu-item>
 
-          <a-menu-item key="/projects">
+          <a-menu-item v-if="hasPagePermission('/projects')" key="/projects">
             <template #icon><project-outlined /></template>
             <span>项目管理</span>
           </a-menu-item>
 
-          <a-sub-menu key="detect">
+          <a-sub-menu v-if="hasAnyPagePermission(['/detect/autonomy', '/detect/risk', '/detect/ai-analysis'])" key="detect">
             <template #icon><scan-outlined /></template>
             <template #title>检测分析</template>
-            <a-menu-item key="/detect/autonomy">自主率检测</a-menu-item>
-            <a-menu-item key="/detect/risk">开源风险检测</a-menu-item>
-            <a-menu-item key="/detect/ai-analysis">AI辅助分析</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/detect/autonomy')" key="/detect/autonomy">自主率检测</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/detect/risk')" key="/detect/risk">开源风险检测</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/detect/ai-analysis')" key="/detect/ai-analysis">AI辅助分析</a-menu-item>
           </a-sub-menu>
 
-          <a-menu-item key="/policies">
+          <a-menu-item v-if="hasPagePermission('/policies')" key="/policies">
             <template #icon><safety-outlined /></template>
             <span>策略管理</span>
           </a-menu-item>
 
-          <a-sub-menu key="reports">
+          <a-sub-menu v-if="hasAnyPagePermission(['/reports', '/reports/templates'])" key="reports">
             <template #icon><file-text-outlined /></template>
             <template #title>报告管理</template>
-            <a-menu-item key="/reports">报告列表</a-menu-item>
-            <a-menu-item key="/reports/templates">报告模板</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/reports')" key="/reports">报告列表</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/reports/templates')" key="/reports/templates">报告模板</a-menu-item>
           </a-sub-menu>
 
-          <a-sub-menu key="knowledge">
+          <a-sub-menu v-if="hasAnyPagePermission(['/knowledge', '/knowledge/coverage', '/knowledge/vulnerabilities', '/knowledge/quarter-updates'])" key="knowledge">
             <template #icon><database-outlined /></template>
             <template #title>知识库管理</template>
-            <a-menu-item key="/knowledge">知识库管理</a-menu-item>
-            <a-menu-item key="/knowledge/coverage">覆盖统计</a-menu-item>
-            <a-menu-item key="/knowledge/vulnerabilities">漏洞知识库</a-menu-item>
-            <a-menu-item key="/knowledge/quarter-updates">季度更新管理</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/knowledge')" key="/knowledge">知识库管理</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/knowledge/coverage')" key="/knowledge/coverage">覆盖统计</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/knowledge/vulnerabilities')" key="/knowledge/vulnerabilities">漏洞知识库</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/knowledge/quarter-updates')" key="/knowledge/quarter-updates">季度更新管理</a-menu-item>
           </a-sub-menu>
 
-          <a-sub-menu key="system">
+          <a-sub-menu v-if="hasAnyPagePermission(['/system/users', '/system/departments', '/system/roles', '/system/logs', '/system/alerts', '/system/messages'])" key="system">
             <template #icon><setting-outlined /></template>
             <template #title>系统管理</template>
-            <a-menu-item key="/system/users">用户列表</a-menu-item>
-            <a-menu-item key="/system/departments">部门管理</a-menu-item>
-            <a-menu-item key="/system/roles">角色管理</a-menu-item>
-            <a-menu-item key="/system/logs">日志列表</a-menu-item>
-            <a-menu-item key="/system/alerts">告警中心</a-menu-item>
-            <a-menu-item key="/system/messages">站内消息</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/system/users')" key="/system/users">用户列表</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/system/departments')" key="/system/departments">部门管理</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/system/roles')" key="/system/roles">角色管理</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/system/logs')" key="/system/logs">日志列表</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/system/alerts')" key="/system/alerts">告警中心</a-menu-item>
+            <a-menu-item v-if="hasPagePermission('/system/messages')" key="/system/messages">站内消息</a-menu-item>
           </a-sub-menu>
         </a-menu>
       </a-layout-sider>
@@ -150,6 +150,16 @@ const layoutStore = useLayoutStore()
 const selectedKeys = ref<string[]>([])
 const openKeys = ref<string[]>([])
 const unreadCount = ref(0)
+
+/** 页面权限缺失时兼容旧接口；后端返回数组后按路径精确控制菜单。 */
+function hasPagePermission(path: string): boolean {
+  const permissions = authStore.userInfo?.permission
+  return permissions === undefined || permissions.includes(path)
+}
+
+function hasAnyPagePermission(paths: string[]): boolean {
+  return paths.some((path) => hasPagePermission(path))
+}
 
 const userInitial = computed(() =>
   authStore.userInfo?.realName?.charAt(0) ?? '用'

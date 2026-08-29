@@ -3952,3 +3952,10 @@ Header 设置 `position: fixed; left: 0; width: 100vw`，让它脱离右侧容�
 - **漏洞条目详情**：`GET /api/knowledge/vulnerabilities/items/:itemId` 新增 `references_json` / `referencesJson` 适配，解析为独立“参考链接”模块，每行展示链接与类型并支持纵向滚动；历史 `references` 字段仍兼容。
 - **规则命中追溯**：列表移除责任人列，详情保留责任人。
 - **项目交付物**：`GET /api/projects/:projectId/deliverables` 的“上传人”兼容读取 `createdBy`、`created_by` 及既有字段。
+
+## [2026-08-29] 按 /auth/me 页面权限过滤侧栏
+
+- **权限来源**：`GET /api/auth/me` 返回 `permission` 页面路径数组，例如 `/dashboard`、`/system/users`；前端规范化后写入 `UserInfo.permission` 并随用户缓存保存。
+- **侧栏行为**：`AdminLayout.vue` 按页面路径精确显示菜单项；检测分析、报告管理、知识库管理、系统管理等父级菜单在没有任何可见子项时整体隐藏。
+- **兼容策略**：旧接口未返回 `permission` 时不隐藏菜单；后端返回空数组时按无页面权限处理。后端接口鉴权仍是最终安全边界。
+- **登录时机**：登录成功写入 token 后立即请求 `/api/auth/me` 更新权限，首次进入页面即可按当前账号过滤侧栏，不必依赖刷新。

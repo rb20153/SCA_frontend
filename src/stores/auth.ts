@@ -18,6 +18,8 @@ export interface UserInfo {
   role: 'admin' | 'analyst' | 'auditor' | 'viewer'
   phone: string
   department: string
+  /** /auth/me 返回的可见页面路径；旧接口未返回时为 undefined */
+  permission?: string[]
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -42,8 +44,11 @@ export const useAuthStore = defineStore('auth', () => {
    */
   function setUserInfo(info: UserInfo | MeUserRaw) {
     const normalized = normalizeMeUser(info)
-    userInfo.value = normalized
-    setStoredUserInfo(normalized, getRememberMePreference())
+    userInfo.value = {
+      ...normalized,
+      permission: normalized.permission ?? userInfo.value?.permission,
+    }
+    setStoredUserInfo(userInfo.value, getRememberMePreference())
   }
 
   /**

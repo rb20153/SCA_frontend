@@ -10,6 +10,8 @@ export interface MeUserRaw {
   role?: string
   phone?: string
   department?: string
+  /** 当前用户可见页面路径，例如 /dashboard */
+  permission?: unknown
 }
 
 const USER_ROLES = ['admin', 'analyst', 'auditor', 'viewer'] as const
@@ -39,7 +41,17 @@ export function normalizeMeUser(raw: MeUserRaw): UserInfo {
     role: normalizeUserRole(raw.role),
     phone: raw.phone ?? '',
     department: raw.department ?? '',
+    permission: normalizePagePermissions(raw.permission),
   }
+}
+
+/** 规范 /auth/me 返回的页面权限路径；未返回字段时保留 undefined 以兼容旧接口。 */
+function normalizePagePermissions(raw: unknown): string[] | undefined {
+  if (raw === undefined || raw === null) return undefined
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((item) => String(item ?? '').trim())
+    .filter((item) => item.startsWith('/'))
 }
 
 /**
@@ -50,7 +62,14 @@ export function mergeUserInfoWithCache(fetched: UserInfo, cached: UserInfo | nul
   const meRealNameLooksLikeUsername =
     fetched.realName === fetched.username && cached.realName !== cached.username
   if (meRealNameLooksLikeUsername) {
-    return { ...fetched, realName: cached.realName }
+    return {
+      ...fetched,
+      realName: cached.realName,
+      permission: fetched.permission ?? cached.permission,
+    }
   }
-  return fetched
+  return {
+    ...fetched,
+    permission: fetched.permission ?? cached.permission,
+  }
 }
