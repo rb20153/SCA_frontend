@@ -43,7 +43,11 @@
         </div>
         <div class="desc-item desc-item--full">
           <span class="desc-label">最近更新时间</span>
-          <DetailText :text="formatKbProjectFileUpdatedLine(detail.updatedAt, detail.writeContext)" />
+          <DetailText :text="formatKbProjectDateTime(detail.updatedAt)" />
+        </div>
+        <div class="desc-item desc-item--full">
+          <span class="desc-label">写入上下文</span>
+          <DetailText :text="detail.writeContext" />
         </div>
       </div>
 
@@ -65,9 +69,9 @@ import PageLoading from '@/components/common/PageLoading.vue'
 import KbProjectFingerprintSummaryTable from '@/components/knowledge/KbProjectFingerprintSummaryTable.vue'
 import type { KbProjectFileDetail } from '@/types/knowledge'
 import {
-  formatKbProjectFileUpdatedLine,
   formatKbProjectSourceCandidates,
 } from '@/utils/kbProjectDirectoryDisplay'
+import { formatKbProjectDateTime } from '@/utils/knowledgeDisplay'
 
 const props = defineProps<{
   kbProjectId: string

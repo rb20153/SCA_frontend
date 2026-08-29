@@ -3959,3 +3959,7 @@ Header 设置 `position: fixed; left: 0; width: 100vw`，让它脱离右侧容�
 - **侧栏行为**：`AdminLayout.vue` 按页面路径精确显示菜单项；检测分析、报告管理、知识库管理、系统管理等父级菜单在没有任何可见子项时整体隐藏。
 - **兼容策略**：旧接口未返回 `permission` 时不隐藏菜单；后端返回空数组时按无页面权限处理。后端接口鉴权仍是最终安全边界。
 - **登录时机**：登录成功写入 token 后立即请求 `/api/auth/me` 更新权限，首次进入页面即可按当前账号过滤侧栏，不必依赖刷新。
+
+## [2026-08-29] 项目目录详情拆分写入上下文
+
+- **文件详情**：`GET /api/knowledge/projects/:kbProjectId/files/:fileNodeId` 的 `writeContext` 在详情面板单独展示为“写入上下文”；“最近更新时间”仅展示 `updatedAt`，不再拼接写入内容。
