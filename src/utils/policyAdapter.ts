@@ -370,12 +370,23 @@ export function normalizePolicyGovernanceOverview(
   }
 }
 
-const POLICY_VERSION_STATUSES: PolicyVersionStatus[] = ['published', 'pending', 'history']
+const POLICY_VERSION_STATUSES: PolicyVersionStatus[] = [
+  'published',
+  'pending',
+  'rejected',
+  'history',
+]
 
-/** 规范版本状态；未知值降级为 history（只读，不会误开放审批/回滚入口） */
+/**
+ * 规范版本状态；未识别状态保守降级为 unknown，避免被当作历史版本开放回滚。
+ * 兼容后端可能返回的 reject / rejected_by_auditor 等驳回枚举。
+ */
 function normalizePolicyVersionStatus(raw: unknown): PolicyVersionStatus {
   const token = toEnumToken(raw)
-  return POLICY_VERSION_STATUSES.find((status) => status === token) ?? 'history'
+  if (['reject', 'rejected-by-auditor', 'rejected-by-reviewer'].includes(token)) {
+    return 'rejected'
+  }
+  return POLICY_VERSION_STATUSES.find((status) => status === token) ?? 'unknown'
 }
 
 /** 将后端策略版本记录规范为 PolicyVersionListItem */

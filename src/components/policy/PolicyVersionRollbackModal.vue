@@ -60,6 +60,10 @@ async function handleOk() {
   if (!props.version) {
     return Promise.reject()
   }
+  if (props.version.status !== 'history') {
+    message.error('仅历史版本可回滚')
+    return Promise.reject()
+  }
 
   const trimmed = confirmVersionNo.value.trim()
   if (!trimmed) {

@@ -120,7 +120,7 @@ export interface PolicyImportParams {
 }
 
 /** 策略版本状态 */
-export type PolicyVersionStatus = 'published' | 'pending' | 'history'
+export type PolicyVersionStatus = 'published' | 'pending' | 'rejected' | 'history' | 'unknown'
 
 /** 策略版本列表项 */
 export interface PolicyVersionListItem {

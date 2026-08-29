@@ -17,14 +17,18 @@ export const POLICY_VERSION_TABLE_SCROLL_X = 980
 export const POLICY_VERSION_STATUS_LABEL: Record<PolicyVersionStatus, string> = {
   published: '已发布',
   pending: '待审批',
+  rejected: '已驳回',
   history: '历史',
+  unknown: '状态未知',
 }
 
 /** 策略版本状态 Tag 颜色 */
 export const POLICY_VERSION_STATUS_COLOR: Record<PolicyVersionStatus, string> = {
   published: 'success',
   pending: 'processing',
+  rejected: 'error',
   history: 'default',
+  unknown: 'warning',
 }
 
 /**

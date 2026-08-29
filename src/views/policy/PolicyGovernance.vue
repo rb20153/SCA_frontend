@@ -209,6 +209,10 @@ function openExportModal(version: PolicyVersionListItem) {
 /** 打开策略版本回滚确认弹窗 */
 function openRollbackModal(version: PolicyVersionListItem) {
   if (!canWrite('/policies')) return
+  if (version.status !== 'history') {
+    message.warning('仅历史版本可回滚')
+    return
+  }
   rollbackTargetVersion.value = version
   rollbackModalVisible.value = true
 }
