@@ -3,6 +3,7 @@
     v-model:open="visible"
     title="全库同步"
     :confirm-loading="submitting"
+    :ok-button-props="{ disabled: !preview || submitting }"
     ok-text="确定"
     cancel-text="取消"
     destroy-on-close
@@ -47,9 +48,8 @@ async function fetchPreview() {
 
 /** 提交全库同步请求 */
 async function handleOk() {
-  if (!preview.value) {
-    return Promise.reject()
-  }
+  // 防止鼠标双击或键盘重复触发 @ok，确保一次弹窗只提交一个同步任务
+  if (submitting.value || !preview.value) return
 
   submitting.value = true
   try {

@@ -3963,3 +3963,11 @@ Header 设置 `position: fixed; left: 0; width: 100vw`，让它脱离右侧容�
 ## [2026-08-29] 项目目录详情拆分写入上下文
 
 - **文件详情**：`GET /api/knowledge/projects/:kbProjectId/files/:fileNodeId` 的 `writeContext` 在详情面板单独展示为“写入上下文”；“最近更新时间”仅展示 `updatedAt`，不再拼接写入内容。
+
+## [2026-08-29] 全库同步防重复提交
+
+- **`VulnSourceSyncAllModal.vue`**：全库同步确认入口增加提交幂等锁，并在加载或提交期间禁用确定按钮，避免重复点击导致多个 `POST /api/knowledge/vulnerabilities/sources/sync-all` 请求。
+
+## [2026-08-29] 修复离线漏洞包 multipart 请求头
+
+- **`request.ts`**：检测到请求体为 `FormData` 时移除全局 `application/json` 请求头，由浏览器自动生成 `multipart/form-data` 及 boundary，确保 `import-offline` 等上传接口能够解析文件字段。

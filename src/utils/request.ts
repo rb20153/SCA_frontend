@@ -46,6 +46,11 @@ function parseErrorBody(error: unknown): { code?: number; message?: string } {
 // ─── Request interceptor ─────────────────────────────────────────────────────
 request.interceptors.request.use(
   (config) => {
+    // FormData 必须让浏览器自动生成 multipart boundary，不能沿用全局 JSON 请求头
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      delete config.headers?.['Content-Type']
+      delete config.headers?.['content-type']
+    }
     const token = getStoredToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
