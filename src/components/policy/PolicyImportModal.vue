@@ -56,6 +56,7 @@ import {
   POLICY_IMPORT_MODE_OPTIONS,
   POLICY_IMPORT_PRECHECK_OPTIONS,
 } from '@/utils/policyDisplay'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const POLICY_FILE_EXTENSIONS = ['.json', '.yaml', '.yml'] as const
 
@@ -67,6 +68,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const submitting = ref(false)
 const importMode = ref<PolicyImportMode>('create')
@@ -96,6 +98,7 @@ function handleCancel() {
 
 /** 校验后提交导入请求 */
 async function handleOk() {
+  if (!canWrite('/policies')) return Promise.reject()
   const file = getSelectedFile()
   if (!file) {
     message.warning('请上传策略文件')

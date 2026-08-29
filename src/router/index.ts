@@ -2,6 +2,13 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useLayoutStore } from '@/stores/layout'
 import { crumbs, resolveBreadcrumbs } from '@/utils/breadcrumb'
+import {
+  canAccessPage,
+  findFirstReadablePath,
+  isWriteProtectedRoute,
+  resolvePermissionOwner,
+} from '@/utils/pagePermission'
+import { message } from 'ant-design-vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -353,20 +360,31 @@ router.beforeEach(async (to) => {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
 
-  // token 在 localStorage（记住我）或 sessionStorage 中，Pinia 刷新后会丢失 userInfo，此处补拉一次
-  if (authStore.isLoggedIn && !authStore.userInfo) {
+  // 登录响应可能没有完整权限；刷新或首次登录均在路由放行前拉取 /auth/me。
+  if (authStore.isLoggedIn && authStore.permissionStatus !== 'ready') {
     try {
       await authStore.fetchUserInfo()
     } catch {
-      authStore.logout()
-      if (requiresAuth) {
-        return { path: '/login', query: { redirect: to.fullPath } }
-      }
+      // 权限请求失败时降级为基础页，不暴露业务菜单和业务路由。
     }
   }
 
   if (to.path === '/login' && authStore.isLoggedIn) {
     return { path: '/dashboard' }
+  }
+
+  if (requiresAuth) {
+    const permissions = authStore.userInfo?.permission
+    const owner = resolvePermissionOwner(to.path)
+    const fallbackPath = findFirstReadablePath(permissions)
+    if (!owner || !canAccessPage(permissions, to.path, 'read')) {
+      message.warning('无权访问该页面')
+      return { path: fallbackPath }
+    }
+    if (isWriteProtectedRoute(to.path) && !canAccessPage(permissions, to.path, 'write')) {
+      message.warning('无权编辑该内容')
+      return { path: owner }
+    }
   }
 
   document.title = to.meta.title ? `${to.meta.title} — SCA检测平台` : 'SCA检测平台'

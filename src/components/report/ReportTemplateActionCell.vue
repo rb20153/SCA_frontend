@@ -5,10 +5,10 @@
   </span>
 
   <span v-else class="action-cell">
-    <router-link :to="editorPath" class="list-table-link">编辑</router-link>
+    <router-link v-if="canWrite('/reports/templates')" :to="editorPath" class="list-table-link">编辑</router-link>
 
     <a
-      v-if="template.status === 'draft'"
+      v-if="template.status === 'draft' && canWrite('/reports/templates')"
       href="#"
       class="list-table-link"
       @click.prevent="emit('publish', template)"
@@ -17,7 +17,7 @@
     </a>
 
     <a
-      v-if="template.status === 'published'"
+      v-if="template.status === 'published' && canWrite('/reports/templates')"
       href="#"
       class="list-table-link"
       @click.prevent="emit('unpublish', template)"
@@ -35,6 +35,7 @@
     </a>
 
     <a
+      v-if="canWrite('/reports/templates')"
       href="#"
       class="list-table-link list-table-link--danger"
       @click.prevent="emit('delete', template)"
@@ -47,10 +48,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ReportTemplate } from '@/types/reportTemplate'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   template: ReportTemplate
 }>()
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   delete: [template: ReportTemplate]

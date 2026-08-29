@@ -32,6 +32,7 @@ import { message } from 'ant-design-vue'
 import { ignoreOpenSourceRiskComponent } from '@/api/detect'
 import type { OpenSourceRiskComponent, OpenSourceRiskComponentIgnoreReason } from '@/types/detect'
 import { RISK_COMPONENT_IGNORE_REASON_OPTIONS } from '@/utils/openSourceRiskComponentQuery'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 当前任务 ID */
@@ -41,6 +42,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -56,6 +58,7 @@ function resetForm() {
 
 /** 校验原因后提交忽略请求 */
 async function handleOk() {
+  if (!canWrite('/detect/risk')) return Promise.reject()
   if (!props.component) {
     return Promise.reject()
   }

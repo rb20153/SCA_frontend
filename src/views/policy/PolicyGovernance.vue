@@ -5,7 +5,7 @@
     </PageLoading>
 
     <div class="page-actions">
-      <a-button type="primary" @click="openEntryWizard">更新策略</a-button>
+      <a-button v-if="canWrite('/policies')" type="primary" @click="openEntryWizard">更新策略</a-button>
     </div>
 
     <a-card :bordered="false" class="table-card">
@@ -76,11 +76,13 @@ import PolicyVersionExportModal from '@/components/policy/PolicyVersionExportMod
 import PolicyVersionRollbackModal from '@/components/policy/PolicyVersionRollbackModal.vue'
 import PolicyVersionTable from '@/components/policy/PolicyVersionTable.vue'
 import { usePaginatedList } from '@/composables/usePaginatedList'
+import { usePagePermission } from '@/composables/usePagePermission'
 import type { StatCardItem } from '@/types/common'
 import type { Policy, PolicyGovernanceOverview, PolicyVersionListItem } from '@/types/policy'
 import { mapPolicyGovernanceToStatCards } from '@/utils/policyVersionDisplay'
 
 const route = useRoute()
+const { canApprovePolicy, canWrite } = usePagePermission()
 
 const overviewLoading = ref(false)
 const overview = ref<PolicyGovernanceOverview | null>(null)
@@ -176,6 +178,7 @@ async function ensureContextPolicy() {
 
 /** 打开更新策略入口向导（策略编辑器 / 导入策略） */
 function openEntryWizard() {
+  if (!canWrite('/policies')) return
   if (!contextPolicy.value) {
     message.warning('策略信息加载中，请稍后重试')
     return
@@ -192,6 +195,7 @@ function openDiffModal(version: PolicyVersionListItem) {
 
 /** 打开待审批版本的发布审批抽屉 */
 function openApprovalDrawer(version: PolicyVersionListItem) {
+  if (!canApprovePolicy()) return
   approvalTargetVersion.value = version
   approvalDrawerVisible.value = true
 }
@@ -204,6 +208,7 @@ function openExportModal(version: PolicyVersionListItem) {
 
 /** 打开策略版本回滚确认弹窗 */
 function openRollbackModal(version: PolicyVersionListItem) {
+  if (!canWrite('/policies')) return
   rollbackTargetVersion.value = version
   rollbackModalVisible.value = true
 }

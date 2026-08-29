@@ -43,11 +43,13 @@ import { usePaginatedList } from '@/composables/usePaginatedList'
 import type { Project, ProjectDeliverable } from '@/types/project'
 import { copyTextToClipboard } from '@/utils/projectDeliverableDisplay'
 import { triggerReportDownload } from '@/utils/reportDownload'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   project: Project
   visible: boolean
 }>()
+const { canWrite } = usePagePermission()
 
 const deleteVisible = ref(false)
 const deletingDeliverable = ref<ProjectDeliverable | null>(null)
@@ -67,6 +69,7 @@ const {
 
 /** 打开删除确认弹窗 */
 function openDeleteModal(deliverable: ProjectDeliverable) {
+  if (!canWrite('/projects')) return
   deletingDeliverable.value = deliverable
   deleteVisible.value = true
 }

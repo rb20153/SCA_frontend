@@ -23,8 +23,10 @@ import { ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { getVulnSyncAllPreview, syncAllVulnSources } from '@/api/knowledge'
 import type { VulnSyncAllPreview } from '@/types/knowledge'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -48,6 +50,7 @@ async function fetchPreview() {
 
 /** 提交全库同步请求 */
 async function handleOk() {
+  if (!canWrite('/knowledge/vulnerabilities')) return
   // 防止鼠标双击或键盘重复触发 @ok，确保一次弹窗只提交一个同步任务
   if (submitting.value || !preview.value) return
 

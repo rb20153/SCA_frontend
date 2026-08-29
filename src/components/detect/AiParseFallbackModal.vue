@@ -50,6 +50,7 @@ import ListTable from '@/components/common/ListTable.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import type { AiParseFallbackCompareItem, AiParseFallbackReason, AiParseTask } from '@/types/detect'
 import { AI_PARSE_FALLBACK_REASON_OPTIONS } from '@/utils/aiParseQuery'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 待规则回退的失败任务 */
@@ -57,6 +58,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -92,6 +94,7 @@ async function fetchCompareItems() {
 
 /** 校验原因后提交规则回退 */
 async function handleOk() {
+  if (!canWrite('/detect/ai-analysis')) return Promise.reject()
   if (!props.task) {
     return Promise.reject()
   }

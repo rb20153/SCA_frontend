@@ -7,17 +7,19 @@
     </template>
 
     <template v-else-if="version.status === 'pending'">
-      <a href="#" class="list-table-link" @click.prevent="emit('approve', version)">审批</a>
+      <a v-if="canApprovePolicy()" href="#" class="list-table-link" @click.prevent="emit('approve', version)">审批</a>
     </template>
 
     <template v-else-if="version.status === 'history'">
-      <a href="#" class="list-table-link" @click.prevent="emit('rollback', version)">回滚</a>
+      <a v-if="canWrite('/policies')" href="#" class="list-table-link" @click.prevent="emit('rollback', version)">回滚</a>
     </template>
   </span>
 </template>
 
 <script setup lang="ts">
 import type { PolicyVersionListItem } from '@/types/policy'
+import { usePagePermission } from '@/composables/usePagePermission'
+const { canApprovePolicy, canWrite } = usePagePermission()
 
 defineProps<{
   version: PolicyVersionListItem

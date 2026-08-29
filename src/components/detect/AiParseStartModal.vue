@@ -44,8 +44,10 @@ import type { SourceIngestFormState } from '@/types/sourceIngest'
 import { loadDetectTaskProjectSelectOptions } from '@/utils/remoteSelectLoaders'
 import { AI_PARSE_SCAN_DEPTH_OPTIONS } from '@/utils/aiParseQuery'
 import { createDefaultSourceIngestForm, validateSourceIngestForm } from '@/utils/sourceIngest'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -67,6 +69,7 @@ function resetForm() {
 
 /** 校验并提交 AI 解析任务 */
 async function handleOk() {
+  if (!canWrite('/detect/ai-analysis')) return Promise.reject()
   if (!projectId.value) {
     message.warning('请选择关联项目')
     return Promise.reject()

@@ -1,16 +1,18 @@
 <template>
   <span class="action-cell">
-    <a class="list-table-link" @click.prevent="emit('edit', user)">修改</a>
+    <a v-if="canWrite('/system/users')" class="list-table-link" @click.prevent="emit('edit', user)">修改</a>
     <a class="list-table-link" @click.prevent="emit('detail', user)">详情</a>
-    <a class="list-table-link list-table-link--danger" @click.prevent="emit('delete', user)">
+    <a v-if="canWrite('/system/users')" class="list-table-link list-table-link--danger" @click.prevent="emit('delete', user)">
       删除
     </a>
-    <a class="list-table-link" @click.prevent="emit('reset-password', user)">重置密码</a>
+    <a v-if="canWrite('/system/users')" class="list-table-link" @click.prevent="emit('reset-password', user)">重置密码</a>
   </span>
 </template>
 
 <script setup lang="ts">
 import type { SystemUser } from '@/types/user'
+import { usePagePermission } from '@/composables/usePagePermission'
+const { canWrite } = usePagePermission()
 
 defineProps<{
   user: SystemUser

@@ -115,6 +115,7 @@ import TagInput from '@/components/common/TagInput.vue'
 import UserSearchInput from '@/components/common/UserSearchInput.vue'
 import ProjectDeliverableInlineForm from '@/components/project/ProjectDeliverableInlineForm.vue'
 import { usePolicyBindingParamsFill } from '@/composables/usePolicyBindingParamsFill'
+import { usePagePermission } from '@/composables/usePagePermission'
 import type {
   CreateProjectWizardParams,
   Project,
@@ -132,6 +133,7 @@ import {
 const WIZARD_STEPS = ['基本信息', '绑定策略', '上传交付物'] as const
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: [project: Project]
@@ -305,6 +307,7 @@ function buildSubmitPayload(): CreateProjectWizardParams | null {
 
 /** 提交创建项目 */
 async function handleSubmit() {
+  if (!canWrite('/projects')) return
   if (!canSubmit.value) {
     return
   }

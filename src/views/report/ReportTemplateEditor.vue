@@ -8,7 +8,7 @@
       class="report-template-editor-page__readonly-alert"
     />
 
-    <div v-if="!isReadonly" class="page-actions">
+    <div v-if="!isReadonly && canWrite('/reports/templates')" class="page-actions">
       <a-button type="primary" :loading="saving" @click="handleSaveTemplate">
         保存模板
       </a-button>
@@ -39,7 +39,7 @@
             <ReportTemplateBasicInfoForm
               v-model="form"
               :bound-project-name="boundProjectName"
-              :readonly="isReadonly"
+              :readonly="isReadonly || !canWrite('/reports/templates')"
             />
           </a-card>
 
@@ -47,7 +47,7 @@
             v-model:markdown-content="markdownContent"
             :variables="templateVariables"
             :template-name="form.templateName"
-            :readonly="isReadonly"
+            :readonly="isReadonly || !canWrite('/reports/templates')"
           />
         </div>
 
@@ -55,7 +55,7 @@
           ref="exportPanelRef"
           v-show="activeTab === 'export'"
           v-model="exportSettings"
-          :readonly="isReadonly"
+          :readonly="isReadonly || !canWrite('/reports/templates')"
         />
       </template>
     </PageLoading>
@@ -93,6 +93,7 @@ import {
   createEmptyReportTemplateExportSettings,
 } from '@/utils/reportTemplateExportDisplay'
 import { convertMarkdownVariablesToEnglish } from '@/utils/reportTemplateMarkdown'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 type ReportTemplateEditorTabKey = 'content' | 'export'
 
@@ -102,6 +103,7 @@ interface HistoryDraftState {
 
 const route = useRoute()
 const router = useRouter()
+const { canWrite } = usePagePermission()
 
 const loading = ref(true)
 const saving = ref(false)
@@ -185,6 +187,7 @@ function buildSaveParams(): SaveReportTemplateParams {
 
 /** 校验通过后提交保存模板请求，成功后返回模板列表 */
 async function handleSaveTemplate() {
+  if (!canWrite('/reports/templates')) return
   const validationError = validateReportTemplateBeforeSave({
     form,
     markdownContent: markdownContent.value,

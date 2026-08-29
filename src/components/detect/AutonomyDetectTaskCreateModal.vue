@@ -86,6 +86,7 @@ import { message } from 'ant-design-vue'
 import { createDetectTask } from '@/api/detect'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import FormStepWizardModal from '@/components/common/FormStepWizardModal.vue'
+import { usePagePermission } from '@/composables/usePagePermission'
 import type { DetectTask } from '@/types/detect'
 import { loadDetectTaskProjectSelectOptions } from '@/utils/remoteSelectLoaders'
 import {
@@ -98,6 +99,7 @@ import {
 const WIZARD_STEPS = ['选择项目', '扫描模式', '执行配置'] as const
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: [task: DetectTask]
@@ -161,6 +163,7 @@ function goPrev() {
 
 /** 提交创建自主率检测任务 */
 async function handleSubmit() {
+  if (!canWrite('/detect/autonomy')) return
   if (!canSubmit.value) return
 
   submitting.value = true

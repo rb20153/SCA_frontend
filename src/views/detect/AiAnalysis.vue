@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="ai-analysis-page">
     <div class="page-actions">
-      <a-button type="primary" @click="startModalVisible = true">开始 AI 解析</a-button>
+      <a-button v-if="canWrite('/detect/ai-analysis')" type="primary" @click="startModalVisible = true">开始 AI 解析</a-button>
     </div>
 
     <AiParseQueryBar
@@ -54,6 +54,7 @@ import AiParseResultDrawer from '@/components/detect/AiParseResultDrawer.vue'
 import AiParseStartModal from '@/components/detect/AiParseStartModal.vue'
 import AiParseTaskTable from '@/components/detect/AiParseTaskTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
+import { usePagePermission } from '@/composables/usePagePermission'
 import type { AiParseTask } from '@/types/detect'
 import {
   aiParseTaskListFiltersToQuery,
@@ -64,6 +65,7 @@ const startModalVisible = ref(false)
 const resultDrawerVisible = ref(false)
 const fallbackModalVisible = ref(false)
 const selectedTask = ref<AiParseTask | null>(null)
+const { canWrite } = usePagePermission()
 
 /** 打开解析结果抽屉 */
 function openResultDrawer(task: AiParseTask) {
@@ -73,6 +75,7 @@ function openResultDrawer(task: AiParseTask) {
 
 /** 打开规则回退弹窗 */
 function openFallbackModal(task: AiParseTask) {
+  if (!canWrite('/detect/ai-analysis')) return
   selectedTask.value = task
   fallbackModalVisible.value = true
 }

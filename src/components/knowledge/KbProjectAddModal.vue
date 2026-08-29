@@ -86,10 +86,12 @@ import type { KbProjectCategory } from '@/types/knowledge'
 import type { SourceIngestFormState } from '@/types/sourceIngest'
 import { KB_PROJECT_CATEGORY_OPTIONS } from '@/utils/knowledgeQuery'
 import { createDefaultSourceIngestForm, validateSourceIngestForm } from '@/utils/sourceIngest'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const WIZARD_STEPS = ['基本信息', '入库配置', '补充信息'] as const
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const submitting = ref(false)
 const currentStep = ref(0)
@@ -203,6 +205,7 @@ function resetWizard() {
 
 /** 提交添加开源项目；成功后关闭弹窗，不刷新列表 */
 async function handleSubmit() {
+  if (!canWrite('/knowledge')) return
   if (!canSubmit.value) {
     return
   }

@@ -157,7 +157,7 @@ import { message } from 'ant-design-vue'
 import type { FormInstance } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
 import { useAuthStore } from '@/stores/auth'
-import { getCurrentUser, login, checkUsernameAvailable, register } from '@/api/auth'
+import { login, checkUsernameAvailable, register } from '@/api/auth'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import type { SelectOption } from '@/types/common'
 import { getRememberMePreference } from '@/utils/tokenStorage'
@@ -193,8 +193,7 @@ async function handleLogin() {
     authStore.setUserInfo(res.data.userInfo)
     try {
       // 登录响应可能不带页面权限，立即通过 /auth/me 获取 permission，避免首次进入时侧栏显示全量菜单
-      const meRes = await getCurrentUser()
-      authStore.setUserInfo(meRes.data)
+      await authStore.fetchUserInfo()
     } catch {
       message.warning('登录成功，但用户权限加载失败，请刷新重试')
     }

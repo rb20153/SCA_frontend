@@ -22,6 +22,7 @@
     </a>
 
     <a
+      v-if="canWrite('/reports')"
       href="#"
       class="list-table-link list-table-link--danger"
       @click.prevent="emit('delete', report)"
@@ -33,6 +34,8 @@
 
 <script setup lang="ts">
 import type { Report } from '@/types/report'
+import { usePagePermission } from '@/composables/usePagePermission'
+const { canWrite } = usePagePermission()
 
 defineProps<{
   report: Report

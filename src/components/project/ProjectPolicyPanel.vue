@@ -15,6 +15,7 @@
               placeholder="请选择检测策略"
               select-class="project-policy-select"
               :load-options="loadPolicySelectOptions"
+              :disabled="!canWrite('/projects')"
             />
           </a-form-item>
           <p v-if="!form.policyId" class="policy-binding-hint">
@@ -26,7 +27,7 @@
                 v-model:value="form.similarityThreshold"
                 :min="0"
                 :max="100"
-                :disabled="paramsFieldsDisabled"
+                :disabled="!canWrite('/projects') || paramsFieldsDisabled"
                 class="project-policy-number"
               />
             </a-form-item>
@@ -35,7 +36,7 @@
                 v-model:value="form.minMatchLength"
                 :min="1"
                 :max="9999"
-                :disabled="paramsFieldsDisabled"
+                :disabled="!canWrite('/projects') || paramsFieldsDisabled"
                 class="project-policy-number"
               />
             </a-form-item>
@@ -43,12 +44,13 @@
               <TagInput
                 ref="excludeDirTagRef"
                 v-model="form.excludeDirectories"
-                :disabled="paramsFieldsDisabled"
+                :disabled="!canWrite('/projects') || paramsFieldsDisabled"
               />
             </a-form-item>
           </a-spin>
 
           <ProfileFormActions
+            v-if="canWrite('/projects')"
             :submitting="submitting"
             submit-text="更新检测策略"
             cancel-text="取消修改"
@@ -74,6 +76,7 @@ import { usePolicyBindingParamsFill } from '@/composables/usePolicyBindingParams
 import type { ProjectPolicyBinding, ProjectPolicyBindingInput } from '@/types/project'
 import { validateProjectPolicyBinding } from '@/utils/projectCreate'
 import { loadPolicySelectOptions } from '@/utils/remoteSelectLoaders'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 当前项目 ID */
@@ -81,6 +84,7 @@ const props = defineProps<{
   /** Tab 是否可见，用于懒加载 */
   visible: boolean
 }>()
+const { canWrite } = usePagePermission()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -163,6 +167,7 @@ function handleCancel() {
 
 /** 校验并提交策略更新 */
 async function handleSubmit() {
+  if (!canWrite('/projects')) return
   if (paramsLoading.value) {
     message.warning('正在加载策略默认参数，请稍候')
     return

@@ -1,8 +1,8 @@
 <template>
   <span class="action-cell">
-    <a href="#" class="list-table-link" @click.prevent="emit('edit', project)">编辑</a>
+    <a v-if="canWrite('/projects')" href="#" class="list-table-link" @click.prevent="emit('edit', project)">编辑</a>
     <router-link :to="detailTo" class="list-table-link">详情</router-link>
-    <a href="#" class="list-table-link list-table-link--danger" @click.prevent="emit('delete', project)">
+    <a v-if="canWrite('/projects')" href="#" class="list-table-link list-table-link--danger" @click.prevent="emit('delete', project)">
       删除
     </a>
   </span>
@@ -13,6 +13,7 @@ import { computed } from 'vue'
 import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import type { Project } from '@/types/project'
 import { createNavigationState } from '@/utils/navigation'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   project: Project
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 }>()
 
 const { withFrom } = useRouteWithFrom()
+const { canWrite } = usePagePermission()
 
 /** 项目详情页路由（携带列表项数据） */
 const detailTo = computed(() =>

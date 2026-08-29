@@ -1,7 +1,7 @@
 <template>
   <span class="action-cell">
     <template v-if="queueStatus === 'pending'">
-      <a href="#" class="list-table-link" @click.prevent="emit('handle', alert)">处理</a>
+      <a v-if="canWrite('/system/alerts')" href="#" class="list-table-link" @click.prevent="emit('handle', alert)">处理</a>
       <a href="#" class="list-table-link" @click.prevent="emit('detail', alert)">详情</a>
     </template>
     <template v-else>
@@ -13,6 +13,8 @@
 
 <script setup lang="ts">
 import type { AlertListItem, AlertQueueStatus } from '@/types/system'
+import { usePagePermission } from '@/composables/usePagePermission'
+const { canWrite } = usePagePermission()
 
 defineProps<{
   alert: AlertListItem

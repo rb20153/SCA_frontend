@@ -1,5 +1,5 @@
 <template>
-  <span class="action-cell">
+  <span v-if="canWrite('/projects')" class="action-cell">
     <a
       href="#"
       class="list-table-link"
@@ -19,6 +19,9 @@
 
 <script setup lang="ts">
 import type { ProjectMember } from '@/types/project'
+import { usePagePermission } from '@/composables/usePagePermission'
+
+const { canWrite } = usePagePermission()
 
 defineProps<{
   member: ProjectMember

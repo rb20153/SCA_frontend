@@ -40,6 +40,7 @@ import { message } from 'ant-design-vue'
 import { createDepartment, updateDepartment } from '@/api/system'
 import type { DepartmentFormValues } from '@/types/system'
 import { DEPARTMENT_STATUS_FORM_OPTIONS } from '@/utils/departmentQuery'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 弹窗模式：新增或编辑 */
@@ -51,6 +52,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -92,6 +94,7 @@ watch(
 
 /** 校验后调用新增或更新 API */
 async function handleOk() {
+  if (!canWrite('/system/departments')) return Promise.reject()
   if (!form.departmentName.trim()) {
     message.warning('请输入部门名称')
     return Promise.reject()

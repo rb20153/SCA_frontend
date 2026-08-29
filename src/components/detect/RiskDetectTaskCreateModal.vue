@@ -105,6 +105,7 @@ import {
 } from '@/api/detect'
 import AsyncOptionsSelect from '@/components/common/AsyncOptionsSelect.vue'
 import { useSingleFileUpload } from '@/composables/useSingleFileUpload'
+import { usePagePermission } from '@/composables/usePagePermission'
 import type { DetectTask, VulnDbVersionOption } from '@/types/detect'
 import { loadDetectTaskProjectSelectOptions } from '@/utils/remoteSelectLoaders'
 import { toAcceptAttribute } from '@/utils/fileUpload'
@@ -116,6 +117,7 @@ import {
 } from '@/utils/taskCreate'
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: [task: DetectTask]
@@ -185,6 +187,7 @@ function onDataSourceChange() {
 
 /** 提交创建开源风险检测任务；校验失败时阻止弹窗关闭 */
 async function handleSubmit() {
+  if (!canWrite('/detect/risk')) return Promise.reject()
   if (!canSubmit.value) {
     return Promise.reject()
   }

@@ -62,6 +62,7 @@ import RiskComponentQueryBar from '@/components/detect/RiskComponentQueryBar.vue
 import RiskComponentRevokeIgnoreModal from '@/components/detect/RiskComponentRevokeIgnoreModal.vue'
 import RiskComponentTable from '@/components/detect/RiskComponentTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
+import { usePagePermission } from '@/composables/usePagePermission'
 import type { OpenSourceRiskComponent, RiskComponentGraph as RiskComponentGraphData } from '@/types/detect'
 import {
   createEmptyRiskComponentListFilters,
@@ -74,6 +75,7 @@ const props = defineProps<{
   /** 组件清单 Tab 是否可见 */
   visible: boolean
 }>()
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   /** 从抽屉跳转漏洞风险 Tab 并筛选组件 */
@@ -108,12 +110,14 @@ async function fetchGraph() {
 
 /** 打开忽略确认弹窗 */
 function openIgnoreModal(component: OpenSourceRiskComponent) {
+  if (!canWrite('/detect/risk')) return
   actionComponent.value = component
   ignoreModalVisible.value = true
 }
 
 /** 打开撤销忽略确认弹窗 */
 function openRevokeIgnoreModal(component: OpenSourceRiskComponent) {
+  if (!canWrite('/detect/risk')) return
   actionComponent.value = component
   revokeIgnoreModalVisible.value = true
 }

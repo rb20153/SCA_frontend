@@ -66,6 +66,7 @@ import { createDefaultCustomRolePermissions, cloneRolePermissions } from '@/util
 import type { RoleFormValues, RolePermissionMap } from '@/types/system'
 import { ROLE_STATUS_FORM_OPTIONS } from '@/utils/roleQuery'
 import { isValidRoleCode } from '@/utils/roleValidation'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 抽屉模式：新增或编辑 */
@@ -79,6 +80,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -145,6 +147,7 @@ function handlePermissionsUpdate(permission: RolePermissionMap) {
 
 /** 校验表单并提交创建或更新 */
 async function handleSubmit() {
+  if (!canWrite('/system/roles')) return
   const roleName = form.roleName.trim()
   const roleCode = form.roleCode.trim()
 

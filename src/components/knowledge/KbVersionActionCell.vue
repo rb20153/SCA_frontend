@@ -9,7 +9,7 @@
     </router-link>
 
     <a
-      v-if="version.status === 'ready'"
+      v-if="version.status === 'ready' && canWrite('/knowledge')"
       href="#"
       class="list-table-link"
       @click.prevent="updateNotesVisible = true"
@@ -26,7 +26,7 @@
     </router-link>
 
     <a
-      v-else-if="version.status === 'archived'"
+      v-else-if="version.status === 'archived' && canWrite('/knowledge')"
       href="#"
       class="list-table-link"
       @click.prevent="restoreVisible = true"
@@ -54,6 +54,7 @@ import KbVersionUpdateNotesModal from '@/components/knowledge/KbVersionUpdateNot
 import type { KbProject, KbVersion } from '@/types/knowledge'
 import { buildLogListTracePath } from '@/utils/knowledgeVersionDisplay'
 import { createNavigationState } from '@/utils/navigation'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   version: KbVersion
@@ -62,6 +63,7 @@ const props = defineProps<{
 }>()
 
 const { withFrom } = useRouteWithFrom()
+const { canWrite } = usePagePermission()
 
 const updateNotesVisible = ref(false)
 const restoreVisible = ref(false)

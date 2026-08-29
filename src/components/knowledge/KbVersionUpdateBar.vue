@@ -1,5 +1,5 @@
 <template>
-  <div class="update-bar">
+  <div v-if="canWrite('/knowledge')" class="update-bar">
     <a-button type="primary" @click="typeModalVisible = true">
       <template #icon>
         <PlusOutlined />
@@ -35,6 +35,9 @@ import EntryTypePickModal, {
 } from '@/components/common/EntryTypePickModal.vue'
 import KbVersionFetchModal from '@/components/knowledge/KbVersionFetchModal.vue'
 import KbVersionUploadModal from '@/components/knowledge/KbVersionUploadModal.vue'
+import { usePagePermission } from '@/composables/usePagePermission'
+
+const { canWrite } = usePagePermission()
 
 defineProps<{
   kbProjectId: string

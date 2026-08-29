@@ -1,9 +1,9 @@
 <template>
   <span class="action-cell">
-    <a href="#" class="list-table-link" @click.prevent="emit('edit', policy)">编辑</a>
+    <a v-if="canWrite('/policies')" href="#" class="list-table-link" @click.prevent="emit('edit', policy)">编辑</a>
     <a href="#" class="list-table-link" @click.prevent="goGovernance">版本/审批</a>
     <a href="#" class="list-table-link" @click.prevent="goTrace">命中追溯</a>
-    <a href="#" class="list-table-link list-table-link--danger" @click.prevent="emit('delete', policy)">
+    <a v-if="canWrite('/policies')" href="#" class="list-table-link list-table-link--danger" @click.prevent="emit('delete', policy)">
       删除
     </a>
   </span>
@@ -13,6 +13,7 @@
 import { useRouter } from 'vue-router'
 import type { Policy } from '@/types/policy'
 import { navigateToPolicySubPage } from '@/utils/policyDisplay'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   policy: Policy
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { canWrite } = usePagePermission()
 
 /** 跳转版本与审批页 */
 function goGovernance() {

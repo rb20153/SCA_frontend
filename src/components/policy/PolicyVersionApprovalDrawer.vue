@@ -61,7 +61,7 @@
     <template #footer>
       <div class="approval-drawer-footer">
         <a-button @click="handleCancel">取消</a-button>
-        <a-button type="primary" :loading="submitting" @click="handleSubmit">
+        <a-button v-if="canApprovePolicy()" type="primary" :loading="submitting" @click="handleSubmit">
           提交审批
         </a-button>
       </div>
@@ -86,6 +86,7 @@ import {
   POLICY_VERSION_APPROVAL_CONCLUSION_OPTIONS,
   POLICY_VERSION_EFFECTIVE_TIME_OPTIONS,
 } from '@/utils/policyVersionDisplay'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 策略 ID */
@@ -95,6 +96,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canApprovePolicy } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -146,6 +148,7 @@ function handleCancel() {
 
 /** 校验并提交审批结论 */
 async function handleSubmit() {
+  if (!canApprovePolicy()) return
   if (!props.version) {
     return
   }

@@ -3,7 +3,7 @@
     <KbProjectOverviewSection ref="overviewSectionRef" />
 
     <div class="page-actions">
-      <a-button type="primary" @click="addVisible = true">
+      <a-button v-if="canWrite('/knowledge')" type="primary" @click="addVisible = true">
         <template #icon>
           <PlusOutlined />
         </template>
@@ -67,6 +67,7 @@ import KbProjectOverviewSection from '@/components/knowledge/KbProjectOverviewSe
 import KbProjectQueryBar from '@/components/knowledge/KbProjectQueryBar.vue'
 import KbProjectTable from '@/components/knowledge/KbProjectTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
+import { usePagePermission } from '@/composables/usePagePermission'
 import type { KbProject } from '@/types/knowledge'
 import {
   createEmptyKbProjectListFilters,
@@ -74,6 +75,7 @@ import {
 } from '@/utils/knowledgeQuery'
 
 const route = useRoute()
+const { canWrite } = usePagePermission()
 
 const overviewSectionRef = ref<InstanceType<typeof KbProjectOverviewSection> | null>(null)
 const addVisible = ref(false)
@@ -120,12 +122,14 @@ onMounted(async () => {
 
 /** 打开编辑弹窗 */
 function openEditModal(project: KbProject) {
+  if (!canWrite('/knowledge')) return
   editingProject.value = project
   editVisible.value = true
 }
 
 /** 打开删除确认弹窗 */
 function openDeleteModal(project: KbProject) {
+  if (!canWrite('/knowledge')) return
   deletingProject.value = project
   deleteVisible.value = true
 }

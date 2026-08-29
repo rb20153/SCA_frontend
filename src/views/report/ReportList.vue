@@ -80,6 +80,7 @@ import ReportGenerateModal from '@/components/report/ReportGenerateModal.vue'
 import ReportQueryBar from '@/components/report/ReportQueryBar.vue'
 import ReportTable from '@/components/report/ReportTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
+import { usePagePermission } from '@/composables/usePagePermission'
 import type { Report, ReportExportPolicyPreview } from '@/types/report'
 import {
   createEmptyReportListFilters,
@@ -97,6 +98,7 @@ const downloadExportPolicy = ref<ReportExportPolicyPreview | null>(null)
 const downloadChecking = ref(false)
 const detailVisible = ref(false)
 const detailReport = ref<Report | null>(null)
+const { canWrite } = usePagePermission()
 
 const {
   filterForm,
@@ -117,6 +119,7 @@ const {
 
 /** 打开删除确认弹窗 */
 function openDeleteModal(report: Report) {
+  if (!canWrite('/reports')) return
   deletingReport.value = report
   deleteVisible.value = true
 }
@@ -143,6 +146,10 @@ async function handleDownloadClick(report: Report) {
     const { requiresApproval, approvalState, exportPolicy } = res.data
 
     if (requiresApproval && approvalState !== 'approved') {
+      if (!canWrite('/reports')) {
+        message.warning('下载需要审批，当前账号无提交申请权限')
+        return
+      }
       if (approvalState === 'pending_review') {
         message.warning('下载申请审批中，请稍后再试')
         return

@@ -54,6 +54,7 @@ import UserSearchInput from '@/components/common/UserSearchInput.vue'
 import type { Project, ProjectFormValues } from '@/types/project'
 import type { UserSearchCandidate } from '@/types/user'
 import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 编辑时的项目 ID */
@@ -63,6 +64,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -167,6 +169,7 @@ function resetSelectors() {
 
 /** 校验后调用新增或更新 API */
 async function handleOk() {
+  if (!canWrite('/projects')) return Promise.reject()
   if (!form.projectName.trim()) {
     message.warning('请输入项目名称')
     return Promise.reject()

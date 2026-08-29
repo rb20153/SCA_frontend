@@ -3,15 +3,16 @@
     <a-input
       v-model:value="inputText"
       :placeholder="placeholder"
+      :disabled="disabled"
       allow-clear
       autocomplete="off"
       @change="handleInputChange"
     />
-    <div v-if="searchLoading" class="user-search-hint">搜索中...</div>
-    <div v-else-if="showEmptyHint" class="user-search-hint user-search-hint--empty">
+    <div v-if="!disabled && searchLoading" class="user-search-hint">搜索中...</div>
+    <div v-else-if="!disabled && showEmptyHint" class="user-search-hint user-search-hint--empty">
       {{ emptyHint }}
     </div>
-    <ul v-else-if="candidates.length > 0" class="user-search-list">
+    <ul v-else-if="!disabled && candidates.length > 0" class="user-search-list">
       <li
         v-for="user in candidates"
         :key="user.userId"
@@ -38,11 +39,13 @@ const props = withDefaults(
     emptyHint?: string
     /** 防抖毫秒数 */
     debounceMs?: number
+    disabled?: boolean
   }>(),
   {
     placeholder: '请输入用户姓名',
     emptyHint: '没有找到该用户',
     debounceMs: 300,
+    disabled: false,
   },
 )
 
@@ -79,6 +82,7 @@ function setDisplayName(name: string) {
 
 /** 输入变化时清除已选并防抖搜索 */
 function handleInputChange() {
+  if (props.disabled) return
   model.value = null
   scheduleSearch(inputText.value)
 }
@@ -129,6 +133,7 @@ async function fetchCandidates(keyword: string) {
 
 /** 选中候选项 */
 function selectCandidate(user: UserSearchCandidate) {
+  if (props.disabled) return
   model.value = user
   inputText.value = user.realName
   candidates.value = []

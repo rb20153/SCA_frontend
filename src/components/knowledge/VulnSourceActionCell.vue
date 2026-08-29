@@ -2,7 +2,7 @@
   <span class="action-cell">
     <router-link :to="itemsTo" class="list-table-link">查看条目</router-link>
     <a
-      v-if="isBuiltinVulnSource(source)"
+      v-if="isBuiltinVulnSource(source) && canWrite('/knowledge/vulnerabilities')"
       href="#"
       class="list-table-link"
       @click.prevent="emit('sync', source)"
@@ -16,10 +16,12 @@
 import { computed } from 'vue'
 import type { VulnSource } from '@/types/knowledge'
 import { isBuiltinVulnSource } from '@/utils/vulnKnowledgeDisplay'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   source: VulnSource
 }>()
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   sync: [source: VulnSource]

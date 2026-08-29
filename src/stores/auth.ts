@@ -10,6 +10,9 @@ import {
   setStoredToken,
   setStoredUserInfo,
 } from '@/utils/tokenStorage'
+import type { PagePermissionMap } from '@/utils/pagePermission'
+
+export type PermissionStatus = 'idle' | 'loading' | 'ready' | 'failed'
 
 export interface UserInfo {
   userId: string
@@ -18,13 +21,14 @@ export interface UserInfo {
   role: 'admin' | 'analyst' | 'auditor' | 'viewer'
   phone: string
   department: string
-  /** /auth/me 返回的可见页面路径；旧接口未返回时为 undefined */
-  permission?: string[]
+  /** /auth/me 返回的页面读写权限；旧字符串数组已在适配层转换为双 true。 */
+  permission?: PagePermissionMap
 }
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>(getStoredToken())
   const userInfo = ref<UserInfo | null>(null)
+  const permissionStatus = ref<PermissionStatus>(token.value ? 'idle' : 'ready')
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => userInfo.value?.role === 'admin')
@@ -35,6 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
    */
   function setToken(t: string, remember = true) {
     token.value = t
+    permissionStatus.value = t ? 'idle' : 'ready'
     setStoredToken(t, remember)
   }
 
@@ -55,11 +60,18 @@ export const useAuthStore = defineStore('auth', () => {
    * 凭 token 拉取 /me 恢复用户信息；若 /me 的 realName 退化为 username，用登录缓存兜底
    */
   async function fetchUserInfo() {
-    const res = await getCurrentUser()
-    const cached = getStoredUserInfo<UserInfo>()
-    userInfo.value = mergeUserInfoWithCache(res.data, cached)
-    if (userInfo.value) {
-      setStoredUserInfo(userInfo.value, getRememberMePreference())
+    permissionStatus.value = 'loading'
+    try {
+      const res = await getCurrentUser()
+      const cached = getStoredUserInfo<UserInfo>()
+      userInfo.value = mergeUserInfoWithCache(res.data, cached)
+      if (userInfo.value) {
+        setStoredUserInfo(userInfo.value, getRememberMePreference())
+      }
+      permissionStatus.value = 'ready'
+    } catch (error) {
+      permissionStatus.value = 'failed'
+      throw error
     }
   }
 
@@ -67,8 +79,19 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     token.value = ''
     userInfo.value = null
+    permissionStatus.value = 'ready'
     clearStoredToken()
   }
 
-  return { token, userInfo, isLoggedIn, isAdmin, setToken, setUserInfo, fetchUserInfo, logout }
+  return {
+    token,
+    userInfo,
+    permissionStatus,
+    isLoggedIn,
+    isAdmin,
+    setToken,
+    setUserInfo,
+    fetchUserInfo,
+    logout,
+  }
 })

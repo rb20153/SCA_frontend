@@ -29,6 +29,7 @@
 import { computed, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { deleteProject } from '@/api/project'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 待删除项目 ID */
@@ -38,6 +39,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -62,6 +64,7 @@ watch(
 
 /** 名称校验通过后调用删除 API */
 async function handleOk() {
+  if (!canWrite('/projects')) return Promise.reject()
   if (!canConfirm.value) {
     message.warning('请输入正确的项目名称以确认删除')
     return Promise.reject()

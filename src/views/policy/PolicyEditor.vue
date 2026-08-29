@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="page-container policy-editor-page">
     <div class="page-actions">
-      <a-button type="primary" @click="openPublishModal">提交发布申请</a-button>
+      <a-button v-if="canWrite('/policies')" type="primary" @click="openPublishModal">提交发布申请</a-button>
     </div>
 
     <PageLoading :loading="loading" class="policy-editor-page__body">
@@ -17,7 +17,7 @@
       </a-result>
 
       <div v-else-if="contentReady" class="policy-editor-page__workspace">
-        <PolicyJsonEditorPanel v-model="editorContent" />
+        <PolicyJsonEditorPanel v-model="editorContent" :readonly="!canWrite('/policies')" />
         <PolicyConfigPreviewPanel
           :loading="false"
           :parse-result="parseResult"
@@ -46,10 +46,12 @@ import PolicyPublishApplyModal from '@/components/policy/PolicyPublishApplyModal
 import { useAuthStore } from '@/stores/auth'
 import type { PolicyConfigParseResult } from '@/types/policy'
 import { parsePolicyEditorConfig } from '@/utils/policyConfigParse'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const { canWrite } = usePagePermission()
 
 const loading = ref(true)
 const loadFailed = ref(false)
@@ -103,6 +105,7 @@ function scheduleParse(text: string) {
 
 /** 打开提交发布申请弹窗前校验 JSON 配置与策略名称 */
 function openPublishModal() {
+  if (!canWrite('/policies')) return
   const parsed = parsePolicyEditorConfig(editorContent.value)
   if (!parsed.ok) {
     message.warning(parsed.title)
@@ -125,6 +128,7 @@ async function handlePublishSubmit(payload: {
   versionNo: string
   changeSummary: string
 }) {
+  if (!canWrite('/policies')) return
   const editorId = authStore.userInfo?.userId
   if (!editorId) {
     message.error('无法获取当前用户信息，请重新登录')

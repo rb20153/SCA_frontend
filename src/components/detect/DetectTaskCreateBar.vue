@@ -1,6 +1,6 @@
 <template>
   <div class="create-bar">
-    <a-button type="primary" @click="handleCreateClick">
+    <a-button v-if="canWrite(permissionOwner)" type="primary" @click="handleCreateClick">
       <template #icon>
         <PlusOutlined />
       </template>
@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import EntryTypePickModal, {
   type EntryTypePickOption,
@@ -38,6 +38,7 @@ import AutonomyDetectTaskCreateModal from '@/components/detect/AutonomyDetectTas
 import RiskDetectTaskCreateModal from '@/components/detect/RiskDetectTaskCreateModal.vue'
 import type { DetectTask } from '@/types/detect'
 import { TASK_TYPE_LABEL } from '@/utils/taskDisplay'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = withDefaults(
   defineProps<{
@@ -52,6 +53,13 @@ const props = withDefaults(
 const emit = defineEmits<{
   created: [task: DetectTask]
 }>()
+
+const { canWrite } = usePagePermission()
+const permissionOwner = computed(() => {
+  if (props.variant === 'autonomy') return '/detect/autonomy'
+  if (props.variant === 'open-source-risk') return '/detect/risk'
+  return '/projects'
+})
 
 const typeModalVisible = ref(false)
 const autonomyModalVisible = ref(false)
@@ -72,6 +80,7 @@ const taskTypeOptions: EntryTypePickOption[] = [
 
 /** 按 variant 打开类型选择或对应创建弹窗 */
 function handleCreateClick() {
+  if (!canWrite(permissionOwner.value)) return
   if (props.variant === 'autonomy') {
     autonomyModalVisible.value = true
     return
@@ -85,6 +94,7 @@ function handleCreateClick() {
 
 /** 类型选择弹窗选中后打开对应创建向导 */
 function handleTaskTypeSelect(key: string) {
+  if (!canWrite(permissionOwner.value)) return
   if (key === 'autonomy') {
     autonomyModalVisible.value = true
     return

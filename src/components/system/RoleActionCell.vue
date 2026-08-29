@@ -1,9 +1,9 @@
 <template>
   <span class="action-cell">
-    <a class="list-table-link" @click.prevent="emit('edit', role)">修改</a>
+    <a v-if="canWrite('/system/roles')" class="list-table-link" @click.prevent="emit('edit', role)">修改</a>
     <span v-if="role.isBuiltin" class="builtin-label">内置</span>
     <a
-      v-else
+      v-else-if="canWrite('/system/roles')"
       class="list-table-link list-table-link--danger"
       @click.prevent="emit('delete', role)"
     >
@@ -14,6 +14,8 @@
 
 <script setup lang="ts">
 import type { Role } from '@/types/system'
+import { usePagePermission } from '@/composables/usePagePermission'
+const { canWrite } = usePagePermission()
 
 defineProps<{
   role: Role

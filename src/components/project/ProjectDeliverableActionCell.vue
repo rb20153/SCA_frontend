@@ -18,6 +18,7 @@
       下载
     </a>
     <a
+      v-if="canWrite('/projects')"
       href="#"
       class="list-table-link list-table-link--danger"
       @click.prevent="emit('delete', deliverable)"
@@ -29,6 +30,9 @@
 
 <script setup lang="ts">
 import type { ProjectDeliverable } from '@/types/project'
+import { usePagePermission } from '@/composables/usePagePermission'
+
+const { canWrite } = usePagePermission()
 
 defineProps<{
   deliverable: ProjectDeliverable

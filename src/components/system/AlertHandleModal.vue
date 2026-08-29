@@ -144,6 +144,7 @@ import {
   getAlertDispositionFollowUp,
   isAlertRemarkRequired,
 } from '@/utils/alertDisposition'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const visible = defineModel<boolean>('open', { required: true })
 
@@ -156,6 +157,7 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const { canWrite } = usePagePermission()
 const submitting = ref(false)
 const disposition = ref<AlertDisposition | undefined>(undefined)
 const remark = ref('')
@@ -214,6 +216,7 @@ async function loadRelatedTaskName(alertId: string) {
 
 /** 校验并提交处置请求 */
 async function handleSubmit() {
+  if (!canWrite('/system/alerts')) return Promise.reject()
   if (!props.alert) {
     return Promise.reject()
   }

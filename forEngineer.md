@@ -3971,3 +3971,9 @@ Header 设置 `position: fixed; left: 0; width: 100vw`，让它脱离右侧容�
 ## [2026-08-29] 修复离线漏洞包 multipart 请求头
 
 - **`request.ts`**：检测到请求体为 `FormData` 时移除全局 `application/json` 请求头，由浏览器自动生成 `multipart/form-data` 及 boundary，确保 `import-offline` 等上传接口能够解析文件字段。
+
+## [2026-08-29] 页面 read/write 权限控制
+
+- **统一依据**：登录接口 `/auth/me.permission` 使用 `{ 页面路径: { read, write } }`；旧路径数组在过渡期按读写均允许兼容。
+- **页面访问**：`read:false` 隐藏侧栏入口并阻止直达路由；`write:false` 保留查看、查询、导出与下载，隐藏新增、编辑、删除、同步、导入、保存和状态变更入口。
+- **例外规则**：首页、站内消息、个人设置前端固定读写可用；策略版本审批仅管理员或审计员且具备策略读取权限时可见。

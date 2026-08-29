@@ -1,5 +1,5 @@
 <template>
-  <div class="deliverable-add-bar">
+  <div v-if="canWrite('/projects')" class="deliverable-add-bar">
     <a-button type="primary" @click="typeModalVisible = true">
       <template #icon>
         <PlusOutlined />
@@ -43,6 +43,7 @@ import type {
   AddProjectSourceDeliverableParams,
   UploadProjectBinaryDeliverableParams,
 } from '@/types/project'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 withDefaults(
   defineProps<{
@@ -59,6 +60,7 @@ const emit = defineEmits<{
   'source-collected': [payload: AddProjectSourceDeliverableParams]
   'binary-collected': [payload: UploadProjectBinaryDeliverableParams]
 }>()
+const { canWrite } = usePagePermission()
 
 const typeModalVisible = ref(false)
 const binaryUploadVisible = ref(false)

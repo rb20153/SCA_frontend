@@ -20,6 +20,7 @@ import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { revokeOpenSourceRiskComponentIgnore } from '@/api/detect'
 import type { OpenSourceRiskComponent } from '@/types/detect'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 当前任务 ID */
@@ -29,6 +30,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -38,6 +40,7 @@ const submitting = ref(false)
 
 /** 确认后提交撤销忽略请求 */
 async function handleOk() {
+  if (!canWrite('/detect/risk')) return Promise.reject()
   if (!props.component) {
     return Promise.reject()
   }

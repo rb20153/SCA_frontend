@@ -56,7 +56,7 @@
             查看结果
           </a>
           <a
-            v-else-if="getTask(row).status === 'failed'"
+            v-else-if="getTask(row).status === 'failed' && canWrite('/detect/ai-analysis')"
             href="#"
             class="list-table-link"
             @click.prevent="emit('fallback', getTask(row))"
@@ -86,6 +86,7 @@ import {
   formatAiParseScanDepth,
 } from '@/utils/aiParseQuery'
 import { formatDurationMs } from '@/utils/taskDisplay'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 defineProps<{
   tasks: AiParseTask[]
@@ -97,6 +98,7 @@ const emit = defineEmits<{
   'view-result': [task: AiParseTask]
   fallback: [task: AiParseTask]
 }>()
+const { canWrite } = usePagePermission()
 
 /** a-table bodyCell 的 record 收窄为 AiParseTask */
 function getTask(row: unknown): AiParseTask {

@@ -130,6 +130,7 @@ import {
   updateDetectTask,
 } from '@/api/detect'
 import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
+import { usePagePermission } from '@/composables/usePagePermission'
 import {
   TASK_SOURCE_MODE_LABEL,
   getTaskLogListRoute,
@@ -143,6 +144,7 @@ const props = defineProps<{
 
 const router = useRouter()
 const { withFrom, currentFullPath } = useRouteWithFrom()
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   'task-updated': [task: DetectTask]
@@ -163,7 +165,14 @@ const editForm = reactive({
   retryCount: 3,
 })
 
-const actions = computed(() => getTaskActions(props.task))
+const permissionOwner = computed(() =>
+  props.task.taskType === 'autonomy' ? '/detect/autonomy' : '/detect/risk',
+)
+const actions = computed(() =>
+  getTaskActions(props.task).filter(
+    (action) => action.key === 'viewResult' || action.key === 'viewLog' || canWrite(permissionOwner.value),
+  ),
+)
 
 /** 跳转检测结果页并携带任务 state */
 function handleViewResult() {
@@ -178,6 +187,7 @@ const autonomySourceOptions = (
 }))
 
 function openModal(key: TaskActionKey) {
+  if (!canWrite(permissionOwner.value)) return
   if (key === 'edit') {
     editForm.taskName = props.task.taskName
     editForm.sourceMode =
@@ -207,6 +217,7 @@ function openModal(key: TaskActionKey) {
 }
 
 async function submitEdit() {
+  if (!canWrite(permissionOwner.value)) return
   if (!editForm.taskName.trim()) {
     message.warning('请输入任务名称')
     return Promise.reject()
@@ -227,6 +238,7 @@ async function submitEdit() {
 }
 
 async function submitPause() {
+  if (!canWrite(permissionOwner.value)) return
   submitting.value = true
   try {
     const res = await pauseTask(props.task.taskId)
@@ -239,6 +251,7 @@ async function submitPause() {
 }
 
 async function submitTerminate() {
+  if (!canWrite(permissionOwner.value)) return
   if (!terminateReason.value.trim()) {
     message.warning('请输入终止原因')
     return Promise.reject()
@@ -257,6 +270,7 @@ async function submitTerminate() {
 }
 
 async function submitResume() {
+  if (!canWrite(permissionOwner.value)) return
   submitting.value = true
   try {
     const res = await resumeTask(props.task.taskId)
@@ -269,6 +283,7 @@ async function submitResume() {
 }
 
 async function submitDelete() {
+  if (!canWrite(permissionOwner.value)) return
   submitting.value = true
   try {
     await deleteTask(props.task.taskId)

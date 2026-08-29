@@ -2,8 +2,8 @@
   <span class="action-cell">
     <router-link :to="directoryTo" class="list-table-link">项目目录</router-link>
     <router-link :to="versionsTo" class="list-table-link">版本管理</router-link>
-    <a href="#" class="list-table-link" @click.prevent="emit('edit', project)">编辑</a>
-    <a
+    <a v-if="canWrite('/knowledge')" href="#" class="list-table-link" @click.prevent="emit('edit', project)">编辑</a>
+    <a v-if="canWrite('/knowledge')"
       href="#"
       class="list-table-link list-table-link--danger"
       @click.prevent="emit('delete', project)"
@@ -18,6 +18,7 @@ import { computed } from 'vue'
 import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
 import type { KbProject } from '@/types/knowledge'
 import { createNavigationState } from '@/utils/navigation'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   project: KbProject
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const { withFrom } = useRouteWithFrom()
+const { canWrite } = usePagePermission()
 
 /** 项目目录页路由（携带项目信息 + from 供顶栏返回） */
 const directoryTo = computed(() =>

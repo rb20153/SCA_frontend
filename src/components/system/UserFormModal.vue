@@ -106,6 +106,7 @@ import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
 import { generateInitialPassword } from '@/utils/passwordGenerator'
 import { USER_STATUS_FORM_OPTIONS } from '@/utils/userDisplay'
 import { isValidPhoneOptional } from '@/utils/userValidation'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 弹窗模式：新增或编辑 */
@@ -117,6 +118,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -214,6 +216,7 @@ watch(
 
 /** 校验后调用新增或更新 API */
 async function handleOk() {
+  if (!canWrite('/system/users')) return Promise.reject()
   const username = form.username.trim()
   const realName = form.realName.trim()
   const phone = form.phone.trim()

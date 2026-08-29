@@ -30,6 +30,7 @@ import { ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { rollbackPolicyVersion } from '@/api/policy'
 import type { PolicyVersionListItem } from '@/types/policy'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 策略 ID */
@@ -39,6 +40,7 @@ const props = defineProps<{
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -54,6 +56,7 @@ function resetForm() {
 
 /** 校验版本号并提交回滚请求 */
 async function handleOk() {
+  if (!canWrite('/policies')) return Promise.reject()
   if (!props.version) {
     return Promise.reject()
   }

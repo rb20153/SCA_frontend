@@ -1,6 +1,6 @@
 <template>
   <div class="members-panel">
-    <div class="create-bar">
+    <div v-if="canWrite('/projects')" class="create-bar">
       <a-button type="primary" @click="addModalVisible = true">
         <template #icon>
           <PlusOutlined />
@@ -60,6 +60,7 @@ import ProjectRemoveMemberModal from '@/components/project/ProjectRemoveMemberMo
 import ProjectTransferOwnerModal from '@/components/project/ProjectTransferOwnerModal.vue'
 import { usePaginatedList } from '@/composables/usePaginatedList'
 import type { Project, ProjectMember } from '@/types/project'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   project: Project
@@ -69,6 +70,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'owner-updated': [ownerName: string]
 }>()
+const { canWrite } = usePagePermission()
 
 const addModalVisible = ref(false)
 const transferVisible = ref(false)
@@ -90,12 +92,14 @@ const {
 
 /** 打开设为负责人确认弹窗 */
 function openTransferModal(member: ProjectMember) {
+  if (!canWrite('/projects')) return
   transferringMember.value = member
   transferVisible.value = true
 }
 
 /** 打开移除成员确认弹窗 */
 function openRemoveModal(member: ProjectMember) {
+  if (!canWrite('/projects')) return
   removingMember.value = member
   removeVisible.value = true
 }

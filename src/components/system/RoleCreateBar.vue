@@ -1,6 +1,6 @@
 <template>
   <div class="create-bar">
-    <a-button type="primary" @click="emit('create')">
+    <a-button v-if="canWrite('/system/roles')" type="primary" @click="emit('create')">
       <template #icon>
         <PlusOutlined />
       </template>
@@ -11,6 +11,8 @@
 
 <script setup lang="ts">
 import { PlusOutlined } from '@ant-design/icons-vue'
+import { usePagePermission } from '@/composables/usePagePermission'
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   create: []

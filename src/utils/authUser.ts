@@ -1,4 +1,5 @@
 import type { UserInfo } from '@/stores/auth'
+import { normalizePagePermissions } from '@/utils/pagePermission'
 
 /** 后端 /me 或 login.userInfo 可能携带的 JWT / 扩展字段（需剥离） */
 export interface MeUserRaw {
@@ -43,15 +44,6 @@ export function normalizeMeUser(raw: MeUserRaw): UserInfo {
     department: raw.department ?? '',
     permission: normalizePagePermissions(raw.permission),
   }
-}
-
-/** 规范 /auth/me 返回的页面权限路径；未返回字段时保留 undefined 以兼容旧接口。 */
-function normalizePagePermissions(raw: unknown): string[] | undefined {
-  if (raw === undefined || raw === null) return undefined
-  if (!Array.isArray(raw)) return []
-  return raw
-    .map((item) => String(item ?? '').trim())
-    .filter((item) => item.startsWith('/'))
 }
 
 /**

@@ -7,7 +7,7 @@
             <a-form-item label="项目名称" :required="projectNameEditable">
               <a-input
                 v-model:value="form.projectName"
-                :disabled="!projectNameEditable"
+                :disabled="!canWrite('/projects') || !projectNameEditable"
                 placeholder="请输入项目名称"
                 allow-clear
               />
@@ -23,6 +23,7 @@
                 v-model="selectedOwner"
                 placeholder="请输入用户姓名"
                 :search-users="searchOwnerUsers"
+                :disabled="!canWrite('/projects')"
               />
             </a-form-item>
           </a-col>
@@ -35,6 +36,7 @@
                 v-model:value="form.description"
                 placeholder="请输入项目说明"
                 :rows="8"
+                :disabled="!canWrite('/projects')"
                 allow-clear
                 class="project-basic-textarea"
               />
@@ -48,12 +50,14 @@
                 placeholder="请选择部门"
                 select-class="project-basic-select"
                 :load-options="loadEnabledDepartmentSelectOptions"
+                :disabled="!canWrite('/projects')"
               />
             </a-form-item>
             <a-form-item label="项目状态" required>
               <a-select
                 v-model:value="form.status"
                 :options="PROJECT_STATUS_FORM_OPTIONS"
+                :disabled="!canWrite('/projects')"
                 class="project-basic-select"
               />
             </a-form-item>
@@ -61,6 +65,7 @@
         </a-row>
 
         <ProfileFormActions
+          v-if="canWrite('/projects')"
           :submitting="submitting"
           label-offset="0"
           @submit="handleSubmit"
@@ -83,6 +88,7 @@ import type { Project, ProjectStatus } from '@/types/project'
 import type { UserSearchCandidate } from '@/types/user'
 import { PROJECT_STATUS_FORM_OPTIONS } from '@/utils/projectDisplay'
 import { loadEnabledDepartmentSelectOptions } from '@/utils/remoteSelectLoaders'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   /** 当前项目（来自列表跳转或详情 API） */
@@ -92,6 +98,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   updated: [project: Project]
 }>()
+const { canWrite } = usePagePermission()
 
 const submitting = ref(false)
 const selectedOwner = ref<UserSearchCandidate | null>(null)
@@ -191,6 +198,7 @@ function resolveOwnerName(): string {
 
 /** 校验并提交基本信息更新 */
 async function handleSubmit() {
+  if (!canWrite('/projects')) return
   const projectName = form.projectName.trim()
   if (projectNameEditable.value && !projectName) {
     message.warning('请输入项目名称')

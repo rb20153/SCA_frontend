@@ -19,12 +19,14 @@
 import { computed, ref } from 'vue'
 import { deletePolicy } from '@/api/policy'
 import type { Policy } from '@/types/policy'
+import { usePagePermission } from '@/composables/usePagePermission'
 
 const props = defineProps<{
   policy: Policy
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   success: []
@@ -37,6 +39,7 @@ const canDelete = computed(() => props.policy.referencedProjectCount === 0)
 
 /** 可删除时调 API；被引用时仅关闭弹窗 */
 async function handleOk() {
+  if (!canWrite('/policies')) return
   if (!canDelete.value) {
     visible.value = false
     return

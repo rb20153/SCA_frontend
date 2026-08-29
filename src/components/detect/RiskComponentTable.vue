@@ -54,7 +54,7 @@
         <span class="action-cell">
           <a href="#" class="list-table-link" @click.prevent="emit('detail', getComponent(row))">详情</a>
           <a
-            v-if="getComponent(row).ignored"
+            v-if="getComponent(row).ignored && canWrite('/detect/risk')"
             href="#"
             class="list-table-link"
             @click.prevent="emit('revoke-ignore', getComponent(row))"
@@ -62,7 +62,7 @@
             撤销忽略
           </a>
           <a
-            v-else
+            v-else-if="canWrite('/detect/risk')"
             href="#"
             class="list-table-link list-table-link--danger"
             @click.prevent="emit('ignore', getComponent(row))"
@@ -83,6 +83,7 @@ import ListTable from '@/components/common/ListTable.vue'
 import ListTableCell from '@/components/common/ListTableCell.vue'
 import type { OpenSourceRiskComponent } from '@/types/detect'
 import { TASK_SOURCE_MODE_LABEL } from '@/utils/taskDisplay'
+import { usePagePermission } from '@/composables/usePagePermission'
 import {
   RISK_COMPONENT_IDENTIFY_BASIS_COLOR,
   RISK_COMPONENT_LEVEL_COLOR,
@@ -95,6 +96,7 @@ defineProps<{
   loading?: boolean
   pagination: TablePaginationConfig
 }>()
+const { canWrite } = usePagePermission()
 
 const emit = defineEmits<{
   detail: [component: OpenSourceRiskComponent]
