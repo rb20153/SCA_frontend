@@ -27,7 +27,6 @@ import type {
   LogResult,
   LogTimelineItem,
   Role,
-  RolePermissionKey,
   RolePermissionMap,
   RoleQueryParams,
   RoleStatus,
@@ -94,7 +93,7 @@ function unwrapPageRaw(raw: unknown): unknown {
   return obj
 }
 
-/** 后端 permissions 中 `*` 为 true 表示拥有全部可配置权限 */
+/** 后端 permission 中 `*` 为 true 表示拥有全部可配置页面权限。 */
 function isRolePermissionWildcard(raw: unknown): boolean {
   if (Array.isArray(raw)) {
     return raw.some((item) => String(item ?? '').trim() === '*')
@@ -105,33 +104,24 @@ function isRolePermissionWildcard(raw: unknown): boolean {
   return normalizeBoolean((raw as Record<string, unknown>)['*'], false)
 }
 
-/** 将全部可配置权限设为同一布尔值 */
-function fillAllRolePermissions(value: boolean): RolePermissionMap {
+/** 将全部可配置页面权限设为同一读写状态。 */
+function fillAllRolePermissions(read: boolean, write = read): RolePermissionMap {
   return Object.fromEntries(
-    ALL_PERMISSION_KEYS.map((key) => [key, value]),
+    ALL_PERMISSION_KEYS.map((key) => [key, { read, write }]),
   ) as RolePermissionMap
 }
 
 /**
- * 将后端 permissions 规范为 RolePermissionMap
- * @param raw - 对象键值或权限 key 数组；`*: true` 表示全部权限
+ * 将后端 permission 规范为 RolePermissionMap。
+ * 每个页面键使用 `{ read, write }`；write 为 true 时自动补齐 read。
+ * `*: true` 仅兼容旧接口，表示全部页面读写。
  */
 export function normalizeRolePermissions(raw: unknown): RolePermissionMap {
   if (isRolePermissionWildcard(raw)) {
-    return fillAllRolePermissions(true)
+    return fillAllRolePermissions(true, true)
   }
 
-  const permissions = fillAllRolePermissions(false)
-
-  if (Array.isArray(raw)) {
-    for (const item of raw) {
-      const key = String(item ?? '').trim() as RolePermissionKey
-      if (ALL_PERMISSION_KEYS.includes(key)) {
-        permissions[key] = true
-      }
-    }
-    return permissions
-  }
+  const permissions = fillAllRolePermissions(false, false)
 
   if (!raw || typeof raw !== 'object') {
     return permissions
@@ -139,8 +129,13 @@ export function normalizeRolePermissions(raw: unknown): RolePermissionMap {
 
   const obj = raw as Record<string, unknown>
   for (const key of ALL_PERMISSION_KEYS) {
-    if (key in obj) {
-      permissions[key] = normalizeBoolean(obj[key], false)
+    const entry = obj[key]
+    if (!entry || typeof entry !== 'object') continue
+    const entryObject = entry as Record<string, unknown>
+    const write = normalizeBoolean(entryObject.write, false)
+    permissions[key] = {
+      read: normalizeBoolean(entryObject.read, false) || write,
+      write,
     }
   }
   return permissions
@@ -631,7 +626,7 @@ export function normalizeRole(raw: Record<string, unknown>): Role {
       raw.isBuiltin ?? raw.is_builtin ?? raw.builtin ?? raw.systemBuiltIn,
       false,
     ),
-    permissions: normalizeRolePermissions(raw.permissions ?? raw.permissionList),
+    permission: normalizeRolePermissions(raw.permission ?? raw.permissions ?? raw.permissionList),
     createdAt: String(raw.createdAt ?? raw.created_at ?? raw.createTime ?? ''),
     boundUserCount: Number(
       raw.boundUserCount ?? raw.bound_user_count ?? raw.userCount ?? raw.memberCount ?? 0,
@@ -729,6 +724,6 @@ export function roleParamsToApi(
     roleCode: data.roleCode.trim(),
     status: data.status,
     remark: data.remark.trim(),
-    permissions: data.permissions,
+    permission: data.permission,
   }
 }

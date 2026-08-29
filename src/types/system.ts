@@ -265,14 +265,31 @@ export interface DepartmentMemberCheckResult {
 /** 角色启用状态 */
 export type RoleStatus = 'enabled' | 'disabled'
 
-/** RBAC 权限 Key（与后端契约一致，角色抽屉仅配置以下 4 项） */
+/** 后端可配置的页面权限键；基础页由前端强制放行，不在角色授权表中配置。 */
 export type RolePermissionKey =
-  | 'menu.home'
-  | 'op.task_run'
-  | 'report.read'
-  | 'project.read'
+  | '/projects'
+  | '/detect/autonomy'
+  | '/detect/risk'
+  | '/detect/ai-analysis'
+  | '/policies'
+  | '/reports'
+  | '/reports/templates'
+  | '/knowledge'
+  | '/knowledge/coverage'
+  | '/knowledge/vulnerabilities'
+  | '/knowledge/quarter-updates'
+  | '/system/users'
+  | '/system/departments'
+  | '/system/roles'
+  | '/system/logs'
+  | '/system/alerts'
 
-export type RolePermissionMap = Record<RolePermissionKey, boolean>
+export interface RolePagePermission {
+  read: boolean
+  write: boolean
+}
+
+export type RolePermissionMap = Record<RolePermissionKey, RolePagePermission>
 
 /** 角色持久化字段（不含绑定用户数） */
 export interface RoleRecord {
@@ -283,7 +300,7 @@ export interface RoleRecord {
   remark: string
   /** 是否内置角色（内置不可删除） */
   isBuiltin: boolean
-  permissions: RolePermissionMap
+  permission: RolePermissionMap
   /** 创建时间，ISO 8601 */
   createdAt: string
 }
@@ -308,7 +325,7 @@ export interface CreateRoleParams {
   roleCode: string
   status: RoleStatus
   remark: string
-  permissions: RolePermissionMap
+  permission: RolePermissionMap
 }
 
 export type UpdateRoleParams = CreateRoleParams
@@ -318,5 +335,5 @@ export interface RoleFormValues {
   roleCode: string
   status: RoleStatus
   remark: string
-  permissions: RolePermissionMap
+  permission: RolePermissionMap
 }

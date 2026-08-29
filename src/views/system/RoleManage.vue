@@ -31,7 +31,6 @@
       :mode="drawerMode"
       :role-id="editingRole?.roleId"
       :is-builtin="editingRole?.isBuiltin"
-      :builtin-role-code="editingRole?.isBuiltin ? editingRole.roleCode : undefined"
       :initial-values="editingFormValues"
       @success="onFormSuccess"
     />
@@ -98,7 +97,7 @@ const editingFormValues = computed<RoleFormValues | undefined>(() => {
     roleCode: role.roleCode,
     status: role.status,
     remark: role.remark,
-    permissions: { ...role.permissions },
+    permission: { ...role.permission },
   }
 })
 

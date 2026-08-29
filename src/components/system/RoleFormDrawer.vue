@@ -37,10 +37,10 @@
           allow-clear
         />
       </a-form-item>
-      <a-form-item label="授权">
+      <a-form-item>
+        <template #label><strong>授权</strong></template>
         <RolePermissionTree
-          :permissions="form.permissions"
-          :builtin-role-code="builtinRoleCode"
+          :permissions="form.permission"
           @update:permissions="handlePermissionsUpdate"
         />
       </a-form-item>
@@ -74,8 +74,6 @@ const props = defineProps<{
   roleId?: string
   /** 编辑时是否为内置角色 */
   isBuiltin?: boolean
-  /** 编辑内置角色时的编码（权限树禁用规则用） */
-  builtinRoleCode?: string
   /** 编辑时传入的初始表单值 */
   initialValues?: RoleFormValues
 }>()
@@ -93,7 +91,7 @@ const form = reactive<RoleFormValues>({
   roleCode: '',
   status: 'enabled',
   remark: '',
-  permissions: createDefaultCustomRolePermissions(),
+  permission: createDefaultCustomRolePermissions(),
 })
 
 /** 内置角色编辑时编码不可改 */
@@ -108,7 +106,7 @@ function syncFormFromProps() {
     form.roleCode = ''
     form.status = 'enabled'
     form.remark = ''
-    form.permissions = createDefaultCustomRolePermissions()
+    form.permission = createDefaultCustomRolePermissions()
     return
   }
 
@@ -116,8 +114,8 @@ function syncFormFromProps() {
   form.roleCode = props.initialValues?.roleCode ?? ''
   form.status = props.initialValues?.status ?? 'enabled'
   form.remark = props.initialValues?.remark ?? ''
-  form.permissions = props.initialValues?.permissions
-    ? cloneRolePermissions(props.initialValues.permissions)
+  form.permission = props.initialValues?.permission
+    ? cloneRolePermissions(props.initialValues.permission)
     : createDefaultCustomRolePermissions()
 }
 
@@ -141,8 +139,8 @@ watch(
 )
 
 /** 权限树勾选变更 */
-function handlePermissionsUpdate(permissions: RolePermissionMap) {
-  form.permissions = permissions
+function handlePermissionsUpdate(permission: RolePermissionMap) {
+  form.permission = permission
 }
 
 /** 校验表单并提交创建或更新 */
@@ -170,7 +168,7 @@ async function handleSubmit() {
     roleCode,
     status: form.status,
     remark: form.remark.trim(),
-    permissions: { ...form.permissions },
+    permission: cloneRolePermissions(form.permission),
   }
 
   submitting.value = true
