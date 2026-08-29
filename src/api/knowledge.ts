@@ -526,7 +526,11 @@ export async function getVulnSyncAllPreview(): Promise<ApiResponse<VulnSyncAllPr
  * 对全部内置漏洞来源执行增量同步
  */
 export function syncAllVulnSources(): Promise<ApiResponse<null>> {
-  return request.post('/api/knowledge/vulnerabilities/sources/sync-all')
+  return request.post(
+    '/api/knowledge/vulnerabilities/sources/sync-all',
+    undefined,
+    { timeout: 20 * 60 * 1000 },
+  )
 }
 
 /**

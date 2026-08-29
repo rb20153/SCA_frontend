@@ -57,6 +57,8 @@ async function handleOk() {
     message.success('全库同步任务已提交')
     visible.value = false
     emit('success')
+  } catch {
+    // 请求层已展示错误信息，组件仅拦截异常以避免 @ok 产生未处理 Promise。
   } finally {
     submitting.value = false
   }
