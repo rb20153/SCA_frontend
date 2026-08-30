@@ -7,6 +7,9 @@ import type {
   ReportDetail,
   ReportDownloadInfo,
   ReportDownloadStatus,
+  ReportDownloadApplication,
+  SubmitReportDownloadApplicationParams,
+  ApproveReportDownloadApplicationParams,
   ReportFailureReason,
   ReportPreview,
   ReportQueryParams,
@@ -18,6 +21,7 @@ import {
   normalizeReport,
   normalizeReportDetail,
   normalizeReportDownloadInfo,
+  normalizeReportDownloadApplication,
   normalizeReportDownloadStatus,
   normalizeReportFailureReason,
   normalizeReportPage,
@@ -101,11 +105,42 @@ export async function getReportDownloadStatus(
  */
 export async function submitReportDownloadApplication(
   reportId: string,
+  params?: SubmitReportDownloadApplicationParams,
 ): Promise<ApiResponse<null>> {
   const res = await request.post<ApiResponse<unknown>>(
     `/api/reports/${reportId}/download-applications`,
+    params,
   )
   return { ...res, data: null }
+}
+
+/** 查询当前审批人有权处理的报告下载审批待办。 */
+export async function getPendingReportDownloadApplications(): Promise<ApiResponse<ReportDownloadApplication[]>> {
+  const res = await request.get<ApiResponse<unknown>>('/api/report-download-applications/pending')
+  const raw = res.data
+  const list = Array.isArray(raw)
+    ? raw
+    : Array.isArray((raw as { list?: unknown[] } | null)?.list)
+      ? (raw as { list: unknown[] }).list
+      : Array.isArray((raw as { records?: unknown[] } | null)?.records)
+        ? (raw as { records: unknown[] }).records
+        : []
+  return { ...res, data: list.map(normalizeReportDownloadApplication) }
+}
+
+/** 获取报告下载申请详情 */
+export async function getReportDownloadApplication(applicationId: string): Promise<ApiResponse<ReportDownloadApplication>> {
+  const res = await request.get<ApiResponse<unknown>>(`/api/report-download-applications/${applicationId}`)
+  return { ...res, data: normalizeReportDownloadApplication(res.data) }
+}
+
+/** 审批报告下载申请；真实接口使用状态条件更新，重复提交返回 409 */
+export async function approveReportDownloadApplication(
+  applicationId: string,
+  params: ApproveReportDownloadApplicationParams,
+): Promise<ApiResponse<ReportDownloadApplication>> {
+  const res = await request.post<ApiResponse<unknown>>(`/api/report-download-applications/${applicationId}/approval`, params)
+  return { ...res, data: normalizeReportDownloadApplication(res.data) }
 }
 
 /**

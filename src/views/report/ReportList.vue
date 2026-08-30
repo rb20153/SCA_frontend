@@ -58,34 +58,40 @@
       v-model:open="detailVisible"
       :report="detailReport"
     />
+    <ReportDownloadApplicationModal
+      v-model:open="applicationVisible"
+      :report="applicationReport"
+      @success="loadPage"
+    />
+    <ReportDownloadApprovalDrawer v-model:open="approvalVisible" :application-id="approvalApplicationId" @success="loadPage" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Modal, message } from 'ant-design-vue'
-import {
-  getReportDownloadStatus,
-  getReportList,
-  submitReportDownloadApplication,
-} from '@/api/report'
+import { ref, watch } from 'vue'
+import { message } from 'ant-design-vue'
+import { createReportDownload, getReportDownloadStatus, getReportList } from '@/api/report'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import ReportCreateBar from '@/components/report/ReportCreateBar.vue'
 import ReportDeleteModal from '@/components/report/ReportDeleteModal.vue'
 import ReportDetailDrawer from '@/components/report/ReportDetailDrawer.vue'
 import ReportDownloadModal from '@/components/report/ReportDownloadModal.vue'
+import ReportDownloadApplicationModal from '@/components/report/ReportDownloadApplicationModal.vue'
+import ReportDownloadApprovalDrawer from '@/components/report/ReportDownloadApprovalDrawer.vue'
 import ReportFailureReasonModal from '@/components/report/ReportFailureReasonModal.vue'
 import ReportGenerateModal from '@/components/report/ReportGenerateModal.vue'
 import ReportQueryBar from '@/components/report/ReportQueryBar.vue'
 import ReportTable from '@/components/report/ReportTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
 import { usePagePermission } from '@/composables/usePagePermission'
+import { useRoute } from 'vue-router'
 import type { Report, ReportExportPolicyPreview } from '@/types/report'
 import {
   createEmptyReportListFilters,
   reportListFiltersToQuery,
 } from '@/utils/reportQuery'
+import { triggerReportDownload } from '@/utils/reportDownload'
 
 const generateVisible = ref(false)
 const deleteVisible = ref(false)
@@ -96,9 +102,14 @@ const downloadVisible = ref(false)
 const downloadReport = ref<Report | null>(null)
 const downloadExportPolicy = ref<ReportExportPolicyPreview | null>(null)
 const downloadChecking = ref(false)
+const applicationVisible = ref(false)
+const applicationReport = ref<Report | null>(null)
+const approvalVisible = ref(false)
+const approvalApplicationId = ref<string | null>(null)
 const detailVisible = ref(false)
 const detailReport = ref<Report | null>(null)
 const { canWrite } = usePagePermission()
+const route = useRoute()
 
 const {
   filterForm,
@@ -109,12 +120,41 @@ const {
   handleSearch,
   handleReset,
 } = useFilteredPaginatedList<Report, ReturnType<typeof createEmptyReportListFilters>>(
-  async (params) => (await getReportList(params)).data,
+  async (params) => (await getReportList({ ...params, reportId: typeof route.query.reportId === 'string' ? route.query.reportId : undefined })).data,
   {
     createEmptyFilters: createEmptyReportListFilters,
     filtersToQuery: reportListFiltersToQuery,
     pageSize: 10,
   },
+)
+
+/** 站内消息 action 经 URL 带到报告列表后，自动打开对应流程。 */
+watch(
+  () => [route.query.approvalId, route.query.retryApplication, route.query.downloadApplication, reportList.value] as const,
+  async ([approvalId, retryApplication, downloadApplication]) => {
+    const reportId = typeof route.query.reportId === 'string' ? route.query.reportId : ''
+    const report = reportList.value.find((item) => item.reportId === reportId)
+    if (typeof approvalId === 'string' && approvalId) {
+      approvalApplicationId.value = approvalId
+      approvalVisible.value = true
+      return
+    }
+    if (retryApplication === '1' && report) {
+      applicationReport.value = report
+      applicationVisible.value = true
+      return
+    }
+    if (typeof downloadApplication === 'string' && downloadApplication && report) {
+      const format = route.query.format === 'word' || route.query.format === 'html' ? route.query.format : 'pdf'
+      const response = await createReportDownload(report.reportId, {
+        format,
+        includeEvidenceChain: route.query.includeEvidenceChain === 'true',
+        applicationId: downloadApplication,
+      }, report.reportName)
+      triggerReportDownload(response.data.downloadUrl, response.data.fileName)
+    }
+  },
+  { deep: true },
 )
 
 /** 打开删除确认弹窗 */
@@ -156,29 +196,13 @@ async function handleDownloadClick(report: Report) {
       }
 
       if (approvalState === 'rejected') {
-        Modal.confirm({
-          title: '下载申请已被驳回',
-          content: '该报告下载申请已被驳回，是否重新提交申请？',
-          okText: '重新提交',
-          cancelText: '取消',
-          onOk: async () => {
-            await submitReportDownloadApplication(report.reportId)
-            message.success('已重新提交下载申请')
-          },
-        })
+        applicationReport.value = report
+        applicationVisible.value = true
         return
       }
 
-      Modal.confirm({
-        title: '需要审批',
-        content: '该报告下载需要审批，是否提交申请？',
-        okText: '是',
-        cancelText: '否',
-        onOk: async () => {
-          await submitReportDownloadApplication(report.reportId)
-          message.success('已提交下载申请')
-        },
-      })
+      applicationReport.value = report
+      applicationVisible.value = true
       return
     }
 

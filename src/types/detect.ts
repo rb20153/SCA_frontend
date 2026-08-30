@@ -87,6 +87,7 @@ export interface CreateRiskDetectTaskParams {
 export type CreateDetectTaskParams = CreateAutonomyDetectTaskParams | CreateRiskDetectTaskParams
 
 export interface TaskQueryParams extends Partial<PageParams> {
+  taskId?: string
   taskName?: string
   taskType?: TaskType | ''
   projectId?: string

@@ -6,6 +6,7 @@ import type {
   ReportDetail,
   ReportDownloadApprovalState,
   ReportDownloadInfo,
+  ReportDownloadApplication,
   ReportDownloadStatus,
   ReportExportPolicyPreview,
   ReportFailureReason,
@@ -264,6 +265,49 @@ export function normalizeReportDownloadStatus(
 }
 
 /**
+ * 规范报告下载申请，兼容后端 camelCase / snake_case 字段。
+ * 审批抽屉只消费该标准结构，避免接口联调时直接把后端字段泄漏到组件。
+ */
+export function normalizeReportDownloadApplication(raw: unknown): ReportDownloadApplication {
+  const obj = toRecord(raw)
+  return {
+    applicationId: pickFirstNonEmptyString(obj.applicationId, obj.application_id, obj.id),
+    reportId: pickFirstNonEmptyString(obj.reportId, obj.report_id),
+    applicantId: pickFirstNonEmptyString(obj.applicantId, obj.applicant_id, obj.userId, obj.user_id),
+    applicantName: pickFirstNonEmptyString(
+      obj.applicantName,
+      obj.applicant_name,
+      obj.applicant,
+      obj.userName,
+      obj.user_name,
+    ),
+    reason: pickFirstNonEmptyString(obj.reason, obj.applicationReason, obj.application_reason),
+    format: pickEnum<ReportDownloadApplication['format']>(
+      obj.format,
+      ['pdf', 'word', 'html'],
+      'pdf',
+    ),
+    includeEvidenceChain: normalizeBoolean(
+      obj.includeEvidenceChain ?? obj.include_evidence_chain,
+    ),
+    status: pickEnum<ReportDownloadApplication['status']>(
+      obj.status ?? obj.approvalState ?? obj.approval_state,
+      ['pending_review', 'approved', 'rejected'],
+      'pending_review',
+    ),
+    approvalOpinion: pickFirstNonEmptyString(
+      obj.approvalOpinion,
+      obj.approval_opinion,
+      obj.opinion,
+    ),
+    createdAt: pickFirstNonEmptyString(obj.createdAt, obj.created_at, obj.appliedAt, obj.applied_at),
+    ...(pickFirstNonEmptyString(obj.processedAt, obj.processed_at, obj.approvedAt, obj.approved_at)
+      ? { processedAt: pickFirstNonEmptyString(obj.processedAt, obj.processed_at, obj.approvedAt, obj.approved_at) }
+      : {}),
+  }
+}
+
+/**
  * 规范下载任务返回（临时链接 + 建议文件名）
  * @param raw - 后端 downloads 响应
  * @param fallbackFileName - 后端未返回文件名时的兜底名
@@ -300,6 +344,7 @@ export function normalizeReportFailureReason(raw: unknown, reportId: string): Re
  */
 export function reportQueryParamsToApi(params: ReportQueryParams): Record<string, unknown> {
   return compactQuery({
+    reportId: params.reportId,
     reportName: params.reportName?.trim(),
     projectName: params.projectName?.trim(),
     generatedDate: params.generatedDate,
@@ -330,6 +375,7 @@ export function createReportDownloadParamsToApi(
   return {
     format: params.format,
     includeEvidenceChain: params.includeEvidenceChain,
+    ...(params.applicationId ? { applicationId: params.applicationId } : {}),
   }
 }
 

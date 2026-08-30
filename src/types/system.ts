@@ -133,6 +133,7 @@ export interface AlertListFilters {
 }
 
 export interface AlertQueryParams extends PageParams {
+  alertId?: string
   status: AlertQueueStatus
   level?: AlertLevel
   readStatus?: AlertReadFilter

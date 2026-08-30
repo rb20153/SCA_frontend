@@ -25,11 +25,17 @@ export function usePagePermission() {
     return canRead('/policies') && (role === 'admin' || role === 'auditor')
   }
 
+  function canApproveReport(): boolean {
+    const role = authStore.userInfo?.role
+    return canRead('/reports') && (role === 'admin' || role === 'auditor')
+  }
+
   return {
     permissionStatus: computed(() => authStore.permissionStatus),
     canRead,
     canWrite,
     canApprovePolicy,
+    canApproveReport,
     resolvePermissionOwner,
     isWriteProtectedRoute,
     firstReadablePath: computed(() => findFirstReadablePath(permissions.value)),

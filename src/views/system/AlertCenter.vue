@@ -57,6 +57,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { getAlertCenterOverview, getAlertList } from '@/api/system'
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
@@ -78,6 +79,7 @@ import { ALERT_QUEUE_TABS } from '@/utils/alertDisplay'
 import { mapAlertCenterToStatCards } from '@/utils/statCard'
 
 const queueStatus = ref<AlertQueueStatus>('pending')
+const route = useRoute()
 const overviewLoading = ref(false)
 const statCards = ref<StatCardItem[]>([])
 const detailVisible = ref(false)
@@ -96,7 +98,7 @@ const {
   handleReset,
 } = useFilteredPaginatedList<AlertListItem, ReturnType<typeof createEmptyAlertListFilters>>(
   async (params) =>
-    (await getAlertList({ ...params, status: queueStatus.value })).data,
+    (await getAlertList({ ...params, status: queueStatus.value, alertId: typeof route.query.alertId === 'string' ? route.query.alertId : undefined })).data,
   {
     createEmptyFilters: createEmptyAlertListFilters,
     filtersToQuery: alertListFiltersToQuery,

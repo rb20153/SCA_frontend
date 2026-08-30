@@ -1,4 +1,5 @@
 import { getTaskList } from '@/api/detect'
+import { useRoute } from 'vue-router'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
 import type { TaskType } from '@/types/common'
 import type { DetectTask } from '@/types/detect'
@@ -9,12 +10,13 @@ import { createEmptyTaskListFilters, taskListFiltersToQuery } from '@/utils/task
  * @param fixedTaskType - 页面绑定的检测类型
  */
 export function useDetectTaskListPage(fixedTaskType: TaskType) {
+  const route = useRoute()
   const listState = useFilteredPaginatedList<
     DetectTask,
     ReturnType<typeof createEmptyTaskListFilters>
   >(
     async (params) =>
-      (await getTaskList({ ...params, taskType: fixedTaskType })).data,
+      (await getTaskList({ ...params, taskType: fixedTaskType, taskId: typeof route.query.taskId === 'string' ? route.query.taskId : undefined })).data,
     {
       createEmptyFilters: createEmptyTaskListFilters,
       filtersToQuery: (filters) => {

@@ -649,6 +649,7 @@ export function normalizeRolePage(raw: unknown): PageResult<Role> {
  */
 export function alertQueryParamsToApi(params: AlertQueryParams): Record<string, unknown> {
   const query: Record<string, unknown> = {
+    ...(params.alertId ? { alertId: params.alertId } : {}),
     status: params.status,
     page: params.page,
     pageSize: params.pageSize,

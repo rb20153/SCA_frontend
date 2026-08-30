@@ -1,5 +1,8 @@
 import type { PageParams } from '@/types/common'
 import type { Dayjs } from 'dayjs'
+import type { ReportDownloadApplicationStatus } from '@/types/siteMessage'
+
+export type { ReportDownloadApplication, ReportDownloadApplicationStatus } from '@/types/siteMessage'
 
 /** 报告生成状态 */
 export type ReportStatus = 'completed' | 'generating' | 'failed'
@@ -55,6 +58,7 @@ export interface ReportListFilters {
 }
 
 export interface ReportQueryParams extends PageParams {
+  reportId?: string
   reportName?: string
   projectName?: string
   /** 生成日期，格式 YYYY-MM-DD */
@@ -80,6 +84,18 @@ export interface ReportDownloadStatus {
 export interface CreateReportDownloadParams {
   format: ReportDownloadFormat
   includeEvidenceChain: boolean
+  applicationId?: string
+}
+
+export interface SubmitReportDownloadApplicationParams {
+  reason: string
+  format: ReportDownloadFormat
+  includeEvidenceChain: boolean
+}
+
+export interface ApproveReportDownloadApplicationParams {
+  conclusion: Extract<ReportDownloadApplicationStatus, 'approved' | 'rejected'>
+  opinion: string
 }
 
 export interface ReportDownloadInfo {

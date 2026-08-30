@@ -14,11 +14,17 @@ export type SiteMessageReadFilter = 'all' | 'read' | 'unread'
 /** 站内消息主操作类型（决定操作列跳转） */
 export type SiteMessageActionType =
   | 'view_task_result'
+  | 'view_task_list'
   | 'go_approval'
+  | 'open_policy_approval'
+  | 'open_report_approval'
+  | 'retry_report_download_application'
+  | 'download_report'
   | 'view_alert'
   | 'view_knowledge'
   | 'change_password'
   | 'view_report'
+  | 'view_announcement'
 
 /** 消息关联跳转参数 */
 export interface SiteMessageAction {
@@ -27,15 +33,37 @@ export interface SiteMessageAction {
   /** 任务通知子类型：自主率 → 结果页；开源风险/SBOM → 风险详情页 */
   taskType?: TaskType
   taskId?: string
+  applicationId?: string
+  announcementId?: string
+  format?: 'pdf' | 'word' | 'html'
+  includeEvidenceChain?: boolean
   policyId?: string
+  versionId?: string
   reportId?: string
   alertId?: string
+}
+
+export type ReportDownloadApplicationStatus = 'pending_review' | 'approved' | 'rejected'
+
+export interface ReportDownloadApplication {
+  applicationId: string
+  reportId: string
+  applicantId: string
+  applicantName: string
+  reason: string
+  format: 'pdf' | 'word' | 'html'
+  includeEvidenceChain: boolean
+  status: ReportDownloadApplicationStatus
+  approvalOpinion: string
+  createdAt: string
+  processedAt?: string
 }
 
 /** 站内消息列表项 */
 export interface SiteMessage {
   messageId: string
   type: SiteMessageType
+  eventCode?: string
   title: string
   /** 列表摘要（短文案） */
   summary: string

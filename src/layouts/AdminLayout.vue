@@ -139,7 +139,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   HomeOutlined, ProjectOutlined, ScanOutlined, SafetyOutlined,
@@ -150,6 +150,7 @@ import PageBackButton from '@/components/layout/PageBackButton.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLayoutStore } from '@/stores/layout'
 import { usePagePermission } from '@/composables/usePagePermission'
+import { getSiteMessageUnreadCount, SITE_MESSAGE_STATUS_EVENT } from '@/api/siteMessage'
 
 const router = useRouter()
 const route = useRoute()
@@ -222,6 +223,24 @@ function handleLogout() {
   authStore.logout()
   router.push('/login')
 }
+
+async function refreshUnreadCount() {
+  if (!authStore.isLoggedIn) return
+  try {
+    unreadCount.value = (
+      await getSiteMessageUnreadCount(authStore.userInfo?.username ?? '')
+    ).data.count
+  } catch {
+    unreadCount.value = 0
+  }
+}
+
+onMounted(() => {
+  window.addEventListener(SITE_MESSAGE_STATUS_EVENT, refreshUnreadCount)
+  void refreshUnreadCount()
+})
+onUnmounted(() => window.removeEventListener(SITE_MESSAGE_STATUS_EVENT, refreshUnreadCount))
+watch(() => route.path, (path) => { if (path === '/system/messages') void refreshUnreadCount() })
 </script>
 
 <style scoped>

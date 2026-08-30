@@ -102,21 +102,33 @@ function normalizeSiteMessageType(raw: unknown): SiteMessageType {
 
 const ACTION_TYPES: readonly SiteMessageActionType[] = [
   'view_task_result',
+  'view_task_list',
   'go_approval',
+  'open_policy_approval',
+  'open_report_approval',
+  'retry_report_download_application',
+  'download_report',
   'view_alert',
   'view_knowledge',
   'change_password',
   'view_report',
+  'view_announcement',
 ]
 
 /** 操作按钮默认文案（后端未返回 label 时使用） */
 const ACTION_DEFAULT_LABEL: Record<SiteMessageActionType, string> = {
   view_task_result: '查看结果',
+  view_task_list: '查看任务',
   go_approval: '去审批',
+  open_policy_approval: '去审批',
+  open_report_approval: '去审批',
+  retry_report_download_application: '重新申请',
+  download_report: '去下载',
   view_alert: '查看告警',
   view_knowledge: '查看知识库',
   change_password: '去修改密码',
   view_report: '查看报告',
+  view_announcement: '查看公告',
 }
 
 /** 规范任务类型（自主率 / 开源风险），兼容下划线写法 */
@@ -151,6 +163,8 @@ function normalizeSiteMessageAction(raw: unknown): SiteMessageAction | null {
   const taskId = pickFirstNonEmptyString(obj.taskId, obj.task_id)
   const policyId = pickFirstNonEmptyString(obj.policyId, obj.policy_id)
   const reportId = pickFirstNonEmptyString(obj.reportId, obj.report_id)
+  const applicationId = pickFirstNonEmptyString(obj.applicationId, obj.application_id)
+  const announcementId = pickFirstNonEmptyString(obj.announcementId, obj.announcement_id)
   const alertId = pickFirstNonEmptyString(obj.alertId, obj.alert_id)
 
   return {
@@ -160,7 +174,15 @@ function normalizeSiteMessageAction(raw: unknown): SiteMessageAction | null {
     ...(taskId ? { taskId } : {}),
     ...(policyId ? { policyId } : {}),
     ...(reportId ? { reportId } : {}),
+    ...(applicationId ? { applicationId } : {}),
+    ...(announcementId ? { announcementId } : {}),
     ...(alertId ? { alertId } : {}),
+    ...(obj.format === 'pdf' || obj.format === 'word' || obj.format === 'html'
+      ? { format: obj.format }
+      : {}),
+    ...(typeof obj.includeEvidenceChain === 'boolean'
+      ? { includeEvidenceChain: obj.includeEvidenceChain }
+      : {}),
   }
 }
 
@@ -176,6 +198,9 @@ export function normalizeSiteMessage(raw: Record<string, unknown>): SiteMessage 
   return {
     messageId: pickFirstNonEmptyString(raw.messageId, raw.message_id, raw.id),
     type: normalizeSiteMessageType(raw.type ?? raw.messageType ?? raw.message_type),
+    ...(pickFirstNonEmptyString(raw.eventCode, raw.event_code)
+      ? { eventCode: pickFirstNonEmptyString(raw.eventCode, raw.event_code) }
+      : {}),
     title: pickFirstNonEmptyString(raw.title, raw.subject),
     summary: summary || content.slice(0, 60),
     content: content || summary,

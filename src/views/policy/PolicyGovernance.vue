@@ -231,6 +231,14 @@ async function reloadPageData() {
   pagination.current = 1
   await Promise.all([fetchOverview(), loadPage()])
   await ensureContextPolicy()
+  const approvalVersionId = route.query.approvalVersionId
+  if (typeof approvalVersionId === 'string' && approvalVersionId) {
+    const target = versionList.value.find((item) => item.versionId === approvalVersionId)
+    if (target?.status === 'pending' && canApprovePolicy()) {
+      approvalTargetVersion.value = target
+      approvalDrawerVisible.value = true
+    }
+  }
 }
 
 watch(

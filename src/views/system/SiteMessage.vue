@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="page-container">
-    <SiteMessageActionBar :loading="markAllLoading" @mark-all-read="handleMarkAllRead" />
+    <div class="page-actions"><SiteMessageActionBar :loading="markAllLoading" @mark-all-read="handleMarkAllRead" /><a-button v-if="authStore.isAdmin" type="primary" @click="publishVisible = true">发布公告</a-button></div>
 
     <SiteMessageQueryBar
       v-model="filterForm"
@@ -25,12 +25,20 @@
         />
       </PageLoading>
     </a-card>
+    <AnnouncementDetailModal v-model:open="announcementVisible" :message="announcementMessage" />
+    <AnnouncementPublishModal
+      v-if="authStore.isAdmin"
+      v-model:open="publishVisible"
+      @success="refreshMessages"
+    />
+    <PolicyVersionApprovalDrawer v-model:open="policyApprovalVisible" :policy-id="policyApprovalPolicyId" :version="policyApprovalVersion" @success="refreshMessages" />
+    <ReportDownloadApprovalDrawer v-model:open="reportApprovalVisible" :application-id="reportApprovalApplicationId" @success="refreshMessages" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
   getSiteMessageList,
@@ -40,23 +48,41 @@ import {
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import SiteMessageActionBar from '@/components/system/SiteMessageActionBar.vue'
+import AnnouncementDetailModal from '@/components/system/AnnouncementDetailModal.vue'
+import AnnouncementPublishModal from '@/components/system/AnnouncementPublishModal.vue'
+import PolicyVersionApprovalDrawer from '@/components/policy/PolicyVersionApprovalDrawer.vue'
+import ReportDownloadApprovalDrawer from '@/components/report/ReportDownloadApprovalDrawer.vue'
 import SiteMessageQueryBar from '@/components/system/SiteMessageQueryBar.vue'
 import SiteMessageTable from '@/components/system/SiteMessageTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
 import { useAuthStore } from '@/stores/auth'
+import { getPolicyVersionList } from '@/api/policy'
+import type { PolicyVersionListItem } from '@/types/policy'
 import type { SiteMessage, SiteMessageListFilters } from '@/types/siteMessage'
 import { useRouteWithFrom } from '@/composables/useRouteWithFrom'
-import { resolveSiteMessageActionRoute } from '@/utils/siteMessageNavigation'
+import {
+  getSiteMessageActionValidationError,
+  resolveSiteMessageActionRoute,
+} from '@/utils/siteMessageNavigation'
 import {
   createEmptySiteMessageListFilters,
   siteMessageListFiltersToQuery,
 } from '@/utils/siteMessageQuery'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const { withFrom } = useRouteWithFrom()
 
 const markAllLoading = ref(false)
+const announcementVisible = ref(false)
+const announcementMessage = ref<SiteMessage | null>(null)
+const publishVisible = ref(false)
+const policyApprovalVisible = ref(false)
+const policyApprovalPolicyId = ref('')
+const policyApprovalVersion = ref<PolicyVersionListItem | null>(null)
+const reportApprovalVisible = ref(false)
+const reportApprovalApplicationId = ref<string | null>(null)
 
 /** 当前登录用户名，用于按接收人过滤站内消息。 */
 const recipientUsername = computed(() => authStore.userInfo?.username ?? 'admin')
@@ -84,6 +110,10 @@ const {
     pageSize: 10,
   },
 )
+
+async function refreshMessages() {
+  await handleSearch()
+}
 
 /** 同步更新当前页列表项的已读状态，替换数组引用以驱动表格行样式刷新 */
 function syncMessageRead(messageId: string, read: boolean) {
@@ -118,14 +148,57 @@ async function handleMarkAllRead() {
  */
 async function handleActionClick(msg: SiteMessage) {
   if (!msg.action) return
-
-  if (!msg.read) {
-    await updateSiteMessageReadStatus({ messageId: msg.messageId, read: true })
-    syncMessageRead(msg.messageId, true)
+  const validationError = getSiteMessageActionValidationError(msg.action)
+  if (validationError) {
+    message.warning(validationError)
+    return
   }
 
-  await router.push(withFrom(resolveSiteMessageActionRoute(msg.action)))
+  try {
+    if (!msg.read) {
+      await updateSiteMessageReadStatus({ messageId: msg.messageId, read: true })
+      syncMessageRead(msg.messageId, true)
+    }
+
+    if (msg.action.type === 'view_announcement') {
+      announcementMessage.value = msg
+      announcementVisible.value = true
+      return
+    }
+
+    if (msg.action.type === 'open_policy_approval') {
+      const versions = await getPolicyVersionList(msg.action.policyId!, { page: 1, pageSize: 100 })
+      const target = versions.data.list.find((item) => item.versionId === msg.action?.versionId)
+      if (!target) {
+        message.warning('未找到待审批策略版本，可能已被其他审批人处理')
+        return
+      }
+      policyApprovalPolicyId.value = msg.action.policyId!
+      policyApprovalVersion.value = target
+      policyApprovalVisible.value = true
+      return
+    }
+    if (msg.action.type === 'open_report_approval') {
+      reportApprovalApplicationId.value = msg.action.applicationId!
+      reportApprovalVisible.value = true
+      return
+    }
+
+    await router.push(withFrom(resolveSiteMessageActionRoute(msg.action)))
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '消息操作失败，请稍后重试')
+  }
 }
+
+/** 其他页面消息动作跳回消息页时，按 announcementId 自动打开公告。 */
+watch(
+  () => route.query.announcementId,
+  (announcementId) => {
+    if (typeof announcementId !== 'string' || !announcementId) return
+    const target = messageList.value.find((item) => item.action?.announcementId === announcementId)
+    if (target) void handleActionClick(target)
+  },
+)
 
 /** 切换单条已读/未读：请求后端后同步行高亮 */
 async function handleToggleRead(msg: SiteMessage, read: boolean) {
@@ -139,4 +212,5 @@ async function handleToggleRead(msg: SiteMessage, read: boolean) {
 .page-container {
   min-height: 100%;
 }
+.page-actions { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
 </style>
