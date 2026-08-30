@@ -268,6 +268,12 @@ export interface KbQuarterUpdateListQueryParams extends PageParams {
   collectMode?: KbCollectMode
 }
 
+/** 季度更新回滚请求参数 */
+export interface RollbackKbQuarterUpdateParams {
+  /** 要回滚至的历史季度，如「2026 Q3」 */
+  quarter: string
+}
+
 /** 分类覆盖统计行 */
 export interface CategoryCoverageStat {
   category: string

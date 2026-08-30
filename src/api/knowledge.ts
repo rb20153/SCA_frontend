@@ -34,6 +34,7 @@ import type {
   KbVersionQueryParams,
   KbVersionSelectOption,
   RestoreKbVersionParams,
+  RollbackKbQuarterUpdateParams,
   UploadKbVersionPackageParams,
   UploadKbVersionPackageResult,
   UpdateKbProjectParams,
@@ -359,6 +360,18 @@ export async function getKbQuarterUpdateOverview(): Promise<
 export async function getKbQuarterUpdateQuarterOptions(): Promise<ApiResponse<string[]>> {
   const res = await request.get<ApiResponse<unknown>>('/api/knowledge/quarter-updates/quarters')
   return { ...res, data: normalizeKbQuarterUpdateQuarterOptions(res.data) }
+}
+
+/** 开始执行知识库季度增量同步 */
+export function startKbQuarterUpdate(): Promise<ApiResponse<null>> {
+  return request.post('/api/knowledge/quarter-updates/start')
+}
+
+/** 回滚知识库至指定历史季度 */
+export function rollbackKbQuarterUpdate(
+  params: RollbackKbQuarterUpdateParams,
+): Promise<ApiResponse<null>> {
+  return request.post('/api/knowledge/quarter-updates/rollback', params)
 }
 
 /**

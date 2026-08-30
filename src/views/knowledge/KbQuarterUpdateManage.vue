@@ -4,6 +4,11 @@
       <StatCardRow v-if="statCards.length > 0" :items="statCards" :columns="4" />
     </PageLoading>
 
+    <KbQuarterUpdateMaintainBar
+      @start="startVisible = true"
+      @rollback="rollbackVisible = true"
+    />
+
     <KbQuarterUpdateQueryBar
       v-model="filterForm"
       @search="handleSearch"
@@ -25,6 +30,10 @@
         />
       </PageLoading>
     </a-card>
+
+    <KbQuarterUpdateStartModal v-model:open="startVisible" @success="onMaintainSuccess" />
+
+    <KbQuarterUpdateRollbackModal v-model:open="rollbackVisible" @success="onMaintainSuccess" />
   </div>
 </template>
 
@@ -34,8 +43,11 @@ import { getKbQuarterUpdateList, getKbQuarterUpdateOverview } from '@/api/knowle
 import ListEmptyGuide from '@/components/common/ListEmptyGuide.vue'
 import PageLoading from '@/components/common/PageLoading.vue'
 import StatCardRow from '@/components/common/StatCardRow.vue'
+import KbQuarterUpdateMaintainBar from '@/components/knowledge/KbQuarterUpdateMaintainBar.vue'
 import KbQuarterUpdateQueryBar from '@/components/knowledge/KbQuarterUpdateQueryBar.vue'
 import KbQuarterUpdateRecordTable from '@/components/knowledge/KbQuarterUpdateRecordTable.vue'
+import KbQuarterUpdateRollbackModal from '@/components/knowledge/KbQuarterUpdateRollbackModal.vue'
+import KbQuarterUpdateStartModal from '@/components/knowledge/KbQuarterUpdateStartModal.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
 import type { StatCardItem } from '@/types/common'
 import type { KbQuarterUpdateRecord } from '@/types/knowledge'
@@ -47,6 +59,8 @@ import { mapKbQuarterUpdateToStatCards } from '@/utils/statCard'
 
 const overviewLoading = ref(false)
 const statCards = ref<StatCardItem[]>([])
+const startVisible = ref(false)
+const rollbackVisible = ref(false)
 
 const {
   filterForm,
@@ -74,6 +88,11 @@ async function fetchOverview() {
   } finally {
     overviewLoading.value = false
   }
+}
+
+/** 季度更新或回滚成功后刷新概览与记录列表。 */
+async function onMaintainSuccess() {
+  await Promise.all([fetchOverview(), handleSearch()])
 }
 
 onMounted(async () => {
