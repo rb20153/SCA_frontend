@@ -95,7 +95,7 @@ async function handleOk() {
       username: props.user.username,
       newPassword: newPassword.value,
     })
-    message.success('密码已重置，已发送站内通知')
+    message.success('重置成功')
     visible.value = false
     emit('success')
   } finally {
