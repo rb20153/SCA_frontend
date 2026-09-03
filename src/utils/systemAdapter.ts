@@ -2,6 +2,7 @@ import type { PageResult } from '@/types/common'
 import type {
   AlertCenterOverview,
   AlertDetail,
+  AlertExecutionStatus,
   AlertDisposition,
   AlertLevel,
   AlertListItem,
@@ -422,9 +423,25 @@ export function normalizeHandleAlertResult(raw: unknown): HandleAlertResult {
   const alertObj =
     alertRaw && typeof alertRaw === 'object' ? (alertRaw as Record<string, unknown>) : {}
 
+  const executionStatusRaw = String(obj.executionStatus ?? obj.execution_status ?? '').trim()
+  const executionStatus: AlertExecutionStatus | undefined =
+    executionStatusRaw === 'accepted' ||
+    executionStatusRaw === 'processing' ||
+    executionStatusRaw === 'succeeded' ||
+    executionStatusRaw === 'failed'
+      ? executionStatusRaw
+      : undefined
+  const handleRecordId = pickFirstNonEmptyString(
+    obj.handleRecordId,
+    obj.handle_record_id,
+    obj.recordId,
+  )
+
   return {
     alert: normalizeAlertListItem(alertObj),
     movedToHandled: normalizeBoolean(obj.movedToHandled ?? obj.moved_to_handled, true),
+    ...(executionStatus ? { executionStatus } : {}),
+    ...(handleRecordId ? { handleRecordId } : {}),
   }
 }
 
@@ -547,21 +564,6 @@ export function handleAlertParamsToApi(data: HandleAlertParams): Record<string, 
   }
   if (data.remark?.trim()) {
     body.remark = data.remark.trim()
-  }
-  if (data.assigneeUserId) {
-    body.assigneeUserId = data.assigneeUserId
-  }
-  if (data.plannedCompleteAt) {
-    body.plannedCompleteAt = data.plannedCompleteAt
-  }
-  if (data.notifyAuditor !== undefined) {
-    body.notifyAuditor = data.notifyAuditor
-  }
-  if (data.notifyTaskOwner !== undefined) {
-    body.notifyTaskOwner = data.notifyTaskOwner
-  }
-  if (data.notifyOps !== undefined) {
-    body.notifyOps = data.notifyOps
   }
   return body
 }

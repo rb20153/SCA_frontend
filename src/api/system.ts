@@ -84,15 +84,13 @@ export async function getAlertDetail(alertId: string): Promise<ApiResponse<Alert
 }
 
 /**
- * 提交告警处置（未处理 Tab「处理」/「忽略本次」）
+ * 提交告警处置（自动恢复 / 人工修复 / 关闭告警）
  * @param alertId - 告警 ID
  * @param data - 处置方式与附加字段
- * @param _handlerName - 联调时由后端从 token 解析，前端不传
  */
 export async function handleAlert(
   alertId: string,
   data: HandleAlertParams,
-  _handlerName: string,
 ): Promise<ApiResponse<HandleAlertResult>> {
   const res = await request.post<ApiResponse<unknown>>(
     `/api/system/alerts/${alertId}/handle`,
