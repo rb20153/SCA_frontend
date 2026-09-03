@@ -13,7 +13,9 @@ export function getSiteMessageActionValidationError(action: SiteMessageAction): 
   switch (action.type) {
     case 'view_task_result':
     case 'view_task_list':
-      return action.taskId && action.taskType ? null : '缺少关联任务信息，暂时无法跳转'
+      return action.traceId || (action.taskId && action.taskType)
+        ? null
+        : '缺少关联任务信息，暂时无法跳转'
     case 'go_approval':
       return action.policyId ? null : '缺少关联策略信息，暂时无法跳转'
     case 'open_policy_approval':
@@ -49,6 +51,9 @@ export function resolveSiteMessageActionRoute(action: SiteMessageAction): RouteL
       }
       return { path: getAutonomyDetectResultPath(action.taskId ?? '') }
     case 'view_task_list':
+      if (action.traceId) {
+        return { path: '/system/logs', query: { traceId: action.traceId } }
+      }
       return {
         path: action.taskType === 'open-source-risk'
           ? '/detect/risk'

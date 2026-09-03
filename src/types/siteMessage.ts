@@ -33,6 +33,8 @@ export interface SiteMessageAction {
   /** 任务通知子类型：自主率 → 结果页；开源风险/SBOM → 风险详情页 */
   taskType?: TaskType
   taskId?: string
+  /** 任务执行日志的全链路 TraceID；查看任务日志时优先使用 */
+  traceId?: string
   applicationId?: string
   announcementId?: string
   format?: 'pdf' | 'word' | 'html'

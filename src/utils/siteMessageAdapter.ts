@@ -161,6 +161,7 @@ function normalizeSiteMessageAction(raw: unknown): SiteMessageAction | null {
   const actionType = type as SiteMessageActionType
   const taskType = normalizeTaskType(obj.taskType ?? obj.task_type)
   const taskId = pickFirstNonEmptyString(obj.taskId, obj.task_id)
+  const traceId = pickFirstNonEmptyString(obj.traceId, obj.trace_id, obj.traceID)
   const policyId = pickFirstNonEmptyString(obj.policyId, obj.policy_id)
   const reportId = pickFirstNonEmptyString(obj.reportId, obj.report_id)
   const applicationId = pickFirstNonEmptyString(obj.applicationId, obj.application_id)
@@ -172,6 +173,7 @@ function normalizeSiteMessageAction(raw: unknown): SiteMessageAction | null {
     label: pickFirstNonEmptyString(obj.label, obj.text) || ACTION_DEFAULT_LABEL[actionType],
     ...(taskType ? { taskType } : {}),
     ...(taskId ? { taskId } : {}),
+    ...(traceId ? { traceId } : {}),
     ...(policyId ? { policyId } : {}),
     ...(reportId ? { reportId } : {}),
     ...(applicationId ? { applicationId } : {}),
