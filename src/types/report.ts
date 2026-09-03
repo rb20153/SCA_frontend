@@ -17,10 +17,12 @@ export type ReportDownloadApprovalState =
   | 'pending_review'
   | 'approved'
   | 'rejected'
+  | 'expired'
 
 export interface Report {
   reportId: string
   reportName: string
+  taskName: string
   projectName: string
   templateName: string
   /** 生成时间，ISO 8601 */
@@ -105,6 +107,7 @@ export interface ApproveReportDownloadApplicationParams {
 export interface ReportDownloadInfo {
   downloadUrl: string
   fileName: string
+  approvalState?: ReportDownloadApprovalState
 }
 
 export interface ReportFailureReason {

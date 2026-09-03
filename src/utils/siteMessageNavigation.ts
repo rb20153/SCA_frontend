@@ -80,7 +80,7 @@ export function resolveSiteMessageActionRoute(action: SiteMessageAction): RouteL
     case 'change_password':
       return { path: '/system/profile', query: { tab: 'password' } }
     case 'view_report':
-      return { path: '/reports', query: action.reportId ? { reportId: action.reportId } : undefined }
+      return { path: '/reports', query: action.reportId ? { id: action.reportId } : undefined }
     case 'view_announcement':
       return { path: '/system/messages', query: { announcementId: action.announcementId ?? '' } }
     default: {

@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import type { RequestConfig } from '@/utils/request'
 import type { ApiResponse, PageResult } from '@/types/common'
 import type {
   CreateReportDownloadParams,
@@ -153,10 +154,12 @@ export async function createReportDownload(
   reportId: string,
   params: CreateReportDownloadParams,
   reportName = '',
+  requestConfig?: Pick<RequestConfig, 'silent'>,
 ): Promise<ApiResponse<ReportDownloadInfo>> {
   const res = await request.post<ApiResponse<unknown>>(
     `/api/reports/${reportId}/downloads`,
     createReportDownloadParamsToApi(params),
+    requestConfig,
   )
   return {
     ...res,

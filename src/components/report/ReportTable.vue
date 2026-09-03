@@ -68,6 +68,7 @@ function getReport(row: unknown): Report {
 
 const columns: TableColumnsType<Report> = [
   { title: '报告名称', key: 'reportName', dataIndex: 'reportName', width: 180, ellipsis: true },
+  { title: '检测任务', key: 'taskName', dataIndex: 'taskName', width: 160, ellipsis: true },
   { title: '关联项目', key: 'projectName', dataIndex: 'projectName', width: 160, ellipsis: true },
   { title: '使用模板', key: 'templateName', dataIndex: 'templateName', width: 160, ellipsis: true },
   { title: '生成时间', key: 'generatedAt', width: 120 },

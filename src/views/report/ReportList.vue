@@ -94,6 +94,7 @@ import {
   reportListFiltersToQuery,
 } from '@/utils/reportQuery'
 import { triggerReportDownload } from '@/utils/reportDownload'
+import { isExpiredReportDownloadError } from '@/utils/reportAdapter'
 
 const generateVisible = ref(false)
 const deleteVisible = ref(false)
@@ -109,6 +110,7 @@ const applicationVisible = ref(false)
 const applicationReport = ref<Report | null>(null)
 const approvalVisible = ref(false)
 const approvalApplicationId = ref<string | null>(null)
+const handledRetryApplication = ref<string | null>(null)
 const detailVisible = ref(false)
 const detailReport = ref<Report | null>(null)
 const { canWrite } = usePagePermission()
@@ -123,7 +125,14 @@ const {
   handleSearch,
   handleReset,
 } = useFilteredPaginatedList<Report, ReturnType<typeof createEmptyReportListFilters>>(
-  async (params) => (await getReportList({ ...params, reportId: typeof route.query.reportId === 'string' ? route.query.reportId : undefined })).data,
+  async (params) => {
+    const reportId = typeof route.query.id === 'string'
+      ? route.query.id
+      : typeof route.query.reportId === 'string'
+        ? route.query.reportId
+        : undefined
+    return (await getReportList({ ...params, reportId })).data
+  },
   {
     createEmptyFilters: createEmptyReportListFilters,
     filtersToQuery: reportListFiltersToQuery,
@@ -133,19 +142,42 @@ const {
 
 /** 站内消息 action 经 URL 带到报告列表后，自动打开对应流程。 */
 watch(
-  () => [route.query.approvalId, route.query.retryApplication, route.query.downloadApplication, reportList.value] as const,
-  async ([approvalId, retryApplication, downloadApplication]) => {
-    const reportId = typeof route.query.reportId === 'string' ? route.query.reportId : ''
+  () => [
+    route.query.id,
+    route.query.reportId,
+    route.query.approvalId,
+    route.query.retryApplication,
+    route.query.downloadApplication,
+    reportList.value,
+  ] as const,
+  async ([, , approvalId, retryApplication, downloadApplication]) => {
+    const reportId = typeof route.query.id === 'string'
+      ? route.query.id
+      : typeof route.query.reportId === 'string'
+        ? route.query.reportId
+        : ''
     const report = reportList.value.find((item) => item.reportId === reportId)
+    if (retryApplication !== '1') {
+      handledRetryApplication.value = null
+    }
     if (typeof approvalId === 'string' && approvalId) {
       approvalApplicationId.value = approvalId
       approvalVisible.value = true
       return
     }
     if (retryApplication === '1' && report) {
+      if (handledRetryApplication.value === report.reportId) return
+      // 监听器还会因列表加载/刷新再次触发；先占位，避免并发打开两个申请弹窗。
+      handledRetryApplication.value = report.reportId
       try {
-        downloadExportPolicy.value = (await getReportDownloadStatus(report.reportId)).data.exportPolicy
+        const { approvalState, exportPolicy } = (await getReportDownloadStatus(report.reportId)).data
+        if (approvalState === 'pending_review') {
+          message.warning('下载申请审批中，请稍后再试')
+          return
+        }
+        downloadExportPolicy.value = exportPolicy
       } catch {
+        handledRetryApplication.value = null
         message.error('获取下载策略失败')
         return
       }
@@ -154,13 +186,25 @@ watch(
       return
     }
     if (typeof downloadApplication === 'string' && downloadApplication && report) {
-      const format = route.query.format === 'word' || route.query.format === 'html' ? route.query.format : 'pdf'
-      const response = await createReportDownload(report.reportId, {
-        format,
-        includeEvidenceChain: route.query.includeEvidenceChain === 'true',
-        applicationId: downloadApplication,
-      }, report.reportName)
-      triggerReportDownload(response.data.downloadUrl, response.data.fileName)
+      try {
+        const format = route.query.format === 'word' || route.query.format === 'html' ? route.query.format : 'pdf'
+        const response = await createReportDownload(report.reportId, {
+          format,
+          includeEvidenceChain: route.query.includeEvidenceChain === 'true',
+          applicationId: downloadApplication,
+        }, report.reportName, { silent: true })
+        if (response.data.approvalState === 'expired') {
+          message.warning('审批许可已过期，请重新申请')
+          return
+        }
+        triggerReportDownload(response.data.downloadUrl, response.data.fileName)
+      } catch (error: unknown) {
+        if (isExpiredReportDownloadError(error)) {
+          message.warning('审批许可已过期，请重新申请')
+        } else {
+          message.error('报告下载失败')
+        }
+      }
     }
   },
   { deep: true },

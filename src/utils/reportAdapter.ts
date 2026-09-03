@@ -163,6 +163,7 @@ export function normalizeReport(raw: Record<string, unknown>): Report {
   return {
     reportId: pickFirstNonEmptyString(raw.reportId, raw.report_id, raw.id),
     reportName: pickFirstNonEmptyString(raw.reportName, raw.report_name, raw.name),
+    taskName: pickFirstNonEmptyString(raw.taskName, raw.task_name),
     projectName: pickFirstNonEmptyString(raw.projectName, raw.project_name),
     templateName: pickFirstNonEmptyString(raw.templateName, raw.template_name),
     generatedAt: pickFirstNonEmptyString(
@@ -195,6 +196,7 @@ export function normalizeReportDetail(raw: unknown, fallbackReport: Report): Rep
   return {
     ...detail,
     reportId: detail.reportId || fallbackReport.reportId,
+    taskName: detail.taskName || fallbackReport.taskName,
     projectName: detail.projectName || fallbackReport.projectName,
     templateName: detail.templateName || fallbackReport.templateName,
   }
@@ -261,7 +263,7 @@ export function normalizeReportDownloadStatus(
   const obj = toRecord(raw)
   const approvalState = pickEnum<ReportDownloadApprovalState>(
     obj.approvalState ?? obj.approval_state ?? obj.state,
-    ['not_required', 'pending_submit', 'pending_review', 'approved', 'rejected'],
+    ['not_required', 'pending_submit', 'pending_review', 'approved', 'rejected', 'expired'],
     'not_required',
   )
   const requiresApprovalRaw = obj.requiresApproval ?? obj.requires_approval ?? obj.needApproval
@@ -336,11 +338,25 @@ export function normalizeReportDownloadInfo(
   fallbackFileName: string,
 ): ReportDownloadInfo {
   const obj = toRecord(raw)
+  const approvalState = pickOptionalEnum<ReportDownloadApprovalState>(
+    obj.approvalState ?? obj.approval_state,
+    ['not_required', 'pending_submit', 'pending_review', 'approved', 'rejected', 'expired'],
+  )
   return {
     downloadUrl: pickFirstNonEmptyString(obj.downloadUrl, obj.download_url, obj.url, obj.fileUrl),
     fileName:
       pickFirstNonEmptyString(obj.fileName, obj.file_name, obj.filename) || fallbackFileName,
+    ...(approvalState ? { approvalState } : {}),
   }
+}
+
+/** 下载接口可能以 HTTP 400 返回审批许可过期，识别嵌套 data 中的状态。 */
+export function isExpiredReportDownloadError(error: unknown): boolean {
+  const responseData = (error as { response?: { data?: unknown } })?.response?.data
+  const responseObj = toRecord(responseData)
+  const nestedData = toRecord(responseObj.data)
+  const approvalState = nestedData.approvalState ?? nestedData.approval_state
+  return toSnakeLower(approvalState) === 'expired'
 }
 
 /**
@@ -362,7 +378,7 @@ export function normalizeReportFailureReason(raw: unknown, reportId: string): Re
  */
 export function reportQueryParamsToApi(params: ReportQueryParams): Record<string, unknown> {
   return compactQuery({
-    reportId: params.reportId,
+    id: params.reportId,
     reportName: params.reportName?.trim(),
     projectName: params.projectName?.trim(),
     generatedDate: params.generatedDate,

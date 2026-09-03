@@ -14,7 +14,7 @@ export const REPORT_STATUS_COLOR: Record<ReportStatus, string> = {
 }
 
 /** 报告列表表格横向滚动宽度 */
-export const REPORT_TABLE_SCROLL_X = 1050
+export const REPORT_TABLE_SCROLL_X = 1210
 
 /**
  * 格式化报告生成时间为列表展示（YYYY-MM-DD）
