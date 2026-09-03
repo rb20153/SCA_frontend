@@ -30,7 +30,7 @@
       </template>
 
       <template v-else-if="column.key === 'resultSummary'">
-        {{ formatOptionalSummary(getTask(row)) }}
+        <EllipsisText :text="formatOptionalSummary(getTask(row))" />
       </template>
 
       <template v-else-if="column.key === 'confidence'">
@@ -76,6 +76,7 @@
 import type { TableColumnsType, TablePaginationConfig } from 'ant-design-vue'
 import ListTable from '@/components/common/ListTable.vue'
 import ListTableCell from '@/components/common/ListTableCell.vue'
+import EllipsisText from '@/components/common/EllipsisText.vue'
 import type { AiParseTask } from '@/types/detect'
 import { formatProjectDateTime } from '@/utils/projectDisplay'
 import {

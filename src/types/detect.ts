@@ -126,6 +126,73 @@ export interface AutonomyDetectResultOverview {
   codeIssueCount: number
   /** 指纹问题数 */
   fingerprintIssueCount: number
+  /** 许可证取证摘要；旧任务可能为 null */
+  licenseSummary: AutonomyLicenseSummary | null
+}
+
+export type AutonomyLicenseProvenanceStatus =
+  | 'completed'
+  | 'partial'
+  | 'unavailable'
+  | 'disabled'
+  | 'legacy-unavailable'
+  | 'pending'
+
+export interface AutonomyLicenseSummary {
+  projectLicenseIds: string[]
+  sourceLicenseIds: string[]
+  projectDeclaredCount: number | null
+  matchedSourceCount: number | null
+  unknownProjectSourceCount: number | null
+  unknownMatchedSourceCount: number | null
+  complete: boolean
+  provenanceStatus: AutonomyLicenseProvenanceStatus | null
+}
+
+export interface AutonomyLicenseEvidence {
+  startLine: number | null
+  endLine: number | null
+  contentSha256: string
+  excerpt: string
+  jsonPointer: string | null
+  contentAvailable: boolean
+}
+
+export interface AutonomyProjectDeclaredLicense {
+  artifactId: string
+  filePath: string
+  licenseId: string
+  evidence: AutonomyLicenseEvidence | null
+  dependencyDepth: number | null
+  dependencyScope: string
+}
+
+export interface AutonomyMatchedLicenseSource {
+  repoId: string
+  sourceFile: string
+  licenseId: string
+  reviewStatus: string
+}
+
+export interface AutonomyLicenseArtifact {
+  artifactId: string
+  filePath: string
+  status: string
+  limitationReason: string
+  associationStatus: string
+  scopeSummary: string
+}
+
+export interface AutonomyLicenseResult {
+  taskId: string
+  projectId: string
+  taskStatus: string
+  provenanceStatus: AutonomyLicenseProvenanceStatus
+  projectDeclared: AutonomyProjectDeclaredLicense[]
+  matchedSources: AutonomyMatchedLicenseSource[]
+  summary: AutonomyLicenseSummary
+  artifacts: AutonomyLicenseArtifact[]
+  licenseTextIsCopyEvidence: false
 }
 
 /** 自主率检测结果 · 文件详情摘要（右侧详情区顶部） */
@@ -227,7 +294,7 @@ export interface AutonomySourceHitQueryParams extends Partial<PageParams> {
 }
 
 /** 自主率检测结果 Tab key */
-export type AutonomyDetectResultTabKey = 'evidence' | 'sources'
+export type AutonomyDetectResultTabKey = 'evidence' | 'sources' | 'licenses'
 
 /** 开源风险详情 · 顶部任务摘要（列表跳转经 state 携带） */
 export interface OpenSourceRiskDetailHeadInfo {
@@ -577,6 +644,38 @@ export interface AiParseResultDetail {
   licenseTreeNodes: FileTreeNode[]
   /** 潜在许可证冲突说明列表 */
   licenseConflicts: string[]
+  /** 后端持久化的完整 Markdown 报告 */
+  reportMarkdown: string
+  /** 每条许可证来源的文件取证 */
+  licenseSources: AiParseLicenseSource[]
+  provenanceVersion: number | null
+  provenanceStatus: 'recorded' | 'legacy-unavailable' | null
+  evidenceCollection: AiParseEvidenceCollection | null
+  status: 'queued' | 'running' | 'completed' | 'failed' | null
+}
+
+export interface AiParseLicenseSource {
+  id: string
+  licenseId: string
+  filePath: string
+  sourceType: string
+  acquisitionType: string
+  repository: { name: string; url: string | null; version: string }
+  component: { id: string; name: string; version: string; purl: string }
+  dependencyDepth: number | null
+  dependencyScope: string
+  dependencyPath: string[]
+  packageRootPath: string
+  resolutionBasis: string
+  extractionMethod: string
+  evidence: AutonomyLicenseEvidence
+}
+
+export interface AiParseEvidenceCollection {
+  dependenciesWithoutSourceFiles: string[]
+  excludedByDepth: string[]
+  unknownDependencyLevels: string[]
+  unsupportedManifests: string[]
 }
 
 /** AI 解析 · 规则回退对比行 */

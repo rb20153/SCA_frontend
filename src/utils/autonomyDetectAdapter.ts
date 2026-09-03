@@ -4,6 +4,12 @@ import type {
   AutonomyCodeDiffPane,
   AutonomyCodeEvidenceItem,
   AutonomyDetectResultOverview,
+  AutonomyLicenseArtifact,
+  AutonomyLicenseEvidence,
+  AutonomyLicenseResult,
+  AutonomyLicenseSummary,
+  AutonomyMatchedLicenseSource,
+  AutonomyProjectDeclaredLicense,
   AutonomyFileDetail,
   AutonomyFileDetailSummary,
   AutonomyFingerprintAlertType,
@@ -55,6 +61,83 @@ function pickNumberPreferNonZero(...candidates: unknown[]): number {
 /** 将 pickNumberPreferNonZero 结果规范为 0–100 自主率 */
 function pickAutonomyRate(...candidates: unknown[]): number {
   return normalizePercentRate(pickNumberPreferNonZero(...candidates))
+}
+
+function nullableNumber(raw: unknown): number | null {
+  if (raw === null || raw === undefined || raw === '') return null
+  const value = Number(raw)
+  return Number.isNaN(value) ? null : value
+}
+
+function stringList(raw: unknown): string[] {
+  return Array.isArray(raw) ? raw.map((item) => String(item ?? '').trim()).filter(Boolean) : []
+}
+
+function normalizeLicenseSummary(raw: unknown): AutonomyLicenseSummary | null {
+  if (!raw || typeof raw !== 'object') return null
+  const obj = raw as Record<string, unknown>
+  const status = String(obj.provenanceStatus ?? obj.provenance_status ?? '')
+  return {
+    projectLicenseIds: stringList(obj.projectLicenseIds ?? obj.project_license_ids),
+    sourceLicenseIds: stringList(obj.sourceLicenseIds ?? obj.source_license_ids),
+    projectDeclaredCount: nullableNumber(obj.projectDeclaredCount ?? obj.project_declared_count),
+    matchedSourceCount: nullableNumber(obj.matchedSourceCount ?? obj.matched_source_count),
+    unknownProjectSourceCount: nullableNumber(obj.unknownProjectSourceCount ?? obj.unknown_project_source_count),
+    unknownMatchedSourceCount: nullableNumber(obj.unknownMatchedSourceCount ?? obj.unknown_matched_source_count),
+    complete: Boolean(obj.complete),
+    provenanceStatus: ['completed', 'partial', 'unavailable', 'disabled', 'legacy-unavailable', 'pending'].includes(status)
+      ? status as AutonomyLicenseSummary['provenanceStatus'] : null,
+  }
+}
+
+function normalizeLicenseEvidence(raw: unknown): AutonomyLicenseEvidence | null {
+  if (!raw || typeof raw !== 'object') return null
+  const obj = raw as Record<string, unknown>
+  return {
+    startLine: nullableNumber(obj.startLine ?? obj.start_line), endLine: nullableNumber(obj.endLine ?? obj.end_line),
+    contentSha256: String(obj.contentSha256 ?? obj.content_sha256 ?? ''), excerpt: String(obj.excerpt ?? ''),
+    jsonPointer: obj.jsonPointer == null && obj.json_pointer == null ? null : String(obj.jsonPointer ?? obj.json_pointer),
+    contentAvailable: Boolean(obj.contentAvailable ?? obj.content_available),
+  }
+}
+
+function normalizeAutonomyLicenseResultItem(raw: unknown): AutonomyProjectDeclaredLicense {
+  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  return {
+    artifactId: String(obj.artifactId ?? obj.artifact_id ?? ''), filePath: String(obj.filePath ?? obj.file_path ?? ''),
+    licenseId: String(obj.licenseId ?? obj.license_id ?? ''), evidence: normalizeLicenseEvidence(obj.evidence),
+    dependencyDepth: nullableNumber(obj.dependencyDepth ?? obj.dependency_depth),
+    dependencyScope: String(obj.dependencyScope ?? obj.dependency_scope ?? ''),
+  }
+}
+
+export function normalizeAutonomyLicenseResult(raw: unknown, taskId: string): AutonomyLicenseResult {
+  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const summary = normalizeLicenseSummary(obj.summary) ?? {
+    projectLicenseIds: [], sourceLicenseIds: [], projectDeclaredCount: null, matchedSourceCount: null,
+    unknownProjectSourceCount: null, unknownMatchedSourceCount: null, complete: false, provenanceStatus: null,
+  }
+  const matchedSourcesRaw = obj.matchedSources ?? obj.matched_sources
+  const matchedSources = Array.isArray(matchedSourcesRaw)
+    ? (matchedSourcesRaw as unknown[]).map((rawItem: unknown) => {
+      const item = (rawItem && typeof rawItem === 'object' ? rawItem : {}) as Record<string, unknown>
+      return { repoId: String(item.repoId ?? item.repo_id ?? ''), sourceFile: String(item.sourceFile ?? item.source_file ?? ''), licenseId: String(item.licenseId ?? item.license_id ?? ''), reviewStatus: String(item.reviewStatus ?? item.review_status ?? '') } as AutonomyMatchedLicenseSource
+    }) : []
+  const artifacts = Array.isArray(obj.artifacts) ? (obj.artifacts as unknown[]).map((rawItem: unknown) => {
+    const item = (rawItem && typeof rawItem === 'object' ? rawItem : {}) as Record<string, unknown>
+    return { artifactId: String(item.artifactId ?? item.artifact_id ?? ''), filePath: String(item.filePath ?? item.file_path ?? ''), status: String(item.status ?? ''), limitationReason: String(item.limitationReason ?? item.limitation_reason ?? ''), associationStatus: String(item.associationStatus ?? item.association_status ?? ''), scopeSummary: String(item.scopeSummary ?? item.scope_summary ?? '') } as AutonomyLicenseArtifact
+  }) : []
+  return {
+    taskId: String(obj.taskId ?? obj.task_id ?? taskId), projectId: String(obj.projectId ?? obj.project_id ?? ''),
+    taskStatus: String(obj.taskStatus ?? obj.task_status ?? ''),
+    provenanceStatus: String(obj.provenanceStatus ?? obj.provenance_status ?? 'unavailable') as AutonomyLicenseResult['provenanceStatus'],
+    projectDeclared: (() => {
+      const declaredRaw = obj.projectDeclared ?? obj.project_declared
+      return Array.isArray(declaredRaw) ? declaredRaw.map(normalizeAutonomyLicenseResultItem) : []
+    })(),
+    matchedSources, summary: { ...summary, provenanceStatus: summary.provenanceStatus ?? (String(obj.provenanceStatus ?? obj.provenance_status ?? '') as AutonomyLicenseSummary['provenanceStatus']) },
+    artifacts, licenseTextIsCopyEvidence: false,
+  }
 }
 
 /** 将置信度规范为 0–1（后端可能返回百分比） */
@@ -343,6 +426,7 @@ export function normalizeAutonomyDetectResultOverview(
       obj.fingerprintIssueCount,
       obj.fingerprint_issue_count,
     ),
+    licenseSummary: normalizeLicenseSummary(obj.licenseSummary ?? obj.license_summary),
   }
 }
 

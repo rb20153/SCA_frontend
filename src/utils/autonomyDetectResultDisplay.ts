@@ -38,6 +38,7 @@ export const AUTONOMY_FINGERPRINT_ALERT_TYPE_LABEL: Record<AutonomyFingerprintAl
 export const AUTONOMY_DETECT_RESULT_TABS: PageNavTabItem[] = [
   { key: 'evidence', label: '文件证据' },
   { key: 'sources', label: '来源汇总' },
+  { key: 'licenses', label: '许可证取证' },
 ]
 
 /** 来源汇总 · 风险等级筛选项 */

@@ -1,6 +1,8 @@
 import type {
   AiParseFallbackCompareItem,
   AiParseResultDetail,
+  AiParseEvidenceCollection,
+  AiParseLicenseSource,
   AiParseScanDepth,
   AiParseTask,
   AiParseTaskQueryParams,
@@ -257,6 +259,10 @@ export function normalizeAiParseResultDetail(raw: unknown, parseTaskId: string):
     ruleFallback.licenseConflicts,
     ruleFallback.license_conflicts,
   ])
+  const evidenceSummary = obj.evidenceSummary ?? obj.evidence_summary
+  const collection = evidenceSummary && typeof evidenceSummary === 'object'
+    ? (evidenceSummary as Record<string, unknown>).collection
+    : null
 
   return {
     parseTaskId: pickFirstNonEmptyString(obj.parseTaskId, obj.parse_task_id, obj.id, parseTaskId),
@@ -282,6 +288,76 @@ export function normalizeAiParseResultDetail(raw: unknown, parseTaskId: string):
     fallbackReason: String(obj.fallbackReason ?? obj.fallback_reason ?? ''),
     licenseTreeNodes: unwrapLicenseTreeNodes(treeRaw).map((node) => normalizeLicenseTreeNode(node)),
     licenseConflicts,
+    reportMarkdown: String(obj.reportMarkdown ?? obj.report_markdown ?? ''),
+    licenseSources: normalizeList(obj.licenseSources ?? obj.license_sources, normalizeAiLicenseSource),
+    provenanceVersion: normalizeNullableNumber(obj.provenanceVersion ?? obj.provenance_version),
+    provenanceStatus: (() => {
+      const value = String(obj.provenanceStatus ?? obj.provenance_status ?? '')
+      return value === 'recorded' || value === 'legacy-unavailable' ? value : null
+    })(),
+    evidenceCollection: normalizeEvidenceCollection(collection),
+    status: (() => {
+      const value = String(obj.status ?? '').toLowerCase()
+      return ['queued', 'running', 'completed', 'failed'].includes(value)
+        ? value as AiParseResultDetail['status']
+        : null
+    })(),
+  }
+}
+
+function normalizeStringList(raw: unknown): string[] {
+  return Array.isArray(raw)
+    ? raw.map((item) => String(item ?? '').trim()).filter(Boolean)
+    : []
+}
+
+function normalizeNullableNumber(raw: unknown): number | null {
+  if (raw === null || raw === undefined || raw === '') return null
+  const value = Number(raw)
+  return Number.isNaN(value) ? null : value
+}
+
+function normalizeAiEvidence(raw: unknown): AiParseLicenseSource['evidence'] {
+  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  return {
+    startLine: normalizeNullableNumber(obj.startLine ?? obj.start_line),
+    endLine: normalizeNullableNumber(obj.endLine ?? obj.end_line),
+    contentSha256: String(obj.contentSha256 ?? obj.content_sha256 ?? ''),
+    excerpt: String(obj.excerpt ?? ''),
+    jsonPointer: obj.jsonPointer == null && obj.json_pointer == null
+      ? null : String(obj.jsonPointer ?? obj.json_pointer),
+    contentAvailable: Boolean(obj.contentAvailable ?? obj.content_available),
+  }
+}
+
+function normalizeAiLicenseSource(raw: unknown): AiParseLicenseSource {
+  const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const repository = (obj.repository && typeof obj.repository === 'object' ? obj.repository : {}) as Record<string, unknown>
+  const component = (obj.component && typeof obj.component === 'object' ? obj.component : {}) as Record<string, unknown>
+  return {
+    id: pickFirstNonEmptyString(obj.id), licenseId: pickFirstNonEmptyString(obj.licenseId, obj.license_id),
+    filePath: pickFirstNonEmptyString(obj.filePath, obj.file_path), sourceType: pickFirstNonEmptyString(obj.sourceType, obj.source_type),
+    acquisitionType: pickFirstNonEmptyString(obj.acquisitionType, obj.acquisition_type),
+    repository: { name: pickFirstNonEmptyString(repository.name), url: repository.url == null ? null : String(repository.url), version: pickFirstNonEmptyString(repository.version) },
+    component: { id: pickFirstNonEmptyString(component.id), name: pickFirstNonEmptyString(component.name), version: pickFirstNonEmptyString(component.version), purl: pickFirstNonEmptyString(component.purl) },
+    dependencyDepth: normalizeNullableNumber(obj.dependencyDepth ?? obj.dependency_depth),
+    dependencyScope: pickFirstNonEmptyString(obj.dependencyScope, obj.dependency_scope),
+    dependencyPath: normalizeStringList(obj.dependencyPath ?? obj.dependency_path),
+    packageRootPath: pickFirstNonEmptyString(obj.packageRootPath, obj.package_root_path),
+    resolutionBasis: pickFirstNonEmptyString(obj.resolutionBasis, obj.resolution_basis),
+    extractionMethod: pickFirstNonEmptyString(obj.extractionMethod, obj.extraction_method),
+    evidence: normalizeAiEvidence(obj.evidence),
+  }
+}
+
+function normalizeEvidenceCollection(raw: unknown): AiParseEvidenceCollection | null {
+  if (!raw || typeof raw !== 'object') return null
+  const obj = raw as Record<string, unknown>
+  return {
+    dependenciesWithoutSourceFiles: normalizeStringList(obj.dependenciesWithoutSourceFiles ?? obj.dependencies_without_source_files),
+    excludedByDepth: normalizeStringList(obj.excludedByDepth ?? obj.excluded_by_depth),
+    unknownDependencyLevels: normalizeStringList(obj.unknownDependencyLevels ?? obj.unknown_dependency_levels),
+    unsupportedManifests: normalizeStringList(obj.unsupportedManifests ?? obj.unsupported_manifests),
   }
 }
 

@@ -37,6 +37,7 @@ import type {
   TerminateTaskParams,
   VulnDbVersionOption,
   AutonomyDetectResultOverview,
+  AutonomyLicenseResult,
   AutonomyFileDetail,
   AutonomySourceHitItem,
   AutonomySourceHitQueryParams,
@@ -55,6 +56,7 @@ import {
   normalizeAutonomyDetectResultOverview,
   normalizeAutonomyEvidenceTree,
   normalizeAutonomyFileDetail,
+  normalizeAutonomyLicenseResult,
   normalizeAutonomySourceHitPage,
 } from '@/utils/autonomyDetectAdapter'
 import {
@@ -184,6 +186,16 @@ export async function getAutonomyDetectResultOverview(
   }
 
   return { ...res, data: overview }
+}
+
+/** 获取自主率检测结果的许可证取证明细 */
+export async function getAutonomyDetectLicenseResult(
+  taskId: string,
+): Promise<ApiResponse<AutonomyLicenseResult>> {
+  const res = await request.get<ApiResponse<unknown>>(
+    `/api/detect/tasks/${taskId}/autonomy/licenses`,
+  )
+  return { ...res, data: normalizeAutonomyLicenseResult(res.data, taskId) }
 }
 
 /**

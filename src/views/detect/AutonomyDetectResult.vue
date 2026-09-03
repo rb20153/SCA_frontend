@@ -26,6 +26,8 @@
           :visible="activeTab === 'sources'"
           @locate="handleLocateFromSource"
         />
+
+        <AutonomyLicenseResultPanel v-show="activeTab === 'licenses'" :task-id="taskId" />
       </template>
     </PageLoading>
   </div>
@@ -45,6 +47,7 @@ import StatCardRow from '@/components/common/StatCardRow.vue'
 import AutonomyRateRing from '@/components/detect/AutonomyRateRing.vue'
 import AutonomyEvidencePanel from '@/components/detect/AutonomyEvidencePanel.vue'
 import AutonomySourceHitPanel from '@/components/detect/AutonomySourceHitPanel.vue'
+import AutonomyLicenseResultPanel from '@/components/detect/AutonomyLicenseResultPanel.vue'
 import { AUTONOMY_DETECT_RESULT_TABS } from '@/utils/autonomyDetectResultDisplay'
 
 const route = useRoute()
