@@ -1,11 +1,11 @@
 <template>
-  <a-modal v-model:open="visible" title="提交报告下载申请" ok-text="提交申请" cancel-text="取消" :confirm-loading="submitting" destroy-on-close @ok="handleOk">
+  <a-modal v-model:open="visible" title="提交报告下载申请" ok-text="提交申请" cancel-text="取消" :confirm-loading="submitting" :ok-button-props="{ disabled: downloadFormatOptions.length === 0 }" destroy-on-close @ok="handleOk">
     <a-form layout="vertical">
       <a-form-item label="申请原因" required>
         <a-textarea v-model:value="form.reason" :rows="4" :maxlength="200" show-count placeholder="请输入下载报告的业务原因" />
       </a-form-item>
       <a-form-item label="下载格式">
-        <a-select v-model:value="form.format" :options="REPORT_DOWNLOAD_FORMAT_OPTIONS" />
+        <a-select v-model:value="form.format" :options="downloadFormatOptions" />
       </a-form-item>
       <a-form-item label="包含证据链">
         <a-switch v-model:checked="form.includeEvidenceChain" checked-children="是" un-checked-children="否" />
@@ -15,17 +15,32 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { submitReportDownloadApplication } from '@/api/report'
-import type { Report, ReportDownloadFormat } from '@/types/report'
+import type { Report, ReportDownloadFormat, ReportExportPolicyPreview } from '@/types/report'
 import { REPORT_DOWNLOAD_FORMAT_OPTIONS } from '@/utils/reportDownloadDisplay'
-const props = defineProps<{ report: Report | null }>()
+const props = defineProps<{
+  report: Report | null
+  exportPolicy?: ReportExportPolicyPreview | null
+}>()
 const visible = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ success: [] }>()
 const submitting = ref(false)
+const downloadFormatOptions = computed(() => {
+  const allowedFormats = props.exportPolicy?.allowedFormats
+  if (allowedFormats === undefined) return REPORT_DOWNLOAD_FORMAT_OPTIONS
+  return REPORT_DOWNLOAD_FORMAT_OPTIONS.filter((option) => allowedFormats.includes(option.value))
+})
 const form = reactive<{ reason: string; format: ReportDownloadFormat; includeEvidenceChain: boolean }>({ reason: '', format: 'pdf', includeEvidenceChain: false })
-function reset() { form.reason = ''; form.format = 'pdf'; form.includeEvidenceChain = false }
+function reset() {
+  form.reason = ''
+  form.format =
+    props.exportPolicy?.allowedFormats !== undefined
+      ? (downloadFormatOptions.value[0]?.value ?? 'pdf')
+      : 'pdf'
+  form.includeEvidenceChain = false
+}
 async function handleOk() {
   if (!props.report) return Promise.reject()
   if (!form.reason.trim()) { message.warning('请输入申请原因'); return Promise.reject() }

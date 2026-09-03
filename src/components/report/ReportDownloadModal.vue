@@ -3,6 +3,7 @@
     v-model:open="visible"
     title="下载报告"
     :confirm-loading="submitting"
+    :ok-button-props="{ disabled: downloadFormatOptions.length === 0 }"
     ok-text="确定"
     cancel-text="取消"
     destroy-on-close
@@ -24,7 +25,7 @@
       <a-form-item label="下载格式" name="format">
         <a-select
           v-model:value="formState.format"
-          :options="REPORT_DOWNLOAD_FORMAT_OPTIONS"
+          :options="downloadFormatOptions"
           class="report-download-format"
         />
       </a-form-item>
@@ -43,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { createReportDownload } from '@/api/report'
 import type { Report, ReportExportPolicyPreview } from '@/types/report'
@@ -56,11 +57,18 @@ import { triggerReportDownload } from '@/utils/reportDownload'
 const props = defineProps<{
   report: Report
   exportPolicy: ReportExportPolicyPreview
+  applicationId?: string
 }>()
 
 const visible = defineModel<boolean>('open', { required: true })
 
 const submitting = ref(false)
+
+const downloadFormatOptions = computed(() => {
+  const allowedFormats = props.exportPolicy.allowedFormats
+  if (allowedFormats === undefined) return REPORT_DOWNLOAD_FORMAT_OPTIONS
+  return REPORT_DOWNLOAD_FORMAT_OPTIONS.filter((option) => allowedFormats.includes(option.value))
+})
 
 const formState = reactive({
   format: DEFAULT_REPORT_DOWNLOAD_FORMAT,
@@ -70,7 +78,11 @@ const formState = reactive({
 
 /** 重置下载表单为默认值 */
 function resetForm() {
-  formState.format = DEFAULT_REPORT_DOWNLOAD_FORMAT
+  // 后端返回允许格式时遵循数组顺序，避免 PDF 不在首位时默认值与策略不一致。
+  formState.format =
+    props.exportPolicy.allowedFormats !== undefined
+      ? (downloadFormatOptions.value[0]?.value ?? DEFAULT_REPORT_DOWNLOAD_FORMAT)
+      : DEFAULT_REPORT_DOWNLOAD_FORMAT
   formState.includeEvidenceChain = false
 }
 
@@ -81,6 +93,7 @@ async function handleOk() {
     const res = await createReportDownload(props.report.reportId, {
       format: formState.format,
       includeEvidenceChain: formState.includeEvidenceChain,
+      applicationId: props.applicationId,
     })
     triggerReportDownload(res.data.downloadUrl, res.data.fileName)
     message.success('已开始下载')

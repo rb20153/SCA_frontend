@@ -52,6 +52,7 @@
       v-model:open="downloadVisible"
       :report="downloadReport"
       :export-policy="downloadExportPolicy"
+      :application-id="downloadApplicationId"
     />
 
     <ReportDetailDrawer
@@ -61,6 +62,7 @@
     <ReportDownloadApplicationModal
       v-model:open="applicationVisible"
       :report="applicationReport"
+      :export-policy="downloadExportPolicy"
       @success="loadPage"
     />
     <ReportDownloadApprovalDrawer v-model:open="approvalVisible" :application-id="approvalApplicationId" @success="loadPage" />
@@ -101,6 +103,7 @@ const failureReasonReport = ref<Report | null>(null)
 const downloadVisible = ref(false)
 const downloadReport = ref<Report | null>(null)
 const downloadExportPolicy = ref<ReportExportPolicyPreview | null>(null)
+const downloadApplicationId = ref<string | undefined>(undefined)
 const downloadChecking = ref(false)
 const applicationVisible = ref(false)
 const applicationReport = ref<Report | null>(null)
@@ -140,6 +143,12 @@ watch(
       return
     }
     if (retryApplication === '1' && report) {
+      try {
+        downloadExportPolicy.value = (await getReportDownloadStatus(report.reportId)).data.exportPolicy
+      } catch {
+        message.error('获取下载策略失败')
+        return
+      }
       applicationReport.value = report
       applicationVisible.value = true
       return
@@ -183,7 +192,8 @@ async function handleDownloadClick(report: Report) {
   downloadChecking.value = true
   try {
     const res = await getReportDownloadStatus(report.reportId)
-    const { requiresApproval, approvalState, exportPolicy } = res.data
+    const { requiresApproval, approvalState, exportPolicy, applicationId } = res.data
+    downloadExportPolicy.value = exportPolicy
 
     if (requiresApproval && approvalState !== 'approved') {
       if (!canWrite('/reports')) {
@@ -207,7 +217,7 @@ async function handleDownloadClick(report: Report) {
     }
 
     downloadReport.value = report
-    downloadExportPolicy.value = exportPolicy
+    downloadApplicationId.value = applicationId
     downloadVisible.value = true
   } catch {
     message.error('获取下载信息失败')

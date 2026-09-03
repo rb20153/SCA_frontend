@@ -101,6 +101,7 @@ export function normalizeDetectTask(
   const taskType = normalizeTaskType(raw.taskType ?? raw.type, fallbackTaskType)
   return {
     taskId: String(raw.taskId ?? raw.id ?? ''),
+    traceId: String(raw.traceId ?? raw.trace_id ?? '') || undefined,
     taskName: String(raw.taskName ?? raw.name ?? ''),
     taskType,
     status: normalizeTaskStatus(raw.status),

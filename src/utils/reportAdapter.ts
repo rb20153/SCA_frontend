@@ -5,6 +5,7 @@ import type {
   Report,
   ReportDetail,
   ReportDownloadApprovalState,
+  ReportDownloadFormat,
   ReportDownloadInfo,
   ReportDownloadApplication,
   ReportDownloadStatus,
@@ -226,6 +227,14 @@ export function normalizeReportPreview(raw: unknown, reportId: string): ReportPr
 /** 规范导出策略摘要（下载弹窗顶部 alert 展示，缺字段用 — 占位） */
 function normalizeReportExportPolicy(raw: unknown): ReportExportPolicyPreview {
   const obj = toRecord(raw)
+  const allowedFormatsRaw = obj.allowedFormats ?? obj.allowed_formats
+  const allowedFormats = Array.isArray(allowedFormatsRaw)
+    ? allowedFormatsRaw
+        .map((value) => String(value).trim().toLowerCase())
+        .filter((value): value is ReportDownloadFormat =>
+          value === 'pdf' || value === 'word' || value === 'html',
+        )
+    : undefined
   return {
     policyName: pickFirstNonEmptyString(obj.policyName, obj.policy_name) || '—',
     desensitizeRoleLabel:
@@ -235,6 +244,7 @@ function normalizeReportExportPolicy(raw: unknown): ReportExportPolicyPreview {
       pickFirstNonEmptyString(obj.desensitizeLevel, obj.desensitize_level, obj.level) || '—',
     watermarkPreview:
       pickFirstNonEmptyString(obj.watermarkPreview, obj.watermark_preview, obj.watermark) || '—',
+    ...(allowedFormats ? { allowedFormats: [...new Set(allowedFormats)] } : {}),
   }
 }
 
@@ -261,6 +271,14 @@ export function normalizeReportDownloadStatus(
     requiresApproval: normalizeBoolean(requiresApprovalRaw, approvalState !== 'not_required'),
     approvalState,
     exportPolicy: normalizeReportExportPolicy(obj.exportPolicy ?? obj.export_policy),
+    applicationId: pickFirstNonEmptyString(
+      obj.applicationId,
+      obj.application_id,
+      obj.approvedApplicationId,
+      obj.approved_application_id,
+      obj.approvalId,
+      obj.approval_id,
+    ) || undefined,
   }
 }
 

@@ -55,11 +55,11 @@ export function formatStatGrowth(growth: number, suffix = ''): string {
   return `增长 ${sign}${growth}${suffix}`
 }
 
-/** 失败任务跳转日志列表（按任务名称筛选资源/对象列） */
+/** 失败任务跳转日志列表（按任务 TraceID 筛选，直接定位任务执行链路） */
 export function getTaskLogListRoute(task: DetectTask) {
   return {
     path: '/system/logs',
-    query: { resourceObject: task.taskName },
+    query: task.traceId ? { traceId: task.traceId } : undefined,
   }
 }
 

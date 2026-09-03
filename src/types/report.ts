@@ -71,6 +71,8 @@ export interface ReportExportPolicyPreview {
   desensitizeRoleLabel: string
   desensitizeLevel: string
   watermarkPreview: string
+  /** 当前用户允许导出的格式；后端未返回时保持 undefined 以兼容旧接口 */
+  allowedFormats?: ReportDownloadFormat[]
 }
 
 /** 点击下载时向后端查询的审批与策略信息 */
@@ -79,6 +81,8 @@ export interface ReportDownloadStatus {
   requiresApproval: boolean
   approvalState: ReportDownloadApprovalState
   exportPolicy: ReportExportPolicyPreview
+  /** 当前报告已批准的下载申请 ID */
+  applicationId?: string
 }
 
 export interface CreateReportDownloadParams {

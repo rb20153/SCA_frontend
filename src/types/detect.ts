@@ -15,6 +15,8 @@ import type { FileTreeNode } from './fileTree'
 
 export interface DetectTask {
   taskId: string
+  /** 关联审计日志 TraceID */
+  traceId?: string
   taskName: string
   taskType: TaskType
   status: TaskStatus
