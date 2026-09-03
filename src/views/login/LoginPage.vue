@@ -2,8 +2,8 @@
   <div class="login-page diffuse-gradient-page">
     <a-card class="login-card" :bordered="false">
       <div class="login-logo">
-        <h2>SCA 检测平台</h2>
-        <p>动力学仿真软件代码自主率与开源风险检测系统</p>
+        <h2>动力学仿真软件代码自主率与开源风险检测工具</h2>
+        <p>简称SCA平台</p>
       </div>
 
       <!-- ── Login Form ──────────────────────────────────────────── -->
@@ -358,7 +358,7 @@ function switchMode(target: PageMode) {
 .login-card {
   position: relative;
   z-index: 1;
-  width: 420px;
+  width: 600px;
   max-width: 100%;
   box-shadow: 0 8px 32px rgba(22, 119, 255, 0.12);
   border-radius: 12px;
