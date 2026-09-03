@@ -65,15 +65,6 @@
           <a-empty v-else description="暂无潜在冲突" />
         </a-card>
 
-        <h3 class="section-title">AI 分析报告</h3>
-        <ReportTemplateMarkdownPreview
-          v-if="detail.reportMarkdown"
-          :markdown-content="detail.reportMarkdown"
-          :variables="[]"
-          class="report-preview"
-        />
-        <a-empty v-else description="暂无 AI 分析报告" />
-
         <h3 class="section-title">许可证来源证据</h3>
         <a-collapse v-if="detail.licenseSources.length" class="source-collapse">
           <a-collapse-panel
@@ -108,7 +99,6 @@ import type { AiParseResultDetail, AiParseTask } from '@/types/detect'
 import PageLoading from '@/components/common/PageLoading.vue'
 import LinuxStyleFileTree from '@/components/common/LinuxStyleFileTree.vue'
 import AiParseCoverageBar from '@/components/detect/AiParseCoverageBar.vue'
-import ReportTemplateMarkdownPreview from '@/components/report/ReportTemplateMarkdownPreview.vue'
 import { formatAiParseFinishedAt } from '@/utils/aiParseDisplay'
 import { formatDurationMs } from '@/utils/taskDisplay'
 
@@ -216,11 +206,6 @@ watch(
 
 .fallback-alert {
   margin-bottom: 16px;
-}
-
-.report-preview {
-  height: 360px;
-  min-height: 0;
 }
 
 .source-collapse {

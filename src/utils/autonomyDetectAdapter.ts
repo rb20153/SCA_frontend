@@ -103,11 +103,29 @@ function normalizeLicenseEvidence(raw: unknown): AutonomyLicenseEvidence | null 
 
 function normalizeAutonomyLicenseResultItem(raw: unknown): AutonomyProjectDeclaredLicense {
   const obj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const repository = (obj.repository && typeof obj.repository === 'object' ? obj.repository : {}) as Record<string, unknown>
+  const component = (obj.component && typeof obj.component === 'object' ? obj.component : {}) as Record<string, unknown>
   return {
+    id: String(obj.id ?? ''),
     artifactId: String(obj.artifactId ?? obj.artifact_id ?? ''), filePath: String(obj.filePath ?? obj.file_path ?? ''),
-    licenseId: String(obj.licenseId ?? obj.license_id ?? ''), evidence: normalizeLicenseEvidence(obj.evidence),
+    licenseId: String(obj.licenseId ?? obj.license_id ?? ''),
+    sourceType: String(obj.sourceType ?? obj.source_type ?? ''),
+    repository: {
+      name: String(repository.name ?? ''),
+      version: String(repository.version ?? ''),
+      url: repository.url == null ? null : String(repository.url),
+    },
+    component: {
+      id: String(component.id ?? ''),
+      name: String(component.name ?? ''),
+      version: String(component.version ?? ''),
+      purl: String(component.purl ?? ''),
+    },
+    evidence: normalizeLicenseEvidence(obj.evidence),
     dependencyDepth: nullableNumber(obj.dependencyDepth ?? obj.dependency_depth),
     dependencyScope: String(obj.dependencyScope ?? obj.dependency_scope ?? ''),
+    relationship: String(obj.relationship ?? ''),
+    extractionMethod: String(obj.extractionMethod ?? obj.extraction_method ?? ''),
   }
 }
 
@@ -121,7 +139,20 @@ export function normalizeAutonomyLicenseResult(raw: unknown, taskId: string): Au
   const matchedSources = Array.isArray(matchedSourcesRaw)
     ? (matchedSourcesRaw as unknown[]).map((rawItem: unknown) => {
       const item = (rawItem && typeof rawItem === 'object' ? rawItem : {}) as Record<string, unknown>
-      return { repoId: String(item.repoId ?? item.repo_id ?? ''), sourceFile: String(item.sourceFile ?? item.source_file ?? ''), licenseId: String(item.licenseId ?? item.license_id ?? ''), reviewStatus: String(item.reviewStatus ?? item.review_status ?? '') } as AutonomyMatchedLicenseSource
+       const repository = (item.repository && typeof item.repository === 'object' ? item.repository : {}) as Record<string, unknown>
+       const component = (item.component && typeof item.component === 'object' ? item.component : {}) as Record<string, unknown>
+       const repositoryUrl = item.repositoryUrl ?? item.repository_url ?? repository.url
+       return {
+         repoId: String(item.repoId ?? item.repo_id ?? ''),
+         sourceFile: String(item.sourceFile ?? item.source_file ?? ''),
+         licenseId: String(item.licenseId ?? item.license_id ?? ''),
+         reviewStatus: String(item.reviewStatus ?? item.review_status ?? ''),
+         repositoryName: String(item.repositoryName ?? item.repository_name ?? repository.name ?? ''),
+         repositoryVersion: String(item.repositoryVersion ?? item.repository_version ?? repository.version ?? ''),
+         repositoryUrl: repositoryUrl == null ? null : String(repositoryUrl),
+         componentName: String(item.componentName ?? item.component_name ?? component.name ?? ''),
+         componentVersion: String(item.componentVersion ?? item.component_version ?? component.version ?? ''),
+       } as AutonomyMatchedLicenseSource
     }) : []
   const artifacts = Array.isArray(obj.artifacts) ? (obj.artifacts as unknown[]).map((rawItem: unknown) => {
     const item = (rawItem && typeof rawItem === 'object' ? rawItem : {}) as Record<string, unknown>
@@ -136,7 +167,11 @@ export function normalizeAutonomyLicenseResult(raw: unknown, taskId: string): Au
       return Array.isArray(declaredRaw) ? declaredRaw.map(normalizeAutonomyLicenseResultItem) : []
     })(),
     matchedSources, summary: { ...summary, provenanceStatus: summary.provenanceStatus ?? (String(obj.provenanceStatus ?? obj.provenance_status ?? '') as AutonomyLicenseSummary['provenanceStatus']) },
-    artifacts, licenseTextIsCopyEvidence: false,
+     artifacts,
+     limitations: Array.isArray(obj.limitations)
+       ? obj.limitations.map((item) => String(item ?? '').trim()).filter(Boolean)
+       : [],
+     licenseTextIsCopyEvidence: false,
   }
 }
 

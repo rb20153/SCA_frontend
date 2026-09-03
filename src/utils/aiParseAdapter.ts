@@ -311,6 +311,64 @@ function normalizeStringList(raw: unknown): string[] {
     : []
 }
 
+/** 将取证范围限制项转换为可读文本，兼容后端返回字符串或对象。 */
+function normalizeEvidenceItem(item: unknown): string {
+  if (typeof item === 'string' || typeof item === 'number') {
+    return String(item).trim()
+  }
+  if (!item || typeof item !== 'object') {
+    return ''
+  }
+
+  const obj = item as Record<string, unknown>
+  const component = obj.component && typeof obj.component === 'object'
+    ? obj.component as Record<string, unknown>
+    : null
+  const path = pickFirstNonEmptyString(
+    obj.path,
+    obj.filePath,
+    obj.file_path,
+    obj.sourceFile,
+    obj.source_file,
+    obj.manifestPath,
+    obj.manifest_path,
+  )
+  const name = pickFirstNonEmptyString(
+    obj.name,
+    obj.packageName,
+    obj.package_name,
+    obj.dependency,
+    obj.componentName,
+    obj.component_name,
+    component?.name,
+  )
+  const version = pickFirstNonEmptyString(
+    obj.version,
+    obj.packageVersion,
+    obj.package_version,
+    obj.componentVersion,
+    obj.component_version,
+    component?.version,
+  )
+  const identity = name ? `${name}${version ? `@${version}` : ''}` : ''
+  const readable = [...new Set([path, identity].filter(Boolean))].join(' · ')
+  if (readable) {
+    return readable
+  }
+
+  try {
+    return JSON.stringify(item)
+  } catch {
+    return ''
+  }
+}
+
+function normalizeEvidenceItemList(raw: unknown): string[] {
+  return Array.isArray(raw)
+    ? raw.map(normalizeEvidenceItem).filter(Boolean)
+    : []
+}
+
 function normalizeNullableNumber(raw: unknown): number | null {
   if (raw === null || raw === undefined || raw === '') return null
   const value = Number(raw)
@@ -354,10 +412,10 @@ function normalizeEvidenceCollection(raw: unknown): AiParseEvidenceCollection | 
   if (!raw || typeof raw !== 'object') return null
   const obj = raw as Record<string, unknown>
   return {
-    dependenciesWithoutSourceFiles: normalizeStringList(obj.dependenciesWithoutSourceFiles ?? obj.dependencies_without_source_files),
-    excludedByDepth: normalizeStringList(obj.excludedByDepth ?? obj.excluded_by_depth),
-    unknownDependencyLevels: normalizeStringList(obj.unknownDependencyLevels ?? obj.unknown_dependency_levels),
-    unsupportedManifests: normalizeStringList(obj.unsupportedManifests ?? obj.unsupported_manifests),
+    dependenciesWithoutSourceFiles: normalizeEvidenceItemList(obj.dependenciesWithoutSourceFiles ?? obj.dependencies_without_source_files),
+    excludedByDepth: normalizeEvidenceItemList(obj.excludedByDepth ?? obj.excluded_by_depth),
+    unknownDependencyLevels: normalizeEvidenceItemList(obj.unknownDependencyLevels ?? obj.unknown_dependency_levels),
+    unsupportedManifests: normalizeEvidenceItemList(obj.unsupportedManifests ?? obj.unsupported_manifests),
   }
 }
 

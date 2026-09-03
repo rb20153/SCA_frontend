@@ -16,8 +16,61 @@ function renderInlineMarkdown(text: string): string {
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>')
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label: string, href: string) => {
+    const safeHref = sanitizeMarkdownHref(href)
+    return safeHref
+      ? `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${label}</a>`
+      : label
+  })
   return html
+}
+
+/** 解析 GFM 表格的一行，要求使用首尾竖线以避免误识别普通文本。 */
+function parseMarkdownTableRow(line: string): string[] | null {
+  const trimmed = line.trim()
+  if (!trimmed.startsWith('|') || !trimmed.endsWith('|')) {
+    return null
+  }
+  return trimmed
+    .slice(1, -1)
+    .split('|')
+    .map((cell) => cell.trim())
+}
+
+/** 判断 GFM 表格分隔行（例如 | --- | :---: | ---: |）。 */
+function isMarkdownTableSeparator(line: string): boolean {
+  const cells = parseMarkdownTableRow(line)
+  return Boolean(cells?.length && cells.every((cell) => /^:?-{3,}:?$/.test(cell)))
+}
+
+/** 渲染已经拆分好的 Markdown 表格。 */
+function renderMarkdownTable(rows: string[][]): string {
+  const [header, ...body] = rows
+  const headerHtml = header
+    .map((cell) => `<th>${renderInlineMarkdown(cell)}</th>`)
+    .join('')
+  const bodyHtml = body
+    .map(
+      (row) =>
+        `<tr>${header.map((_, index) => `<td>${renderInlineMarkdown(row[index] ?? '')}</td>`).join('')}</tr>`,
+    )
+    .join('')
+  return `<div class="report-markdown-table-wrap"><table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`
+}
+
+/** 仅允许常规网页、邮件和相对地址，拒绝脚本及协议相对地址。 */
+function sanitizeMarkdownHref(href: string): string | null {
+  const value = href.trim()
+  if (!value || value.startsWith('//')) {
+    return null
+  }
+
+  const protocol = value.match(/^([a-z][a-z\d+.-]*):/i)?.[1]?.toLowerCase()
+  if (protocol && protocol !== 'http' && protocol !== 'https' && protocol !== 'mailto') {
+    return null
+  }
+
+  return value
 }
 
 /**
@@ -82,8 +135,8 @@ export function renderReportTemplateMarkdownPreview(
     inCode = false
   }
 
-  lines.forEach((rawLine) => {
-    const line = rawLine || ''
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex] || ''
     const trimmed = line.trim()
 
     if (trimmed.startsWith('```')) {
@@ -93,23 +146,41 @@ export function renderReportTemplateMarkdownPreview(
       } else {
         inCode = true
       }
-      return
+      continue
     }
 
     if (inCode) {
       codeLines.push(line)
-      return
+      continue
     }
 
     if (!trimmed) {
       closeList()
-      return
+      continue
+    }
+
+    const tableHeader = parseMarkdownTableRow(line)
+    if (tableHeader && isMarkdownTableSeparator(lines[lineIndex + 1] || '')) {
+      closeList()
+      const tableRows = [tableHeader]
+      lineIndex += 2
+      while (lineIndex < lines.length) {
+        const row = parseMarkdownTableRow(lines[lineIndex])
+        if (!row) {
+          lineIndex -= 1
+          break
+        }
+        tableRows.push(row)
+        lineIndex += 1
+      }
+      html.push(renderMarkdownTable(tableRows))
+      continue
     }
 
     if (/^---+$/.test(trimmed)) {
       closeList()
       html.push('<hr/>')
-      return
+      continue
     }
 
     const orderedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/)
@@ -120,7 +191,7 @@ export function renderReportTemplateMarkdownPreview(
         html.push('<ol>')
       }
       html.push(`<li>${renderInlineMarkdown(orderedMatch[2])}</li>`)
-      return
+      continue
     }
 
     if (trimmed.startsWith('- ')) {
@@ -130,30 +201,30 @@ export function renderReportTemplateMarkdownPreview(
         html.push('<ul>')
       }
       html.push(`<li>${renderInlineMarkdown(trimmed.slice(2))}</li>`)
-      return
+      continue
     }
 
     closeList()
 
     if (trimmed.startsWith('### ')) {
       html.push(`<h3>${renderInlineMarkdown(trimmed.slice(4))}</h3>`)
-      return
+      continue
     }
     if (trimmed.startsWith('## ')) {
       html.push(`<h2>${renderInlineMarkdown(trimmed.slice(3))}</h2>`)
-      return
+      continue
     }
     if (trimmed.startsWith('# ')) {
       html.push(`<h1>${renderInlineMarkdown(trimmed.slice(2))}</h1>`)
-      return
+      continue
     }
     if (trimmed.startsWith('> ')) {
       html.push(`<blockquote>${renderInlineMarkdown(trimmed.slice(2))}</blockquote>`)
-      return
+      continue
     }
 
     html.push(`<p>${renderInlineMarkdown(line).replace(/  $/g, '<br/>')}</p>`)
-  })
+  }
 
   closeList()
   closeCode()

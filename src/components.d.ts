@@ -40,6 +40,7 @@ declare module 'vue' {
     AiParseCoverageBar: typeof import('./components/detect/AiParseCoverageBar.vue')['default']
     AiParseFallbackModal: typeof import('./components/detect/AiParseFallbackModal.vue')['default']
     AiParseQueryBar: typeof import('./components/detect/AiParseQueryBar.vue')['default']
+    AiParseReportDrawer: typeof import('./components/detect/AiParseReportDrawer.vue')['default']
     AiParseResultDrawer: typeof import('./components/detect/AiParseResultDrawer.vue')['default']
     AiParseStartModal: typeof import('./components/detect/AiParseStartModal.vue')['default']
     AiParseTaskTable: typeof import('./components/detect/AiParseTaskTable.vue')['default']

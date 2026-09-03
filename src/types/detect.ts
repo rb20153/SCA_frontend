@@ -159,12 +159,18 @@ export interface AutonomyLicenseEvidence {
 }
 
 export interface AutonomyProjectDeclaredLicense {
+  id: string
   artifactId: string
   filePath: string
   licenseId: string
+  sourceType: string
+  repository: { name: string; version: string; url: string | null }
+  component: { id: string; name: string; version: string; purl: string }
   evidence: AutonomyLicenseEvidence | null
   dependencyDepth: number | null
   dependencyScope: string
+  relationship: string
+  extractionMethod: string
 }
 
 export interface AutonomyMatchedLicenseSource {
@@ -172,6 +178,11 @@ export interface AutonomyMatchedLicenseSource {
   sourceFile: string
   licenseId: string
   reviewStatus: string
+  repositoryName: string
+  repositoryVersion: string
+  repositoryUrl: string | null
+  componentName: string
+  componentVersion: string
 }
 
 export interface AutonomyLicenseArtifact {
@@ -192,6 +203,7 @@ export interface AutonomyLicenseResult {
   matchedSources: AutonomyMatchedLicenseSource[]
   summary: AutonomyLicenseSummary
   artifacts: AutonomyLicenseArtifact[]
+  limitations: string[]
   licenseTextIsCopyEvidence: false
 }
 

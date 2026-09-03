@@ -129,6 +129,33 @@ const previewHtml = computed(() => {
   border-top: 1px solid #f0f0f0;
 }
 
+.markdown-preview-panel__body :deep(.report-markdown-table-wrap) {
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.markdown-preview-panel__body :deep(table) {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.markdown-preview-panel__body :deep(th),
+.markdown-preview-panel__body :deep(td) {
+  padding: 8px 10px;
+  border: 1px solid #d9d9d9;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.markdown-preview-panel__body :deep(th) {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
 .markdown-preview-panel__body :deep(a) {
   color: #1677ff;
 }

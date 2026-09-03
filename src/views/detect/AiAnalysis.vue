@@ -23,6 +23,7 @@
           :loading="loading"
           :pagination="pagination"
           @view-result="openResultDrawer"
+          @view-report="openReportDrawer"
           @fallback="openFallbackModal"
         />
       </PageLoading>
@@ -32,6 +33,11 @@
 
     <AiParseResultDrawer
       v-model:open="resultDrawerVisible"
+      :task="selectedTask"
+    />
+
+    <AiParseReportDrawer
+      v-model:open="reportDrawerVisible"
       :task="selectedTask"
     />
 
@@ -51,6 +57,7 @@ import PageLoading from '@/components/common/PageLoading.vue'
 import AiParseFallbackModal from '@/components/detect/AiParseFallbackModal.vue'
 import AiParseQueryBar from '@/components/detect/AiParseQueryBar.vue'
 import AiParseResultDrawer from '@/components/detect/AiParseResultDrawer.vue'
+import AiParseReportDrawer from '@/components/detect/AiParseReportDrawer.vue'
 import AiParseStartModal from '@/components/detect/AiParseStartModal.vue'
 import AiParseTaskTable from '@/components/detect/AiParseTaskTable.vue'
 import { useFilteredPaginatedList } from '@/composables/useFilteredPaginatedList'
@@ -63,6 +70,7 @@ import {
 
 const startModalVisible = ref(false)
 const resultDrawerVisible = ref(false)
+const reportDrawerVisible = ref(false)
 const fallbackModalVisible = ref(false)
 const selectedTask = ref<AiParseTask | null>(null)
 const { canWrite } = usePagePermission()
@@ -71,6 +79,12 @@ const { canWrite } = usePagePermission()
 function openResultDrawer(task: AiParseTask) {
   selectedTask.value = task
   resultDrawerVisible.value = true
+}
+
+/** 打开独立的 AI 分析报告抽屉 */
+function openReportDrawer(task: AiParseTask) {
+  selectedTask.value = task
+  reportDrawerVisible.value = true
 }
 
 /** 打开规则回退弹窗 */

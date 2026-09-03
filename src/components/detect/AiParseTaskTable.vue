@@ -56,6 +56,14 @@
             查看结果
           </a>
           <a
+            v-if="getTask(row).status === 'success'"
+            href="#"
+            class="list-table-link"
+            @click.prevent="emit('view-report', getTask(row))"
+          >
+            AI报告
+          </a>
+          <a
             v-else-if="getTask(row).status === 'failed' && canWrite('/detect/ai-analysis')"
             href="#"
             class="list-table-link"
@@ -97,6 +105,7 @@ defineProps<{
 
 const emit = defineEmits<{
   'view-result': [task: AiParseTask]
+  'view-report': [task: AiParseTask]
   fallback: [task: AiParseTask]
 }>()
 const { canWrite } = usePagePermission()
@@ -174,7 +183,7 @@ const columns: TableColumnsType<AiParseTask> = [
   {
     title: '操作',
     key: 'action',
-    width: 128,
+    width: 168,
   },
 ]
 </script>
@@ -183,6 +192,7 @@ const columns: TableColumnsType<AiParseTask> = [
 .action-cell {
   display: inline-flex;
   align-items: center;
+  gap: 12px;
   white-space: nowrap;
 }
 </style>
